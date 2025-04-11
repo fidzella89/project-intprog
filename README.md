@@ -6,6 +6,7 @@
   <li>Wenceslao, Kent => backend-signup-auth</li>
   <li>Montemar, Jherick => backend-authorization-crud</li>
 </ul>
+
 ## IntroductionLinks to an external site.
 A full-stack application for managing user accounts with features like email sign-up, verification, authentication, role-based authorization, and CRUD operations.
 ## Installation
