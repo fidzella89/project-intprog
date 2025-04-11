@@ -1,4 +1,33 @@
 # User Management System
+<h2 align="center">🐾 Members</h2>
+
+<div align="center">
+  <div style="display: inline-block; margin: 20px;">
+    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Shark" alt="Ypil Cyril John" width="120" style="border-radius: 50%;"><br>
+    <strong>Ypil, Cyril John</strong><br>
+    <sub>Frontend & Tester</sub>
+  </div>
+
+  <div style="display: inline-block; margin: 20px;">
+    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Penguin" alt="Doblas Ken Harvey" width="120" style="border-radius: 50%;"><br>
+    <strong>Doblas, Ken Harvey</strong><br>
+    <sub>Frontend</sub>
+  </div>
+
+  <div style="display: inline-block; margin: 20px;">
+    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Rabbit" alt="Wenceslao Kent" width="120" style="border-radius: 50%;"><br>
+    <strong>Wenceslao, Kent</strong><br>
+    <sub>Backend</sub>
+  </div>
+
+  <div style="display: inline-block; margin: 20px;">
+    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Bear" alt="Montemar Jherick" width="120" style="border-radius: 50%;"><br>
+    <strong>Montemar, Jherick</strong><br>
+    <sub>Backend</sub>
+  </div>
+</div>
+
+
 ## Members:
 <ul>
   <li>Ypil, Cyril John => frontend-profile-admin-fake-backend, tester-functional-testing, tester-security-testing</li>
