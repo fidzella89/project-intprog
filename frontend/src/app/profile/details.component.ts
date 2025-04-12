@@ -11,3 +11,4 @@ export class DetailsComponent {
     }
 }
 // modified this too same as from home.component.ts
+
