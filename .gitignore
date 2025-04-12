@@ -1,2 +1,29 @@
 frontend/node_modules
 Backend/node_modules
+# compile output
+/dist
+/tmp
+/out-tsc
+# Only exist if Bazel was run
+/bazel-out
+
+#profiling files
+chrome-profiler-events*.json
+speed-measure-plugins*.json
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
