@@ -10,3 +10,5 @@ export class DetailsComponent {
         this.account = this.accountService.accountValue;
     }
 }
+// modified this too same as from home.component.ts
+
