@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, Input } from '@angular/core';
-import { Router, NavigationStart } from '@angular/core';
+import { Router, NavigationStart } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { Alert, AlertType } from '@app/_models';
@@ -22,7 +22,7 @@ export class AlertComponent implements OnInit, OnDestroy {
                 // clear alerts when an empty alert is received
                 if (!alert.message) {
                     // clear alerts when an empty alert is received
-                    this.alerts = this.alertService.filter(x => x.keepAfterRouteChange);
+                    this.alerts = this.alerts.filter(x => x.keepAfterRouteChange);
 
                     this.alerts.forEach(x => delete x.keepAfterRouteChange);
                     return;

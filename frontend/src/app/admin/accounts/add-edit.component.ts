@@ -34,7 +34,7 @@ export class AddEditComponent implements OnInit {
             lastName: ['', Validators.required],
             email: ['', Validators.required, Validators.email],
             role: ['', Validators.required],
-            password: ['', Validators.required, Validators.minlength(6)],
+            password: ['', Validators.required, Validators.minLength(6)],
             confirmPassword: ['', Validators.required]
         }, {
             validators: MustMatch('password', 'confirmPassword')

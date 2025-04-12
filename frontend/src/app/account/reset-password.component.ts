@@ -31,13 +31,13 @@ export class ResetPasswordComponent implements OnInit {
 
     ngOnInit() {
         this.form = this.formBuilder.group({
-            password: ['', Validators.required, Validators.minlength(6)],
+            password: ['', Validators.required, Validators.minLength(6)],
             confirmPassword: ['', Validators.required]
         }, {
-            validators: MustMatch('password', 'confirmPassword')
+            validator: MustMatch('password', 'confirmPassword')
         });
 
-        const token = this.route.snapshot(queryParams['token']);
+        const token = this.route.snapshot.queryParams['token'];
 
         // remove token from url to prevent http referer leakage
         this.router.navigate([], { relativeTo: this.route, replaceUrl: true });
