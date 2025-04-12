@@ -37,15 +37,11 @@ function authenticate(req, res, next) {
     accountService.authenticate({ email, password, ipAddress })
         .then(({ refreshToken, ...account }) => {
             setTokenCookie(res, refreshToken);
-<<<<<<< HEAD
-            res.json(account);
-=======
             // Include user ID in the response
             res.json({
                 ...account,
                 id: account.id // Ensure this is included
             });
->>>>>>> 4d3328c8edf271852fdc86d38d8d0559a8b5546e
         })
         .catch(next);
 }
