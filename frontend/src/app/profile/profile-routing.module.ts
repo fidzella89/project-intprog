@@ -18,6 +18,6 @@ const routes: Routes = [
 
 @NgModule({
     imports: [RouterModule.forChild(routes)],
-    export: [RouterModule]
+    exports: [RouterModule]
 })
 export class ProfileRoutingModule { }

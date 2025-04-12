@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { Routes, RouteModule } from '@angular/router';
+import { Routes, RouterModule } from '@angular/router';
 
 import { SubNavComponent } from './subnav.component';
 import { LayoutComponent } from './layout.component';
@@ -19,7 +19,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-    imports: [RouteModule.forChild(routes)],
-    export: [RouteModule]
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule]
 })
 export class AdminRoutingModule { }

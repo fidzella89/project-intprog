@@ -270,7 +270,7 @@ export class FakeBackEndInterceptor implements HttpInterceptor {
 
             // only update password if included
             if (!params.password) {
-                delete.params.password;
+                delete params.password;
             }
 
             // don't save confirm password
@@ -290,7 +290,7 @@ export class FakeBackEndInterceptor implements HttpInterceptor {
 
             // user accounts can delete own account and admin accounts can delete any accounnt
             if (account.id !== currentAccount().id && !isAuthorized(Role.Admin)) {
-                return unathorized();
+                return unauthorized();
             }
 
             // delete account then save

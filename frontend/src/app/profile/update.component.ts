@@ -21,7 +21,7 @@ export class UpdateComponent implements OnInit {
         private accountService: AccountService,
         private alertService: AlertService
     ) {
-        this.account = this.accountService.value;
+        this.account = this.accountService.accountValue;
     }
 
     ngOnInit() {
@@ -30,7 +30,7 @@ export class UpdateComponent implements OnInit {
             firstName: [this.account.firstname, Validators.required],
             lastName: [this.account.lastName, Validators.required],
             email: [this.account.email, Validators.required, Validators.email],
-            password: ['', Validators.minlength(6)],
+            password: ['', Validators.minLength(6)],
             confirmPassword: ['']
         }, {
             validator: MustMatch('password', 'confirmPassword')

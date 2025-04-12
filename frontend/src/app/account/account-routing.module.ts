@@ -12,11 +12,11 @@ const routes: Routes = [
     {
         path: '', component: LayoutComponent,
         children: [
-            { path: 'login', components: LoginComponent },
-            { path: 'register', components: RegisterComponent },
-            { path: 'verify-email', components: VerifyEmailComponent },
-            { path: 'forgot-password', components: ForgotPasswordComponent },
-            { path: 'reset-password', components: ResetPasswordComponent }
+            { path: 'login', component: LoginComponent },
+            { path: 'register', component: RegisterComponent },
+            { path: 'verify-email', component: VerifyEmailComponent },
+            { path: 'forgot-password', component: ForgotPasswordComponent },
+            { path: 'reset-password', component: ResetPasswordComponent }
         ]
     }
 ];
