@@ -153,9 +153,12 @@ Open the application in your browser at: `http://localhost:4200`
 
 - **Signup Page**: Signup Page Screenshot ![image](https://github.com/user-attachments/assets/a9c1a248-38e9-4541-994a-2bd99a176add)
 
-- **Email Verification Page**: Email Verification Screenshot <!-- [ ] Insert screenshot here -->
-- **Profile Update Page**: Profile Update Screenshot <!-- [ ] Insert screenshot here -->
-- **Error Handling**: Error Handling Screenshot <!-- [ ] Insert screenshot here -->
+- **Email Verification Page**: Email Verification Screenshot ![image](https://github.com/user-attachments/assets/bbfdb756-04ea-4ec0-8763-5e72976cb982)
+
+- **Profile Update Page**: Profile Update Screenshot ![image](https://github.com/user-attachments/assets/6ce44948-5222-42ac-9b64-c52c1156ccce)
+
+- **Error Handling**: Error Handling Screenshot ![image](https://github.com/user-attachments/assets/079e6956-6590-4dd4-ba69-38f13b20c671)
+
 
 - **Admin Page**: Screenshot of Admin Interface ![image](https://github.com/user-attachments/assets/6c82251f-dfaf-47b5-84af-154499a2c46e)
 
