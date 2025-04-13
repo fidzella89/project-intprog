@@ -107,6 +107,8 @@ export class RegisterComponent implements OnInit {
 
     // ... rest of the component code ...
 }
+```
+```
 </details><details> <summary><strong>register.component.html</strong></summary>
 <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="form-group">
@@ -120,17 +122,23 @@ export class RegisterComponent implements OnInit {
     
     <!-- Other form fields similarly structured -->
 </form>
+```
 </details>
 ⚙️ Setup
+
 Backend API Configuration
+```
 register(user: any) {
     return this.http.post(`${environment.apiUrl}/users/register`, user);
 }
+```
 Environment Configuration
+```
 export const environment = {
     production: false,
     apiUrl: 'http://localhost:4000/api'
 };
+```
 🧪 Testing
 Test Case	Expected Result
 Valid inputs	Successful registration
