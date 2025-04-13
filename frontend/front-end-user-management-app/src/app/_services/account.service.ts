@@ -14,7 +14,7 @@ export class AccountService {
     private accountSubject: BehaviorSubject<Account>
     public account: Observable<Account>
 
-    constructor(private router, private http: HttpClient) {
+    constructor(private router: Router, private http: HttpClient) {
         this.accountSubject = new BehaviorSubject<Account>(null);
         this.account = this.accountSubject.asObservable();
     }

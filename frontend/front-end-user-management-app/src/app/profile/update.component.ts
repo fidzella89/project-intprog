@@ -6,7 +6,7 @@ import { first } from 'rxjs/operators';
 import { AccountService, AlertService } from '@app/_services';
 import { MustMatch } from '@app/_helpers';
 
-@Component({ templateUrl: 'update.components.html' })
+@Component({ templateUrl: 'update.component.html' })
 export class UpdateComponent implements OnInit {
     account: any;
     form: UntypedFormGroup;

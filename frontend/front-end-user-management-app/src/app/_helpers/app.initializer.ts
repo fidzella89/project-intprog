@@ -1,10 +1,9 @@
 import { AccountService } from '@app/_services';
 
 export function appInitializer(accountService: AccountService) {
-    return () => new Promise(resolve => {
-        // attemp to refresh token on app start up to auto authenticate
+    return () => new Promise<void>(resolve => {
         accountService.refreshToken()
             .subscribe()
-            .add(resolve);
+            .add(() => resolve()); // ✅ wrapped in a no-argument function
     });
 }
