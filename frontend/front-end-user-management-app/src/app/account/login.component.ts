@@ -44,12 +44,18 @@ export class LoginComponent implements OnInit {
         this.accountService.login(this.f.email.value, this.f.password.value)
             .pipe(first())
             .subscribe({
-                next: () => {
-                    // get return ulr from query parameters or default to home page
+                next: (account) => {
+                    // Check if the account is verified
+                    if (!account.isVerified) {
+                        this.alertService.warn('Please verify your account before logging in.');
+                    }
+
+                    // Get return URL from query parameters or default to home page
                     const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+                    this.router.navigate([returnUrl]);
                 },
-                error: error => {
-                    this.alertService.error(error)
+                error: (error) => {
+                    this.alertService.error(error);
                     this.loading = false;
                 }
             });

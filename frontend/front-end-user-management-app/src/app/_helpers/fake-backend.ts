@@ -114,19 +114,18 @@ export class FakeBackEndInterceptor implements HttpInterceptor {
                 // display email already registered "email" in alert
                 setTimeout(() => {
                     alertService.info(`
-                            <h4>Email Already Registered</h4>
-                            <p>The email address you entered is already registered.</p>
-                            <p> If you don't know your password please visit the <a href="${location.origin}/account/forgot-password">Forgot Password</a> page.</p>
-                            <div><strong>NOTE:</strong> The fake backend displayed this "email" so you can test without an api. A real backend would send a real email.</div>
-                        `, { autoClose: false });
+                        <h4>Email Already Registered</h4>
+                        <p>The email address you entered is already registered.</p>
+                        <p> If you don't know your password please visit the <a href="${location.origin}/account/forgot-password">Forgot Password</a> page.</p>
+                        <div><strong>NOTE:</strong> The fake backend displayed this "email" so you can test without an api. A real backend would send a real email.</div>
+                    `, { autoClose: false });
                 }, 1000);
 
                 // always return ok() response to prevent email enumeration
                 return ok();
-
             }
 
-            // assign account id and a afew other properties then save
+            // assign account id and a few other properties then save
             account.id = newAccountId();
             if (account.id === 1) {
                 // first registered account is an admin
@@ -146,13 +145,14 @@ export class FakeBackEndInterceptor implements HttpInterceptor {
             setTimeout(() => {
                 const verifyUrl = `${location.origin}/account/verify-email?token=${account.verificationToken}`;
                 alertService.info(`
-                        <h4>Verification Email</h4>
-                        <p>Thanks for registering!</p>
-                        <p>Please click the below link to verify your email address:</p>
-                        <p><a href=${verifyUrl}></a></p>
-                        <div><strong>NOTE:</strong> The fake backend displayed this "email" so you can test without an api. A real backend would send a real email.</div>
-                    `, { autoClose: false });
+                    <h4>Verification Email</h4>
+                    <p>Thanks for registering!</p>
+                    <p>Please click the below link to verify your email address:</p>
+                    <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+                    <div><strong>NOTE:</strong> The fake backend displayed this "email" so you can test without an api. A real backend would send a real email.</div>
+                `, { autoClose: false });
             }, 1000);
+
             return ok();
         }
 
