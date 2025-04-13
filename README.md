@@ -1,99 +1,132 @@
-# User Management System
-<h2 align="center">🐾 Members</h2>
+# 🚀 User Management System
 
 <div align="center">
-  <div style="display: inline-block; margin: 20px;">
-    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Shark" alt="Ypil Cyril John" width="120" style="border-radius: 50%;"><br>
-    <strong>Ypil, Cyril John</strong><br>
-    <sub>Frontend & Tester</sub>
-  </div>
+  <img src="https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white" alt="Angular">
+  <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL">
+  <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white" alt="JWT">
+</div>
 
-  <div style="display: inline-block; margin: 20px;">
-    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Penguin" alt="Doblas Ken Harvey" width="120" style="border-radius: 50%;"><br>
-    <strong>Doblas, Ken Harvey</strong><br>
-    <sub>Frontend</sub>
-  </div>
+## 👥 Team Members
 
-  <div style="display: inline-block; margin: 20px;">
-    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Rabbit" alt="Wenceslao Kent" width="120" style="border-radius: 50%;"><br>
-    <strong>Wenceslao, Kent</strong><br>
-    <sub>Backend</sub>
-  </div>
+<div align="center" style="display: flex; justify-content: center; flex-wrap: wrap; gap: 30px; margin: 40px 0;">
 
-  <div style="display: inline-block; margin: 20px;">
-    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Bear" alt="Montemar Jherick" width="120" style="border-radius: 50%;"><br>
-    <strong>Montemar, Jherick</strong><br>
-    <sub>Backend</sub>
+<div align="center">
+  <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Shark" width="120" style="border-radius: 50%; border: 3px solid #4285F4;">
+  <h3>Ypil, Cyril John</h3>
+  <p>Frontend & Testing</p>
+  <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
+    <code>frontend-profile-admin</code><br>
+    <code>tester-functional-testing</code><br>
+    <code>tester-security-testing</code>
   </div>
 </div>
 
+<div align="center">
+  <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Penguin" width="120" style="border-radius: 50%; border: 3px solid #EA4335;">
+  <h3>Doblas, Ken Harvey</h3>
+  <p>Frontend Development</p>
+  <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
+    <code>frontend-signup-auth</code>
+  </div>
+</div>
 
-## Members:
-<ul>
-  <li>Ypil, Cyril John => frontend-profile-admin-fake-backend, tester-functional-testing, tester-security-testing</li>
-  <li>Doblas, Ken Harvey => frontend-signup-auth</li>
-  <li>Wenceslao, Kent => backend-signup-auth</li>
-  <li>Montemar, Jherick => backend-authorization-crud</li>
-</ul>
+<div align="center">
+  <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Rabbit" width="120" style="border-radius: 50%; border: 3px solid #FBBC05;">
+  <h3>Wenceslao, Kent</h3>
+  <p>Backend Development</p>
+  <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
+    <code>backend-signup-auth</code>
+  </div>
+</div>
 
-## IntroductionLinks to an external site.
-A full-stack application for managing user accounts with features like email sign-up, verification, authentication, role-based authorization, and CRUD operations.
-## Installation
-   1. Clone the repository:
-       git clone https://github.com/your-username/user-management-system.gitLinks to an external site.
-Install dependencies:
+<div align="center">
+  <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Bear" width="120" style="border-radius: 50%; border: 3px solid #34A853;">
+  <h3>Montemar, Jherick</h3>
+  <p>Backend Development</p>
+  <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
+    <code>backend-authorization-crud</code>
+  </div>
+</div>
+
+</div>
+
+## 📌 Introduction
+
+A full-stack application for managing user accounts with:
+
+- ✅ Email sign-up & verification
+- 🔐 JWT authentication
+- 🛡️ Role-based authorization
+- 📊 Admin dashboard
+- 🔄 CRUD operations
+
+## 🛠️ Installation
+
+```bash
+# Clone repository
+git clone https://github.com/your-username/user-management-system.git
+
+# Install dependencies
 npm install
-Start the backend server:
+
+# Start backend server
 npm start
-Start the Angular app:
+
+# Start Angular frontend
 ng serve
-Usage
-Register a new account at /accounts/register.
-Verify your email using the link sent to your inbox.
-Log in at /accounts/login.
-Testing
-Functional testing results: [Link to test cases]
-Security testing results: [Link to test cases]
-Contributing
-Follow the Git and GitHub workflow outlined in the project guidelines.
+```
+🎯 Features
+Feature	Description
+User Registration	Secure sign-up with email verification
+Authentication	JWT with refresh tokens
+Authorization	Role-based access control
+Password Recovery	Forgot/reset password flow
+Admin Dashboard	Manage all user accounts
+🧪 Testing
+<div style="background: #f6f8fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+🔍 Test Coverage
+Functional testing: View Results
 
-License
-MIT License
+Security testing: View Results
 
----
-### **Best Practices**
-1. **Commit Often:** Make small, frequent commits with clear messages to track progress.
-2. **Use Descriptive Branch Names:** Name branches based on their purpose.
-3. **Review Code Before Merging:** Always review pull requests to ensure code quality.
-4. **Keep Branches Updated:** Regularly pull changes from `main` to avoid large conflicts.
-5. **Communicate with Your Team:** Use GitHub issues or comments to discuss tasks and updates.
----
-### **Deliverables**
-1. A fully functional **Node.js + MySQL - Boilerplate APILinks to an external site.** backend with:
-- Email sign-up and verification.
-- JWT authentication with refresh tokens.
-- Role-based authorization.
-- Forgot password and reset password functionality.
-- CRUD operations for managing accounts.
-2. A fully functional **Angular 10 (17 updated) BoilerplateLinks to an external site.** frontend with:
-- Email sign-up and verification.
-- JWT authentication with refresh tokens.
-- Role-based authorization.
-- Profile management.
-- Admin dashboard for managing accounts.
-- **Fake backend** implementation for backend-less development.
-3. A clean and well-maintained GitHub repository with:
-- Proper branching structure.
-- Reviewed and merged pull requests.
-- Resolved merge conflicts.
-4. Comprehensive **README.md documentation** covering installation, usage, testing, and contributing guidelines.
-5. Test reports from **testers** ensuring the application is functional and secure.
----
-### **Evaluation Criteria**
-Each team member will be evaluated individually based on:
-1. **Code Quality:** Clean, modular, and well-documented code.
-2. **Functionality:** Correct implementation of assigned features.
-3. **Collaboration:** Effective use of Git and GitHub for collaboration.
-4. **Problem-Solving:** Ability to resolve merge conflicts and debug issues.
-5. **Testing:** Thoroughness of testing and quality of test reports.
----
+bash
+Copy
+# Run tests
+npm test
+</div>
+🤝 Contributing
+Create a feature branch (git checkout -b feature/AmazingFeature)
+
+Commit your changes (git commit -m 'Add amazing feature')
+
+Push to the branch (git push origin feature/AmazingFeature)
+
+Open a Pull Request
+
+📜 Best Practices
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 30px 0;"><div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"> <h3>🔀 Git Workflow</h3> <ul> <li>Small, frequent commits</li> <li>Descriptive branch names</li> <li>Regularly pull from main</li> </ul> </div><div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"> <h3>💻 Code Quality</h3> <ul> <li>Modular architecture</li> <li>Clear documentation</li> <li>Consistent formatting</li> </ul> </div><div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"> <h3>👥 Collaboration</h3> <ul> <li>Code reviews</li> <li>Clear communication</li> <li>Issue tracking</li> </ul> </div></div>
+🏆 Deliverables
+mermaid
+Copy
+graph TD
+    A[Backend] --> B[Node.js + MySQL]
+    A --> C[JWT Authentication]
+    A --> D[Email Verification]
+    A --> E[CRUD Operations]
+    
+    F[Frontend] --> G[Angular 17]
+    F --> H[Admin Dashboard]
+    F --> I[Fake Backend]
+    
+    J[Repository] --> K[Clean Branching]
+    J --> L[Resolved Conflicts]
+    J --> M[Documentation]
+📋 Evaluation Criteria
+Criteria	Weight
+Code Quality	30%
+Functionality	25%
+Collaboration	20%
+Problem-Solving	15%
+Testing	10%
+<div align="center" style="margin-top: 40px;"> <p>📄 MIT License | © 2025 Group C Team</p> </div> ```
