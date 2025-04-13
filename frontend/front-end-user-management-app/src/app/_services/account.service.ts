@@ -111,13 +111,29 @@ export class AccountService {
     private refreshTokenTimeout;
 
     private startRefreshTokenTimer() {
-        // parse json object from base64 to encoded jwt token
-        const jwtToken = JSON.parse(atob(this.accountValue.jwtToken.split('.')[1]));
+        // Check if account value exists and has a jwtToken
+        if (!this.accountValue?.jwtToken) {
+            console.error('No JWT token available');
+            return;
+        }
 
-        // set a timeout to refresh the token a minute before it expires
-        const expires = new Date(jwtToken.exp * 1000);
-        const timeout = expires.getTime() - Date.now() - (60 * 1000);
-        this.refreshTokenTimeout = setTimeout(() => this.refreshToken().subscribe(), timeout);
+        try {
+            // Split the token and decode the payload
+            const tokenParts = this.accountValue.jwtToken.split('.');
+            if (tokenParts.length !== 3) {
+                throw new Error('Invalid JWT token format');
+            }
+
+            const payload = JSON.parse(atob(tokenParts[1]));
+            const expires = new Date(payload.exp * 1000);
+
+            // Set timeout to refresh token 1 minute before expiration
+            const timeout = expires.getTime() - Date.now() - (60 * 1000);
+            this.refreshTokenTimeout = setTimeout(() => this.refreshToken().subscribe(), timeout);
+        } catch (error) {
+            console.error('Error processing JWT token:', error);
+            this.stopRefreshTokenTimer();
+        }
     }
 
     private stopRefreshTokenTimer() {
