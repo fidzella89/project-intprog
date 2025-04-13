@@ -73,11 +73,12 @@ src/
 └── environments/              # Configurations
     ├── environment.ts         # Dev settings
     └── environment.prod.ts    # Production settings
+```
 💻 Implementation Details
 👤 Profile Management
 File: update.component.ts
 
-typescript
+```typescript
 Copy
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -116,11 +117,11 @@ export class UpdateComponent implements OnInit {
         });
     }
 }
+```
 👑 Admin Management
 File: user-list.component.ts
 
-typescript
-Copy
+```typescript
 import { Component, OnInit } from '@angular/core';
 import { AccountService } from '@app/_services';
 
@@ -140,11 +141,11 @@ export class UserListComponent implements OnInit {
             .subscribe(() => this.users = this.users.filter(x => x.id !== id));
     }
 }
+```
 🧪 Fake Backend
 File: fake-backend.ts
 
-typescript
-Copy
+```typescript
 import { Injectable } from '@angular/core';
 import { HttpRequest, HttpResponse, HttpHandler, HttpEvent, HttpInterceptor } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
@@ -171,15 +172,16 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         })).pipe(materialize(), delay(500), dematerialize());
     }
 }
+```
 ⚙️ Configuration
-typescript
-Copy
+```typescript
 // environment.ts
 export const environment = {
     production: false,
     apiUrl: 'http://localhost:4000/api',
     useFakeBackend: true  // Toggle for real/fake backend
 };
+```
 � Testing Matrix
 Component	Test Cases	Status
 Profile Update	Valid inputs	✅
@@ -217,4 +219,4 @@ Always validate data on both client and server
 
 Implement proper role verification
 
-<div align="center" style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;"> <p>Developed with ❤️ by <strong>Cyril John Ypil</strong></p> <p>📅 Last Updated: {Insert Date}</p> </div> ``` 
+<div align="center" style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;"> <p>Developed with ❤️ by <strong>Cyril John Ypil</strong></p> <p>📅 Last Updated: April 13, 2025 </p> </div> ``` 
