@@ -157,6 +157,9 @@ Open the application in your browser at: `http://localhost:4200`
 - **Profile Update Page**: Profile Update Screenshot <!-- [ ] Insert screenshot here -->
 - **Error Handling**: Error Handling Screenshot <!-- [ ] Insert screenshot here -->
 
+- **Admin Page**: Screenshot of Admin Interface ![image](https://github.com/user-attachments/assets/6c82251f-dfaf-47b5-84af-154499a2c46e)
+
+
 ---
 
 ## License 📜
