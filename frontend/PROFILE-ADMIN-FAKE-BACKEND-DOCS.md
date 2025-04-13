@@ -182,41 +182,71 @@ export const environment = {
     useFakeBackend: true  // Toggle for real/fake backend
 };
 ```
-� Testing Matrix
-Component	Test Cases	Status
-Profile Update	Valid inputs	✅
-Invalid email format	✅
-Short password	✅
-Admin Dashboard	User list loading	✅
-User deletion	✅
-Fake Backend	Duplicate email detection	✅
-Data persistence	✅
-📸 Screenshots
-<div align="center" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-Profile Update
-Admin Dashboard
-Fake Backend
+## 🧪 Testing Matrix
+
+<div style="overflow-x: auto;">
+  
+| Component          | Test Case                     | Status | Notes                  |
+|--------------------|-------------------------------|--------|------------------------|
+| **Profile Update** | Valid inputs                  | ✅     | All fields validated   |
+|                    | Invalid email format          | ✅     | Regex validation       |
+|                    | Short password (<6 chars)     | ✅     | Minimum length check   |
+| **Admin Dashboard**| User list loading             | ✅     | Pagination tested      |
+|                    | User deletion                 | ✅     | Confirm dialog         |
+| **Fake Backend**   | Duplicate email detection     | ✅     | 409 Conflict returned  |
+|                    | Data persistence              | ✅     | LocalStorage used      |
 
 </div>
-📝 Important Notes
-Backend Integration:
 
-Ensure endpoints match the expected API structure
+## 📸 Screenshots
 
-Configure CORS properly for local development
+<div align="center" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin: 30px 0;">
 
-Fake Backend:
 
-Only for development/testing
+<div style="text-align: center;">
+ ![image](https://github.com/user-attachments/assets/984313c8-bfba-43d5-b619-ace4ca82d74a)
+  <p><strong>Register First User as Admin</strong></p>
+</div>
 
-Data resets on page refresh
+<div style="text-align: center;">
+ //
+  <p><strong>Profile Update Interface</strong></p>
+</div>
 
-Simulates network latency (500ms)
+<div style="text-align: center;">
+  <img src="https://via.placeholder.com/400x250/EA4335/FFFFFF?text=Admin+Dashboard" alt="Admin Dashboard" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  <p><strong>Admin User Management</strong></p>
+</div>
 
-Security:
+<div style="text-align: center;">
+  <img src="https://via.placeholder.com/400x250/34A853/FFFFFF?text=Fake+Backend+Logs" alt="Fake Backend" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  <p><strong>API Simulation Console</strong></p>
+</div>
 
-Always validate data on both client and server
+</div>
 
-Implement proper role verification
+## ⚠️ Important Notes
 
-<div align="center" style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;"> <p>Developed with ❤️ by <strong>Cyril John Ypil</strong></p> <p>📅 Last Updated: April 13, 2025 </p> </div> ``` 
+<div style="background: #fff8e6; padding: 20px; border-radius: 8px; border-left: 4px solid #FFA000; margin: 25px 0;">
+
+### 🔗 Backend Integration
+- Verify all API endpoints match the expected structure
+- Configure CORS headers properly for development
+- Ensure environment variables are properly set
+
+### 🧪 Fake Backend Limitations
+- **Development Only**: Not for production use
+- **No Persistence**: Data resets on page refresh
+- **Simulated Latency**: 500ms delay for realism
+
+### 🔒 Security Considerations
+- Implement server-side validation in addition to client-side
+- Enforce role-based access controls
+- Use HTTPS in production environments
+
+</div>
+
+<div align="center" style="margin: 40px 0; padding: 25px; background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%); border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+  <p style="font-size: 1.1em; margin-bottom: 10px;">Developed with ❤️ by <strong style="color: #4285F4;">Cyril John Ypil</strong></p>
+  <p style="color: #5f6368;">📅 Last Updated: April 13, 2025</p>
+</div>
