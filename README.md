@@ -25,7 +25,7 @@
 <div align="center">
   <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Penguin" width="120" style="border-radius: 50%; border: 3px solid #EA4335;">
   <h3>Doblas, Ken Harvey</h3>
-  <p>Frontend Development</p>
+  <p>Frontend & Testing</p>
   <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
     <code>frontend-signup-auth</code>
   </div>
@@ -34,7 +34,7 @@
 <div align="center">
   <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Rabbit" width="120" style="border-radius: 50%; border: 3px solid #FBBC05;">
   <h3>Wenceslao, Kent</h3>
-  <p>Backend Development</p>
+  <p>Backend & Testing</p>
   <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
     <code>backend-signup-auth</code>
   </div>
@@ -43,7 +43,7 @@
 <div align="center">
   <img src="https://api.dicebear.com/8.x/bottts/svg?seed=Bear" width="120" style="border-radius: 50%; border: 3px solid #34A853;">
   <h3>Montemar, Jherick</h3>
-  <p>Backend Development</p>
+  <p>Backend & Testing</p>
   <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
     <code>backend-authorization-crud</code>
   </div>
