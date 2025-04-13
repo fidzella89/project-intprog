@@ -204,7 +204,8 @@ export const environment = {
 
 
 <div style="text-align: center;">
- ![image](https://github.com/user-attachments/assets/984313c8-bfba-43d5-b619-ace4ca82d74a)
+![image](https://github.com/user-attachments/assets/60b79339-ffd1-487b-a15c-180f57366c47)
+
   <p><strong>Register First User as Admin</strong></p>
 </div>
 
