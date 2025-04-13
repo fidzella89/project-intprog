@@ -204,7 +204,7 @@ export const environment = {
 
 
 <div style="text-align: center;">
-![image](https://github.com/user-attachments/assets/60b79339-ffd1-487b-a15c-180f57366c47)
+  <img src="https://github.com/user-attachments/assets/60b79339-ffd1-487b-a15c-180f57366c4" alt="Fake Backend" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
 
   <p><strong>Register First User as Admin</strong></p>
 </div>
