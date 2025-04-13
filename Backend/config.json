@@ -12,8 +12,8 @@
         "host": "smtp.ethereal.email",
         "port": 587,
         "auth": {
-            "user": "dylan.kovacek@ethereal.email",
-            "pass": "tByZg3pMXaHEm1SmcP"
+            "user": "genesis43@ethereal.email",
+            "pass": "bg6H57cXp2cxjVJFRX"
         }
     }
 }
