@@ -149,8 +149,10 @@ Open the application in your browser at: `http://localhost:4200`
 
 ## Screenshots 📸
 
-- **Login Page**: Login Page Screenshot <!-- [ ] Insert screenshot here -->
-- **Signup Page**: Signup Page Screenshot <!-- [ ] Insert screenshot here -->
+- **Login Page**: Login Page Screenshot ![image](https://github.com/user-attachments/assets/eb85bb23-d8b1-4fb6-be2f-f295f484a18b)
+
+- **Signup Page**: Signup Page Screenshot ![image](https://github.com/user-attachments/assets/a9c1a248-38e9-4541-994a-2bd99a176add)
+
 - **Email Verification Page**: Email Verification Screenshot <!-- [ ] Insert screenshot here -->
 - **Profile Update Page**: Profile Update Screenshot <!-- [ ] Insert screenshot here -->
 - **Error Handling**: Error Handling Screenshot <!-- [ ] Insert screenshot here -->
