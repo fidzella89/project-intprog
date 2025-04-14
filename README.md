@@ -17,7 +17,6 @@
   <p>Frontend & Testing</p>
   <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
     <code>frontend-profile-admin</code><br>
-    <code>tester-functional-testing</code><br>
     <code>tester-security-testing</code>
   </div>
 </div>
@@ -37,6 +36,7 @@
   <p>Backend & Testing</p>
   <div style="background: #f0f0f0; padding: 8px; border-radius: 12px; margin-top: 8px;">
     <code>backend-signup-auth</code>
+    <code>tester-functional-testing</code><br>
   </div>
 </div>
 
