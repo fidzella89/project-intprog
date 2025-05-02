@@ -68,10 +68,6 @@
             <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
             Update
         </button>
-        <button type="button" (click)="onDelete()" [disabled]="deleting" class="btn btn-danger">
-            <span *ngIf="deleting" class="spinner-border spinner-border-sm mr-1"></span>
-            Delete
-        </button>
         <a routerLink="../" class="btn btn-link">Cancel</a>
     </div>
 </form>
