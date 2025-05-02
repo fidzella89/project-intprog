@@ -53,6 +53,17 @@
                 <div *ngIf="f.role.errors.required">Role is Required</div>
             </div>
         </div>
+        <div class="form-group col-md-6">
+            <label>Status</label>
+            <select formControlName="status" class="form-control" [ngClass]="{'is-invalid': submitted && f.status.errors}">
+                <option value=""></option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+            <div *ngIf="submitted && f.status.errors" class="invalid-feedback">
+                <div *ngIf="f.status.errors.required">Status is required</div>
+            </div>
+        </div>
     </div>
     <div *ngIf="!isAddMode">
         <h3 class="pt-3">Change Password</h3>
