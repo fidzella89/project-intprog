@@ -9,10 +9,11 @@ import { Account } from '@app/_models';
 
 const baseUrl = `${environment.apiUrl}/accounts`;
 
+
 @Injectable({ providedIn: 'root' })
 export class AccountService {
-    private accountSubject: BehaviorSubject<Account>
-    public account: Observable<Account>
+    private accountSubject: BehaviorSubject<Account>;
+    public account: Observable<Account>;
 
     constructor(private router: Router, private http: HttpClient) {
         this.accountSubject = new BehaviorSubject<Account>(null);
@@ -73,25 +74,37 @@ export class AccountService {
         return this.http.get<Account[]>(baseUrl);
     }
 
+    updateStatus(id: string, isActive: boolean): Observable<Account> {
+        return this.http.patch<Account>(`${baseUrl}/${id}/status`, { isActive })
+            .pipe(map(updatedAccount => {
+                // Update local account if it's the current user
+                if (this.accountValue?.id === id) {
+                    const account = { ...this.accountValue, isActive };
+                    this.accountSubject.next(account);
+                }
+                return updatedAccount;
+            }));
+    }
+
     getById(id: string) {
         return this.http.get<Account>(`${baseUrl}/${id}`);
     }
 
-    create(params) {
-        return this.http.post(baseUrl, params);
+    create(params: Omit<Account, 'id' | 'jwtToken'>): Observable<Account> {
+        return this.http.post<Account>(baseUrl, params);
     }
 
-    update(id, params) {
-        return this.http.put(`${baseUrl}/${id}`, params)
-            .pipe(map((account: any) => {
-                // update the current account if it was updated
-                if (account.id === this.accountValue.id) {
-                    // publish updated account to subscribers
-                    account = { ...this.accountValue, ...account };
-                    this.accountSubject.next(account);
+    update(id: string, params: Partial<Account>): Observable<Account> {
+        return this.http.put<Account>(`${baseUrl}/${id}`, params)
+            .pipe(map(account => {
+                // Update current account if it was updated
+                if (account.id === this.accountValue?.id) {
+                    // Publish updated account to subscribers
+                    const updatedAccount = { ...this.accountValue, ...account };
+                    this.accountSubject.next(updatedAccount);
                 }
                 return account;
-            }))
+            }));
     }
 
 
