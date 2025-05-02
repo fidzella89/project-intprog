@@ -11,6 +11,7 @@ export class LoginComponent implements OnInit {
     loading = false;
     submitted = false;
     isEmailVerified: boolean | null = null; // Flag to check if the email is verified
+    incorrectPassword: boolean = false;
 
     constructor(
         private formBuilder: UntypedFormBuilder,
@@ -42,27 +43,33 @@ export class LoginComponent implements OnInit {
         }
 
         const email = this.f['email'].value;
-        const password = this.f['password'].value;
-        this.loading = true;
-        this.accountService.login(email, password)
-            .pipe(first())
-            .subscribe({
-                next: (account) => {
-                    // Set the email verification flag based on the account's verification status
-                    this.isEmailVerified = account.isVerified;
+const password = this.f['password'].value;
+this.loading = true;
+this.incorrectPassword = false; // Reset the flag before login attempt
 
-                    if (!this.isEmailVerified) {
-                        this.alertService.warn('Please verify your account before logging in.');
-                    }
+this.accountService.login(email, password)
+    .pipe(first())
+    .subscribe({
+        next: (account) => {
+            // Set the email verification flag based on the account's verification status
+            this.isEmailVerified = account.isVerified;
 
-                    // Get return URL from query parameters or default to home page
-                    const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
-                    this.router.navigate([returnUrl]);
-                },
-                error: (error) => {
-                    this.alertService.error(error);
-                    this.loading = false;
-                }
-            });
+            if (!this.isEmailVerified) {
+                this.alertService.warn('Please verify your account before logging in.');
+            }
+
+            // Get return URL from query parameters or default to home page
+            const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+            this.router.navigate([returnUrl]);
+        },
+        error: (error) => {
+            if (error === 'Incorrect password') {
+                this.incorrectPassword = true; // Set the flag if the password is incorrect
+            } else {
+                this.alertService.error(error);
+            }
+            this.loading = false;
+        }
+    });
     }
 }
