@@ -53,6 +53,12 @@ export class AccountService {
         return this.http.post(`${baseUrl}/register`, account);
     }
 
+    isFirstUser(): boolean {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        return users.length === 1 && users[0].role === 'Admin' && users[0].isVerified === true;
+    }
+    
+
     verifyEmail(token: string) {
         return this.http.post(`${baseUrl}/verify-email`, { token });
     }

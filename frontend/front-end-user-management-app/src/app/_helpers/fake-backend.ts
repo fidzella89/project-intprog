@@ -317,6 +317,7 @@ export class FakeBackEndInterceptor implements HttpInterceptor {
             return throwError({ status: 401, error: { message: 'Unauthorized' } })
                 .pipe(materialize(), delay(500), dematerialize());
         }
+        
 
         function basicDetails(account) {
             const { id, title, firstName, lastName, email, role, dateCreated, isVerified } = account;
