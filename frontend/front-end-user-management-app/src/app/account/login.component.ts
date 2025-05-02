@@ -7,9 +7,11 @@ import { AccountService, AlertService } from '@app/_services';
 
 @Component({ templateUrl: 'login.component.html' })
 export class LoginComponent implements OnInit {
-    form: UntypedFormGroup;
+    form!: UntypedFormGroup;
     loading = false;
     submitted = false;
+    isEmailVerified: boolean | null = null; // Flag to check if the email is verified
+    incorrectPassword: boolean = false;
 
     constructor(
         private formBuilder: UntypedFormBuilder,
@@ -40,24 +42,34 @@ export class LoginComponent implements OnInit {
             return;
         }
 
-        this.loading = true;
-        this.accountService.login(this.f.email.value, this.f.password.value)
-            .pipe(first())
-            .subscribe({
-                next: (account) => {
-                    // Check if the account is verified
-                    if (!account.isVerified) {
-                        this.alertService.warn('Please verify your account before logging in.');
-                    }
+        const email = this.f['email'].value;
+const password = this.f['password'].value;
+this.loading = true;
+this.incorrectPassword = false; // Reset the flag before login attempt
 
-                    // Get return URL from query parameters or default to home page
-                    const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
-                    this.router.navigate([returnUrl]);
-                },
-                error: (error) => {
-                    this.alertService.error(error);
-                    this.loading = false;
-                }
-            });
+this.accountService.login(email, password)
+    .pipe(first())
+    .subscribe({
+        next: (account) => {
+            // Set the email verification flag based on the account's verification status
+            this.isEmailVerified = account.isVerified;
+
+            if (!this.isEmailVerified) {
+                this.alertService.warn('Please verify your account before logging in.');
+            }
+
+            // Get return URL from query parameters or default to home page
+            const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+            this.router.navigate([returnUrl]);
+        },
+        error: (error) => {
+            if (error === 'Incorrect password') {
+                this.incorrectPassword = true; // Set the flag if the password is incorrect
+            } else {
+                this.alertService.error(error);
+            }
+            this.loading = false;
+        }
+    });
     }
 }
