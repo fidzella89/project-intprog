@@ -9,7 +9,10 @@
         <p>Please click the link below to verify your email:</p>
         <a [routerLink]="'../verify-email'" class="btn btn-link">Verify Email</a>
     </div>
-    
+    <div *ngIf="submitted && incorrectPassword" class="invalid-feedback">
+        <div>Password is incorrect</div>
+    </div>
+
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-group">
             <label>Email</label>
