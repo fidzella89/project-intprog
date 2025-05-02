@@ -7,9 +7,10 @@ import { AccountService, AlertService } from '@app/_services';
 
 @Component({ templateUrl: 'login.component.html' })
 export class LoginComponent implements OnInit {
-    form: UntypedFormGroup;
+    form!: UntypedFormGroup;
     loading = false;
     submitted = false;
+    isEmailVerified: boolean | null = null; // Flag to check if the email is verified
 
     constructor(
         private formBuilder: UntypedFormBuilder,
@@ -40,13 +41,17 @@ export class LoginComponent implements OnInit {
             return;
         }
 
+        const email = this.f['email'].value;
+        const password = this.f['password'].value;
         this.loading = true;
-        this.accountService.login(this.f.email.value, this.f.password.value)
+        this.accountService.login(email, password)
             .pipe(first())
             .subscribe({
                 next: (account) => {
-                    // Check if the account is verified
-                    if (!account.isVerified) {
+                    // Set the email verification flag based on the account's verification status
+                    this.isEmailVerified = account.isVerified;
+
+                    if (!this.isEmailVerified) {
                         this.alertService.warn('Please verify your account before logging in.');
                     }
 

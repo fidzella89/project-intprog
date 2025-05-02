@@ -1,10 +1,20 @@
 <h3 class="card-header">Login</h3>
 <div class="card-body">
+    <!-- Show a warning if the email is not verified -->
+    <div *ngIf="isEmailVerified === false" class="alert alert-warning">
+        Please verify your email before logging in.
+    </div>
+    <div *ngIf="isEmailVerified === false" class="alert alert-warning">
+        <h5>Verification Email</h5>
+        <p>Please click the link below to verify your email:</p>
+        <a [routerLink]="'../verify-email'" class="btn btn-link">Verify Email</a>
+    </div>
+    
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-group">
             <label>Email</label>
             <input type="text" formControlName="email" class="form-control"
-                [ngClass]="{'is-invalid':submitted && f.email.errors}" />
+                [ngClass]="{'is-invalid': submitted && f.email.errors}" />
             <div *ngIf="submitted && f.email.errors" class="invalid-feedback">
                 <div *ngIf="submitted && f.email.errors.required">Email is required</div>
                 <div *ngIf="f.email.errors.email">Email is invalid</div>
