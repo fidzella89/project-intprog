@@ -1,5 +1,6 @@
 <h3 class="card-header">Login</h3>
 <div class="card-body">
+
     <!-- Show a warning if the email is not verified -->
     <div *ngIf="isEmailVerified === false" class="alert alert-warning">
         Please verify your email before logging in.
@@ -12,6 +13,7 @@
     <div *ngIf="submitted && incorrectPassword" class="invalid-feedback">
         <div>Password is incorrect</div>
     </div>
+
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-group">
