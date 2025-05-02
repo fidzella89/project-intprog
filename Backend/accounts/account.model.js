@@ -10,6 +10,11 @@ function model(sequelize) {
         firstName: { type: DataTypes.STRING, allowNull: false },
         lastName: { type: DataTypes.STRING, allowNull: false },
         acceptTerms: { type: DataTypes.BOOLEAN },
+        status: { 
+            type: DataTypes.ENUM('Active', 'Inactive'),
+            allowNull: false,
+            defaultValue: 'Inactive'
+        },
         role: { type: DataTypes.STRING, allowNull: false },
         verificationToken: { type: DataTypes.STRING },
         verified: { type: DataTypes.DATE },
