@@ -54,7 +54,22 @@ export class RegisterComponent implements OnInit {
             .pipe(first())
             .subscribe({
                 next: () => {
-                    this.alertService.success('Registraion successful, please check your email for verification instructions', { keepAfterRouteChange: true });
+                    // Determine message based on whether it's the first user
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    const isFirstUser = users.length === 1;
+
+                    if (this.accountService.isFirstUser()) {
+                        this.alertService.success(
+                            `First User Login\nYou can now login directly as first user where role is Admin and account is verified.\nNOTE: Use the same NOTE already in the system.`,
+                            { keepAfterRouteChange: true }
+                        );
+                    } else {
+                        this.alertService.success(
+                            'Registration successful, please check your email for verification instructions',
+                            { keepAfterRouteChange: true }
+                        );
+                    }                    
+
                     this.router.navigate(['../login'], { relativeTo: this.route });
                 },
                 error: error => {
