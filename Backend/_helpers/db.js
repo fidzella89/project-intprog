@@ -13,46 +13,83 @@ async function initialize() {
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
 
     // connect to db
-    const sequelize = new Sequelize(database, user, password, { dialect: 'mysql' });
+    const sequelize = new Sequelize(database, user, password, { 
+        dialect: 'mysql',
+        logging: false // Disable logging
+    });
 
     // init models and add them to the exported db object
     db.Account = require('../accounts/account.model')(sequelize);
     db.RefreshToken = require('../accounts/refresh-token.model')(sequelize);
     db.Employee = require('../accounts/employee.model')(sequelize);
-    db.Request = require('../accounts/request.model')(sequelize);
-    db.Workflow = require('../accounts/workflow.model')(sequelize);
     db.Department = require('../accounts/department.model')(sequelize);
-
-    // define relationships
-    db.Account.hasMany(db.RefreshToken, { onDelete: 'CASCADE' });
-    db.RefreshToken.belongsTo(db.Account);
+    db.Request = require('../accounts/request.model')(sequelize);
+    db.RequestItem = require('../accounts/request-item.model')(sequelize);
+    db.Workflow = require('../accounts/workflow.model')(sequelize);
 
     // Account-Employee relationship (one-to-one)
-    db.Account.hasOne(db.Employee, { foreignKey: 'accountId', onDelete: 'CASCADE' });
+    db.Account.hasOne(db.Employee, {
+        foreignKey: { name: 'accountId', allowNull: false },
+        onDelete: 'CASCADE'
+    });
     db.Employee.belongsTo(db.Account, { foreignKey: 'accountId' });
 
-    // Employee-Request relationships
-    db.Employee.hasMany(db.Request, { foreignKey: 'requesterId', as: 'createdRequests' });
-    db.Request.belongsTo(db.Employee, { foreignKey: 'requesterId', as: 'requester' });
-    
-    db.Employee.hasMany(db.Request, { foreignKey: 'assignedTo', as: 'assignedRequests' });
-    db.Request.belongsTo(db.Employee, { foreignKey: 'assignedTo', as: 'assignee' });
+    // Account-RefreshToken relationship
+    db.Account.hasMany(db.RefreshToken, {
+        foreignKey: { name: 'accountId', allowNull: false },
+        onDelete: 'CASCADE'
+    });
+    db.RefreshToken.belongsTo(db.Account, { foreignKey: 'accountId' });
 
-    // Request-Workflow relationship (one-to-many)
-    db.Request.hasMany(db.Workflow, { foreignKey: 'requestId', onDelete: 'CASCADE' });
+    // Department-Employee relationships
+    db.Department.hasMany(db.Employee, {
+        as: 'employees',
+        foreignKey: { name: 'departmentId', allowNull: true }
+    });
+    db.Employee.belongsTo(db.Department, { 
+        as: 'Department',
+        foreignKey: 'departmentId' 
+    });
+    
+    // Department-Manager relationship
+    db.Department.belongsTo(db.Employee, {
+        as: 'departmentManager',
+        foreignKey: { name: 'managerId', allowNull: true }
+    });
+
+    // Request-Employee relationship
+    db.Employee.hasMany(db.Request, {
+        foreignKey: { name: 'employeeId', allowNull: false },
+        as: 'employeeRequests'
+    });
+    db.Request.belongsTo(db.Employee, { 
+        foreignKey: 'employeeId',
+        as: 'employee'
+    });
+
+    // Request Items relationship
+    db.Request.hasMany(db.RequestItem, {
+        foreignKey: { name: 'requestId', allowNull: false },
+        onDelete: 'CASCADE'
+    });
+    db.RequestItem.belongsTo(db.Request, { foreignKey: 'requestId' });
+
+    // Workflow relationships
+    db.Request.hasMany(db.Workflow, {
+        foreignKey: { name: 'requestId', allowNull: false },
+        onDelete: 'CASCADE'
+    });
     db.Workflow.belongsTo(db.Request, { foreignKey: 'requestId' });
 
-    // Account-Workflow relationship (who handled the workflow stage)
-    db.Account.hasMany(db.Workflow, { foreignKey: 'handledBy' });
-    db.Workflow.belongsTo(db.Account, { foreignKey: 'handledBy', as: 'handler' });
-
-    // Department-Employee relationship (one-to-many)
-    db.Department.hasMany(db.Employee, { foreignKey: 'departmentId' });
-    db.Employee.belongsTo(db.Department, { foreignKey: 'departmentId' });
-
-    // Department-Manager relationship (one employee manages a department)
-    db.Employee.hasOne(db.Department, { foreignKey: 'manager' });
-    db.Department.belongsTo(db.Employee, { foreignKey: 'manager', as: 'managerEmployee' });
+    // Workflow-Handler relationship
+    db.Employee.hasMany(db.Workflow, {
+        foreignKey: 'handledBy',
+        as: 'handledWorkflows'
+    });
+    db.Workflow.belongsTo(db.Employee, {
+        foreignKey: 'handledBy',
+        as: 'handler'
+    });
 
     // sync all models with database
     await sequelize.sync({ alter: true });

@@ -3,6 +3,7 @@ const db = require('../_helpers/db');
 module.exports = {
     getAll,
     getById,
+    getByEmployeeId,
     getByRequestId,
     create,
     update,
@@ -12,9 +13,27 @@ module.exports = {
 async function getAll() {
     const workflows = await db.Workflow.findAll({
         include: [
-            { model: db.Account, as: 'handler', attributes: ['id', 'firstName', 'lastName', 'email'] },
-            { model: db.Request }
-        ]
+            { 
+                model: db.Employee, 
+                as: 'handler',
+                include: [{
+                    model: db.Account,
+                    attributes: ['id', 'firstName', 'lastName', 'email']
+                }]
+            },
+            { 
+                model: db.Request,
+                include: [{
+                    model: db.Employee,
+                    as: 'employee',
+                    include: [{
+                        model: db.Account,
+                        attributes: ['id', 'firstName', 'lastName', 'email']
+                    }]
+                }]
+            }
+        ],
+        order: [['createdDate', 'DESC']]
     });
     return workflows;
 }
@@ -22,21 +41,85 @@ async function getAll() {
 async function getById(id) {
     const workflow = await db.Workflow.findByPk(id, {
         include: [
-            { model: db.Account, as: 'handler', attributes: ['id', 'firstName', 'lastName', 'email'] },
-            { model: db.Request }
+            { 
+                model: db.Employee, 
+                as: 'handler',
+                include: [{
+                    model: db.Account,
+                    attributes: ['id', 'firstName', 'lastName', 'email']
+                }]
+            },
+            { 
+                model: db.Request,
+                include: [{
+                    model: db.Employee,
+                    as: 'employee',
+                    include: [{
+                        model: db.Account,
+                        attributes: ['id', 'firstName', 'lastName', 'email']
+                    }]
+                }]
+            }
         ]
     });
     if (!workflow) throw 'Workflow not found';
     return workflow;
 }
 
+async function getByEmployeeId(employeeId) {
+    const workflows = await db.Workflow.findAll({
+        include: [
+            { 
+                model: db.Employee, 
+                as: 'handler',
+                include: [{
+                    model: db.Account,
+                    attributes: ['id', 'firstName', 'lastName', 'email']
+                }]
+            },
+            { 
+                model: db.Request,
+                where: { employeeId: employeeId },
+                include: [{
+                    model: db.Employee,
+                    as: 'employee',
+                    include: [{
+                        model: db.Account,
+                        attributes: ['id', 'firstName', 'lastName', 'email']
+                    }]
+                }]
+            }
+        ],
+        order: [['createdDate', 'DESC']]
+    });
+    return workflows;
+}
+
 async function getByRequestId(requestId) {
     const workflows = await db.Workflow.findAll({
         where: { requestId: requestId },
         include: [
-            { model: db.Account, as: 'handler', attributes: ['id', 'firstName', 'lastName', 'email'] }
+            { 
+                model: db.Employee, 
+                as: 'handler',
+                include: [{
+                    model: db.Account,
+                    attributes: ['id', 'firstName', 'lastName', 'email']
+                }]
+            },
+            { 
+                model: db.Request,
+                include: [{
+                    model: db.Employee,
+                    as: 'employee',
+                    include: [{
+                        model: db.Account,
+                        attributes: ['id', 'firstName', 'lastName', 'email']
+                    }]
+                }]
+            }
         ],
-        order: [['created', 'ASC']]
+        order: [['createdDate', 'DESC']]
     });
     return workflows;
 }
@@ -50,8 +133,11 @@ async function create(params) {
     if (!request) throw 'Request not found';
     
     // create workflow
-    const workflow = new db.Workflow(params);
-    workflow.created = new Date();
+    const workflow = new db.Workflow({
+        ...params,
+        createdDate: new Date(),
+        lastModifiedDate: new Date()
+    });
     
     // save workflow
     await workflow.save();
@@ -62,8 +148,10 @@ async function update(id, params) {
     const workflow = await getById(id);
     
     // copy params to workflow and save
-    Object.assign(workflow, params);
-    workflow.updated = new Date();
+    Object.assign(workflow, {
+        ...params,
+        lastModifiedDate: new Date()
+    });
     await workflow.save();
     
     return workflow;

@@ -1,14 +1,15 @@
-import { Account } from './account';
+import { Employee } from './employee';
+import { Request } from './request';
 
-export class Workflow {
+export interface Workflow {
     id?: string;
-    requestId?: number;
-    stage?: string;
-    status?: string;
+    requestId: number;
+    request?: Request;
+    step: number;
+    status: 'Pending' | 'Approved' | 'Rejected';
     handledBy?: number;
-    comments?: string;
-    created?: Date;
-    updated?: Date;
-    completedAt?: Date;
-    handler?: Account;
+    handler?: Employee;
+    notes?: string;
+    createdDate?: Date;
+    lastModifiedDate?: Date;
 } 

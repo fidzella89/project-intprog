@@ -4,26 +4,56 @@ module.exports = model;
 
 function model(sequelize) {
     const attributes = {
-        requestId: { type: DataTypes.INTEGER, allowNull: false },
-        stage: { type: DataTypes.STRING, allowNull: false },
-        status: { 
-            type: DataTypes.STRING, 
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
+        },
+        requestId: {
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
+        step: {
+            type: DataTypes.INTEGER,
             allowNull: false,
+            defaultValue: 1
+        },
+        status: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+            defaultValue: 'Pending',
             validate: {
-                isIn: [['Pending', 'Completed', 'Skipped', 'Failed']]
+                isIn: [['Pending', 'Approved', 'Rejected']]
             }
         },
-        handledBy: { type: DataTypes.INTEGER }, // Reference to account who handled this stage
-        comments: { type: DataTypes.TEXT },
-        created: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-        updated: { type: DataTypes.DATE },
-        completedAt: { type: DataTypes.DATE }
+        handledBy: {
+            type: DataTypes.INTEGER,
+            allowNull: true
+        },
+        notes: {
+            type: DataTypes.TEXT
+        },
+        createdDate: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        lastModifiedDate: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        }
     };
 
     const options = {
-        // disable default timestamp fields (createdAt and updatedAt)
-        timestamps: false
+        timestamps: false,
+        tableName: 'workflows',
+        hooks: {
+            beforeUpdate: (workflow) => {
+                workflow.lastModifiedDate = new Date();
+            }
+        }
     };
 
-    return sequelize.define('workflow', attributes, options);
+    return sequelize.define('Workflow', attributes, options);
 } 

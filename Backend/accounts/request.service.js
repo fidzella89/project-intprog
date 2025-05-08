@@ -4,7 +4,6 @@ module.exports = {
     getAll,
     getById,
     getByRequesterId,
-    getByAssignedTo,
     create,
     update,
     changeStatus,
@@ -16,15 +15,7 @@ async function getAll() {
         include: [
             {
                 model: db.Employee,
-                as: 'requester',
-                include: [{
-                    model: db.Account,
-                    attributes: ['id', 'firstName', 'lastName', 'email']
-                }]
-            },
-            {
-                model: db.Employee,
-                as: 'assignee',
+                as: 'employee',
                 include: [{
                     model: db.Account,
                     attributes: ['id', 'firstName', 'lastName', 'email']
@@ -46,24 +37,7 @@ async function getByRequesterId(requesterId) {
         include: [
             {
                 model: db.Employee,
-                as: 'assignee',
-                include: [{
-                    model: db.Account,
-                    attributes: ['id', 'firstName', 'lastName', 'email']
-                }]
-            }
-        ]
-    });
-    return requests;
-}
-
-async function getByAssignedTo(assignedTo) {
-    const requests = await db.Request.findAll({
-        where: { assignedTo },
-        include: [
-            {
-                model: db.Employee,
-                as: 'requester',
+                as: 'employee',
                 include: [{
                     model: db.Account,
                     attributes: ['id', 'firstName', 'lastName', 'email']
@@ -84,7 +58,7 @@ async function create(params) {
         requestId: request.id,
         stage: 'Submission',
         status: 'Completed',
-        handledBy: params.requesterId,
+        handledBy: params.employeeId,
         comments: 'Request submitted',
         completedAt: Date.now()
     });
@@ -183,15 +157,7 @@ async function getRequest(id) {
         include: [
             {
                 model: db.Employee,
-                as: 'requester',
-                include: [{
-                    model: db.Account,
-                    attributes: ['id', 'firstName', 'lastName', 'email']
-                }]
-            },
-            {
-                model: db.Employee,
-                as: 'assignee',
+                as: 'employee',
                 include: [{
                     model: db.Account,
                     attributes: ['id', 'firstName', 'lastName', 'email']

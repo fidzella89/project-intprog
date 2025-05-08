@@ -1,20 +1,41 @@
-import { Component } from '@angular/core';
-import { AccountService } from '@app/_services';
-import { Role } from '@app/_models';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { first } from 'rxjs/operators';
+
+import { AccountService, EmployeeService } from '@app/_services';
+import { Employee } from '@app/_models';
 
 @Component({
     templateUrl: 'layout.component.html'
 })
-export class LayoutComponent {
-    Role = Role;
-    
-    constructor(private accountService: AccountService) {}
+export class LayoutComponent implements OnInit {
+    employeeId: string | null = null;
+    employee: Employee | null = null;
 
-    get isAdmin() {
-        return this.accountService.accountValue?.role === Role.Admin;
+    constructor(
+        private employeeService: EmployeeService,
+        private route: ActivatedRoute
+    ) {}
+
+    ngOnInit() {
+        this.route.queryParams.subscribe(params => {
+            this.employeeId = params['employeeId'];
+            if (this.employeeId) {
+                this.loadEmployee();
+            }
+        });
     }
 
-    get isModerator() {
-        return this.accountService.accountValue?.role === Role.Moderator;
+    private loadEmployee() {
+        this.employeeService.getById(this.employeeId!)
+            .pipe(first())
+            .subscribe(employee => {
+                this.employee = employee;
+            });
+    }
+
+    getEmployeeFullName(): string {
+        if (!this.employee?.account) return '';
+        return `${this.employee.account.firstName} ${this.employee.account.lastName}`.toUpperCase();
     }
 } 

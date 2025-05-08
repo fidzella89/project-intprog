@@ -4,36 +4,76 @@ module.exports = model;
 
 function model(sequelize) {
     const attributes = {
-        title: { type: DataTypes.STRING, allowNull: false },
-        description: { type: DataTypes.TEXT, allowNull: false },
-        requestType: { type: DataTypes.STRING, allowNull: false },
-        requesterId: { type: DataTypes.INTEGER, allowNull: false }, // Reference to employee
-        assignedTo: { type: DataTypes.INTEGER }, // Reference to employee (can be null initially)
-        status: { 
-            type: DataTypes.STRING, 
-            allowNull: false, 
-            defaultValue: 'Pending',
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
+        },
+        requestNumber: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+            unique: true
+        },
+        employeeId: {
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
+        title: {
+            type: DataTypes.STRING(100),
+            allowNull: false
+        },
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: false
+        },
+        type: {
+            type: DataTypes.STRING(50),
+            allowNull: false,
             validate: {
-                isIn: [['Pending', 'In Progress', 'Under Review', 'Approved', 'Rejected', 'Completed', 'Cancelled']]
+                isIn: [['Equipment', 'Leave', 'Department Change', 'Onboarding']]
             }
         },
-        priority: { 
-            type: DataTypes.STRING, 
-            allowNull: false, 
-            defaultValue: 'Medium',
+        status: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+            defaultValue: 'Draft',
             validate: {
-                isIn: [['Low', 'Medium', 'High', 'Urgent']]
+                isIn: [['Draft', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed', 'Cancelled']]
             }
         },
-        dueDate: { type: DataTypes.DATE },
-        created: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-        updated: { type: DataTypes.DATE }
+        currentStep: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 1
+        },
+        totalSteps: {
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
+        notes: {
+            type: DataTypes.TEXT
+        },
+        createdDate: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        lastModifiedDate: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        }
     };
 
     const options = {
-        // disable default timestamp fields (createdAt and updatedAt)
-        timestamps: false
+        timestamps: false,
+        tableName: 'requests',
+        hooks: {
+            beforeUpdate: (request) => {
+                request.lastModifiedDate = new Date();
+            }
+        }
     };
 
-    return sequelize.define('request', attributes, options);
+    return sequelize.define('Request', attributes, options);
 } 

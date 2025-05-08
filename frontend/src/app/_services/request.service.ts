@@ -29,11 +29,6 @@ export class RequestService {
         return this.http.get<Request[]>(`${environment.apiUrl}/requests/employee/${employeeId}`);
     }
 
-    // Get requests assigned to current employee
-    getAssignedToMe() {
-        return this.http.get<Request[]>(`${environment.apiUrl}/requests/assigned-to-me`);
-    }
-
     // Get requests created by current employee
     getMyRequests() {
         return this.http.get<Request[]>(`${environment.apiUrl}/requests/my-requests`);

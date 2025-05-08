@@ -1,0 +1,54 @@
+<h1>
+    Workflows
+    <ng-container *ngIf="employeeId && employee">
+        for Employee {{employee.employeeId}} - {{getEmployeeFullName()}}
+    </ng-container>
+</h1>
+
+<div class="card">
+    <div class="card-body">
+        <div *ngIf="loading" class="text-center">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+        </div>
+        <table *ngIf="!loading && workflows" class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Employee ID</th>
+                    <th>Type</th>
+                    <th>Details</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let workflow of workflows">
+                    <td>{{workflow.requestId}}</td>
+                    <td>
+                        <span *ngIf="workflow.request?.employee">
+                            {{workflow.request.employee.employeeId}}
+                        </span>
+                    </td>
+                    <td>{{workflow.request?.type}}</td>
+                    <td>{{workflow.request?.title}}</td>
+                    <td>
+                        <span class="badge" [ngClass]="{
+                            'bg-warning': workflow.status === 'Pending',
+                            'bg-success': workflow.status === 'Approved',
+                            'bg-danger': workflow.status === 'Rejected'
+                        }">{{workflow.status}}</span>
+                    </td>
+                    <td>
+                        <a [routerLink]="['/workflows/view', workflow.id]" class="btn btn-sm btn-primary me-1">View</a>
+                        <a [routerLink]="['/workflows/edit', workflow.id]" class="btn btn-sm btn-warning me-1">Edit</a>
+                    </td>
+                </tr>
+                <tr *ngIf="workflows.length === 0">
+                    <td colspan="6" class="text-center">
+                        <span class="text-muted">No workflows found</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div> 

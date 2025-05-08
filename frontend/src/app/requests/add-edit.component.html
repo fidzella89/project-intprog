@@ -1,53 +1,103 @@
 <h1>{{isAddMode ? 'Create' : 'Edit'}} Request</h1>
 <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div class="mb-3">
-        <label class="form-label">Request Type</label>
-        <select formControlName="type" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.type.errors }">
-            <option value="Equipment">Equipment</option>
-            <option value="Software">Software</option>
-            <option value="Access">Access</option>
-            <option value="Other">Other</option>
-        </select>
-        <div *ngIf="submitted && f.type.errors" class="invalid-feedback">
-            <div *ngIf="f.type.errors.required">Request type is required</div>
-        </div>
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Items</label>
-        <div formArrayName="items">
-            <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="row mb-2">
-                <div class="col-md-6">
-                    <input type="text" formControlName="name" class="form-control" placeholder="Item name"
-                        [ngClass]="{ 'is-invalid': submitted && item.get('name').errors }" />
-                    <div *ngIf="submitted && item.get('name').errors" class="invalid-feedback">
-                        <div *ngIf="item.get('name').errors.required">Item name is required</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <input type="number" formControlName="quantity" class="form-control" placeholder="Quantity"
-                        [ngClass]="{ 'is-invalid': submitted && item.get('quantity').errors }" />
-                    <div *ngIf="submitted && item.get('quantity').errors" class="invalid-feedback">
-                        <div *ngIf="item.get('quantity').errors.required">Quantity is required</div>
-                        <div *ngIf="item.get('quantity').errors.min">Quantity must be at least 1</div>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-danger" (click)="removeItem(i)" [disabled]="items.length === 1">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Request Type</label>
+            <select formControlName="type" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.type.errors }">
+                <option value="">Select Type...</option>
+                <option *ngFor="let type of requestTypes" [value]="type">{{type}}</option>
+            </select>
+            <div *ngIf="submitted && f.type.errors" class="invalid-feedback">
+                <div *ngIf="f.type.errors.required">Request type is required</div>
             </div>
         </div>
-        <button type="button" class="btn btn-secondary mt-2" (click)="addItem()">
-            Add Item
-        </button>
     </div>
 
-    <div class="mb-3">
-        <button [disabled]="loading" class="btn btn-primary me-2">
+    <div class="row">
+        <div class="col-12 mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" formControlName="title" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.title.errors }" />
+            <div *ngIf="submitted && f.title.errors" class="invalid-feedback">
+                <div *ngIf="f.title.errors.required">Title is required</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-3">
+            <label class="form-label">Description</label>
+            <textarea formControlName="description" class="form-control" rows="3" [ngClass]="{ 'is-invalid': submitted && f.description.errors }"></textarea>
+            <div *ngIf="submitted && f.description.errors" class="invalid-feedback">
+                <div *ngIf="f.description.errors.required">Description is required</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <h3>Items</h3>
+            <div formArrayName="items">
+                <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="row mb-2">
+                    <div class="col-md-6">
+                        <input type="text" formControlName="name" class="form-control" placeholder="Item Name" [ngClass]="{ 'is-invalid': submitted && item.get('name').errors }" />
+                        <div *ngIf="submitted && item.get('name').errors" class="invalid-feedback">
+                            <div *ngIf="item.get('name').errors.required">Item name is required</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" formControlName="quantity" class="form-control" placeholder="Quantity" [ngClass]="{ 'is-invalid': submitted && item.get('quantity').errors }" />
+                        <div *ngIf="submitted && item.get('quantity').errors" class="invalid-feedback">
+                            <div *ngIf="item.get('quantity').errors.required">Quantity is required</div>
+                            <div *ngIf="item.get('quantity').errors.min">Quantity must be at least 1</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger" (click)="removeItem(i)">Remove</button>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success mt-2" (click)="addItem()">Add Item</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Status</label>
+            <div class="form-control-plaintext" *ngIf="!isAddMode">
+                <span class="badge" [ngClass]="{
+                    'bg-secondary': f.status.value === 'Draft',
+                    'bg-primary': f.status.value === 'Submitted',
+                    'bg-info': f.status.value === 'In Progress',
+                    'bg-success': f.status.value === 'Approved',
+                    'bg-danger': f.status.value === 'Rejected',
+                    'bg-dark': f.status.value === 'Completed'
+                }">{{f.status.value}}</span>
+            </div>
+            <input type="text" class="form-control" [value]="'Draft'" readonly *ngIf="isAddMode">
+        </div>
+    </div>
+
+    <div class="mb-4" *ngIf="!isAddMode">
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" 
+                [style.width.%]="(f.currentStep.value / f.totalSteps.value) * 100"
+                [attr.aria-valuenow]="f.currentStep.value"
+                [attr.aria-valuemin]="0"
+                [attr.aria-valuemax]="f.totalSteps.value">
+                Step {{f.currentStep.value}} of {{f.totalSteps.value}}
+            </div>
+        </div>
+    </div>
+
+    <div class="border-top pt-3">
+        <button type="submit" class="btn btn-primary me-2" [disabled]="loading">
             <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
             Save Request
+        </button>
+        <button type="button" class="btn btn-success me-2" *ngIf="!isAddMode && f.status.value === 'Draft'"
+            (click)="submitRequest()" [disabled]="loading">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+            Submit Request
         </button>
         <a routerLink="../" class="btn btn-link">Cancel</a>
     </div>

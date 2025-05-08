@@ -3,8 +3,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
 
-import { RequestService, AlertService, EmployeeService, AccountService } from '@app/_services';
-import { Role } from '@app/_models';
+import { RequestService, AlertService, AccountService } from '@app/_services';
+import { Role, RequestType, RequestStatus } from '@app/_models';
 
 @Component({ templateUrl: 'add-edit.component.html' })
 export class AddEditComponent implements OnInit {
@@ -13,8 +13,9 @@ export class AddEditComponent implements OnInit {
     isAddMode: boolean;
     loading = false;
     submitted = false;
-    currentEmployeeId: number = null;
+    employeeId: string | null = null;
     isAdmin = false;
+    requestTypes = Object.values(RequestType);
 
     constructor(
         private formBuilder: FormBuilder,
@@ -22,55 +23,56 @@ export class AddEditComponent implements OnInit {
         private router: Router,
         private requestService: RequestService,
         private alertService: AlertService,
-        private employeeService: EmployeeService,
         private accountService: AccountService
     ) {
         this.isAdmin = this.accountService.accountValue?.role === Role.Admin;
+        
+        // Get employeeId from query params
+        this.route.queryParams.subscribe(params => {
+            this.employeeId = params['employeeId'];
+        });
+        
+        // Initialize the form immediately
+        this.form = this.formBuilder.group({
+            title: ['', Validators.required],
+            description: ['', Validators.required],
+            type: ['', Validators.required],
+            status: [{ value: RequestStatus.Draft, disabled: false }],
+            items: this.formBuilder.array([]),
+            currentStep: [{ value: 1, disabled: true }],
+            totalSteps: [{ value: 3, disabled: true }]
+        });
     }
 
     ngOnInit() {
         this.id = this.route.snapshot.params['id'];
         this.isAddMode = !this.id;
-        
-        // Get current employee ID
-        this.employeeService.getByAccountId(this.accountService.accountValue.id)
-            .pipe(first())
-            .subscribe(employee => {
-                this.currentEmployeeId = employee?.id ? Number(employee.id) : null;
-                this.initializeForm();
-            });
-    }
-
-    initializeForm() {
-        this.form = this.formBuilder.group({
-            employeeId: [this.currentEmployeeId, Validators.required],
-            type: ['Equipment', Validators.required],
-            items: this.formBuilder.array([])
-        });
 
         if (!this.isAddMode) {
             this.requestService.getById(this.id)
                 .pipe(first())
                 .subscribe(x => {
                     this.form.patchValue(x);
+                    
+                    // Load items
                     x.items?.forEach(item => {
-                        this.addItem(item.name, item.quantity);
+                        this.addItem(item);
                     });
                 });
-        } else {
-            // Add default empty item
-            this.addItem();
         }
     }
 
-    // convenience getters
+    // convenience getter for easy access to form fields
     get f() { return this.form.controls; }
-    get items() { return this.f.items as FormArray; }
+    
+    get items() { return this.form.get('items') as FormArray; }
 
-    addItem(name: string = '', quantity: number = 1) {
+    addItem(item: any = null) {
         const itemForm = this.formBuilder.group({
-            name: [name, Validators.required],
-            quantity: [quantity, [Validators.required, Validators.min(1)]]
+            id: [item?.id || null],
+            name: [item?.name || '', Validators.required],
+            quantity: [item?.quantity || null, [Validators.required, Validators.min(1)]],
+            status: [{ value: item?.status || RequestStatus.Draft, disabled: !this.isAddMode }]
         });
 
         this.items.push(itemForm);
@@ -92,20 +94,24 @@ export class AddEditComponent implements OnInit {
         }
 
         this.loading = true;
-        
+
+        // Get the form value and add employeeId
+        const formValue = this.form.value;
+        formValue.employeeId = this.employeeId;
+
         if (this.isAddMode) {
-            this.createRequest();
+            this.createRequest(formValue);
         } else {
-            this.updateRequest();
+            this.updateRequest(formValue);
         }
     }
 
-    private createRequest() {
-        this.requestService.create(this.form.value)
+    private createRequest(formValue: any) {
+        this.requestService.create(formValue)
             .pipe(first())
             .subscribe({
                 next: () => {
-                    this.alertService.success('Request added successfully', { keepAfterRouteChange: true });
+                    this.alertService.success('Request created successfully', { keepAfterRouteChange: true });
                     this.router.navigate(['../'], { relativeTo: this.route });
                 },
                 error: error => {
@@ -115,12 +121,27 @@ export class AddEditComponent implements OnInit {
             });
     }
 
-    private updateRequest() {
-        this.requestService.update(this.id, this.form.value)
+    private updateRequest(formValue: any) {
+        this.requestService.update(this.id, formValue)
             .pipe(first())
             .subscribe({
                 next: () => {
-                    this.alertService.success('Request updated successfully', { keepAfterRouteChange: true });
+                    this.alertService.success('Update successful', { keepAfterRouteChange: true });
+                    this.router.navigate(['../../'], { relativeTo: this.route });
+                },
+                error: error => {
+                    this.alertService.error(error);
+                    this.loading = false;
+                }
+            });
+    }
+
+    submitRequest() {
+        this.requestService.changeStatus(this.id, 'Submitted', 'Request submitted by employee')
+            .pipe(first())
+            .subscribe({
+                next: () => {
+                    this.alertService.success('Request submitted successfully', { keepAfterRouteChange: true });
                     this.router.navigate(['../../'], { relativeTo: this.route });
                 },
                 error: error => {

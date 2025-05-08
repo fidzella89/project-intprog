@@ -1,0 +1,91 @@
+<h1>View Workflow</h1>
+
+<div class="card">
+    <div class="card-body">
+        <div *ngIf="loading" class="text-center">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+        </div>
+
+        <div *ngIf="!loading && workflow">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Workflow Details</h5>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>ID</th>
+                            <td>{{workflow.id}}</td>
+                        </tr>
+                        <tr>
+                            <th>Step</th>
+                            <td>{{workflow.step}}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                <span class="badge" [ngClass]="{
+                                    'bg-warning': workflow.status === 'Pending',
+                                    'bg-success': workflow.status === 'Approved',
+                                    'bg-danger': workflow.status === 'Rejected'
+                                }">{{workflow.status}}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Handler</th>
+                            <td>
+                                <span *ngIf="workflow.handler">
+                                    {{workflow.handler.account?.firstName}} {{workflow.handler.account?.lastName}}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created Date</th>
+                            <td>{{workflow.createdDate | date:'medium'}}</td>
+                        </tr>
+                        <tr>
+                            <th>Last Modified</th>
+                            <td>{{workflow.lastModifiedDate | date:'medium'}}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5>Request Details</h5>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Request ID</th>
+                            <td>{{workflow.requestId}}</td>
+                        </tr>
+                        <tr>
+                            <th>Employee</th>
+                            <td>
+                                <span *ngIf="workflow.request?.employee">
+                                    {{workflow.request.employee.employeeId}} - 
+                                    {{workflow.request.employee.account?.firstName}} {{workflow.request.employee.account?.lastName}}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Type</th>
+                            <td>{{workflow.request?.type}}</td>
+                        </tr>
+                        <tr>
+                            <th>Details</th>
+                            <td>{{workflow.request?.details}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <h5>Notes</h5>
+                    <p class="border rounded p-3 bg-light">{{workflow.notes || 'No notes available'}}</p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a [routerLink]="['/workflows']" class="btn btn-link">Back to List</a>
+                <a [routerLink]="['/workflows/edit', workflow.id]" class="btn btn-primary ms-2">Edit Workflow</a>
+            </div>
+        </div>
+    </div>
+</div> 

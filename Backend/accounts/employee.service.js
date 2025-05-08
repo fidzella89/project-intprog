@@ -18,6 +18,7 @@ async function getAll() {
             },
             {
                 model: db.Department,
+                as: 'Department',
                 attributes: ['id', 'name', 'code', 'status']
             }
         ]
@@ -40,6 +41,7 @@ async function getByAccountId(accountId) {
             },
             {
                 model: db.Department,
+                as: 'Department',
                 attributes: ['id', 'name', 'code', 'status']
             }
         ]
@@ -98,6 +100,7 @@ async function getEmployee(id) {
             },
             {
                 model: db.Department,
+                as: 'Department',
                 attributes: ['id', 'name', 'code', 'status']
             }
         ]

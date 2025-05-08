@@ -13,10 +13,18 @@ async function getAll() {
         include: [
             { 
                 model: db.Employee, 
-                as: 'managerEmployee',
+                as: 'departmentManager',
                 include: [
                     { model: db.Account, attributes: ['id', 'firstName', 'lastName', 'email'] }
                 ] 
+            },
+            {
+                model: db.Employee,
+                as: 'employees',
+                attributes: ['id', 'employeeId', 'position'],
+                include: [
+                    { model: db.Account, attributes: ['firstName', 'lastName'] }
+                ]
             }
         ]
     });
@@ -91,10 +99,18 @@ async function getDepartment(id) {
         include: [
             { 
                 model: db.Employee, 
-                as: 'managerEmployee',
+                as: 'departmentManager',
                 include: [
                     { model: db.Account, attributes: ['id', 'firstName', 'lastName', 'email'] }
                 ] 
+            },
+            {
+                model: db.Employee,
+                as: 'employees',
+                attributes: ['id', 'employeeId', 'position'],
+                include: [
+                    { model: db.Account, attributes: ['firstName', 'lastName'] }
+                ]
             }
         ]
     });
@@ -103,7 +119,7 @@ async function getDepartment(id) {
 }
 
 function basicDetails(department) {
-    const { id, name, description, code, manager, status, created, updated, managerEmployee } = department;
+    const { id, name, description, code, manager, status, created, updated, departmentManager, employees } = department;
     return { 
         id, 
         name, 
@@ -113,16 +129,22 @@ function basicDetails(department) {
         status, 
         created, 
         updated,
-        managerEmployee: managerEmployee ? {
-            id: managerEmployee.id,
-            employeeId: managerEmployee.employeeId,
-            position: managerEmployee.position,
-            account: managerEmployee.account ? {
-                id: managerEmployee.account.id,
-                firstName: managerEmployee.account.firstName,
-                lastName: managerEmployee.account.lastName,
-                email: managerEmployee.account.email
+        departmentManager: departmentManager ? {
+            id: departmentManager.id,
+            employeeId: departmentManager.employeeId,
+            position: departmentManager.position,
+            account: departmentManager.account ? {
+                id: departmentManager.account.id,
+                firstName: departmentManager.account.firstName,
+                lastName: departmentManager.account.lastName,
+                email: departmentManager.account.email
             } : null
-        } : null
+        } : null,
+        employees: employees ? employees.map(emp => ({
+            id: emp.id,
+            employeeId: emp.employeeId,
+            position: emp.position,
+            fullName: `${emp.account.firstName} ${emp.account.lastName}`
+        })) : []
     };
 } 

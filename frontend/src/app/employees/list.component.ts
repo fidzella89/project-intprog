@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { first } from 'rxjs/operators';
 
 import { AccountService, EmployeeService, DepartmentService, AlertService } from '@app/_services';
@@ -26,7 +27,8 @@ export class ListComponent implements OnInit {
         private accountService: AccountService,
         private employeeService: EmployeeService,
         private departmentService: DepartmentService,
-        private alertService: AlertService
+        private alertService: AlertService,
+        private router: Router
     ) {}
 
     ngOnInit() {
@@ -132,5 +134,13 @@ export class ListComponent implements OnInit {
                     this.loading = false;
                 }
             });
+    }
+
+    viewRequests(employeeId: string) {
+        this.router.navigate(['/requests'], { queryParams: { employeeId } });
+    }
+
+    viewWorkflows(employeeId: string) {
+        this.router.navigate(['/workflows'], { queryParams: { employeeId } });
     }
 } 

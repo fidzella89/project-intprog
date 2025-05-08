@@ -4,7 +4,6 @@
         <div class="navbar-nav">
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
                 class="nav-item nav-link">Home</a>
-            <a routerLink="/requests" routerLinkActive="active" class="nav-item nav-link">Requests</a>
             <a routerLink="/profile" routerLinkActive="active" class="nav-item nav-link">Profile</a>
             <a *ngIf="account.role === Role.Admin || account.role === Role.Moderator" 
                 routerLink="/employees" routerLinkActive="active" class="nav-item nav-link">Employees</a>

@@ -37,8 +37,10 @@
                     }">{{employee.status}}</span></td>
                     <td>
                         <div class="btn-group">
-                            <a [routerLink]="['/employees/edit', employee.id]" class="btn btn-sm btn-primary">Edit</a>
-                            <button (click)="openChangeDepartment(employee)" class="btn btn-sm btn-info text-white">Change Department</button>
+                            <button class="btn btn-sm btn-info me-1" (click)="viewRequests(employee.id)">Requests</button>
+                            <button class="btn btn-sm btn-info me-1" (click)="viewWorkflows(employee.id)">Workflows</button>
+                            <a [routerLink]="['/employees/edit', employee.id]" class="btn btn-sm btn-primary me-1">Edit</a>
+                            <button (click)="openChangeDepartment(employee)" class="btn btn-sm btn-warning text-white me-1">Transfer</button>
                             <button (click)="openDeleteModal(employee)" class="btn btn-sm btn-danger">Delete</button>
                         </div>
                     </td>
