@@ -19,7 +19,7 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Employee ID</label>
                     <div class="input-group">
-                        <input type="text" formControlName="employeeId" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.employeeId.errors }" [readonly]="isAddMode" />
+                        <input type="text" formControlName="employeeId" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.employeeId.errors }" readonly />
                         <span class="input-group-text bg-light" *ngIf="selectedAccountName">{{selectedAccountName | titlecase}}</span>
                     </div>
                     <div *ngIf="submitted && f.employeeId.errors" class="invalid-feedback">
@@ -31,7 +31,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Department</label>
-                    <select formControlName="departmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.departmentId.errors }">
+                    <select formControlName="departmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.departmentId.errors }" [attr.disabled]="!isAddMode ? '' : null">
                         <option value="">Select Department...</option>
                         <option *ngFor="let dept of departments" [value]="dept.id">
                             {{dept.name}}
@@ -80,11 +80,16 @@
             </div>
 
             <div class="border-top pt-3">
-                <button [disabled]="loading" class="btn btn-primary me-2">
-                    <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
-                    Save Employee
-                </button>
-                <a routerLink="/employees" class="btn btn-secondary">Cancel</a>
+                <div class="btn-group">
+                    <button [disabled]="loading" class="btn btn-primary">
+                        <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                        Save Employee
+                    </button>
+                    <button *ngIf="!isAddMode" type="button" class="btn btn-info text-white" (click)="openChangeDepartment()">
+                        Change Department
+                    </button>
+                </div>
+                <a routerLink="/employees" class="btn btn-secondary ms-2">Cancel</a>
             </div>
         </form>
     </div>
@@ -115,4 +120,45 @@
         </div>
     </div>
 </div>
-<div class="modal-backdrop fade show" *ngIf="showDeleteModal"></div> 
+
+<!-- Change Department Modal -->
+<div class="modal" [class.show]="showDepartmentModal" [class.d-block]="showDepartmentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Change Department</h5>
+                <button type="button" class="btn-close btn-close-white" (click)="cancelChangeDepartment()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Employee</h6>
+                    <p class="h5 mb-3">{{currentEmployee?.employeeId}} - {{currentEmployee?.account?.firstName | titlecase}} {{currentEmployee?.account?.lastName | titlecase}}</p>
+                    
+                    <h6 class="text-muted mb-2">Current Department</h6>
+                    <p class="h5 mb-3">{{currentEmployee?.departmentName}}</p>
+
+                    <h6 class="text-muted mb-2">New Department</h6>
+                    <select [(ngModel)]="newDepartmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && !newDepartmentId }">
+                        <option value="">Select Department...</option>
+                        <option *ngFor="let dept of departments" [value]="dept.id">
+                            {{dept.name}}
+                        </option>
+                    </select>
+                    <div *ngIf="submitted && !newDepartmentId" class="invalid-feedback d-block">
+                        Please select a department
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="cancelChangeDepartment()">Cancel</button>
+                <button type="button" class="btn btn-info text-white" (click)="confirmChangeDepartment()" [disabled]="loading">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Backdrop -->
+<div class="modal-backdrop show" *ngIf="showDeleteModal || showDepartmentModal"></div> 

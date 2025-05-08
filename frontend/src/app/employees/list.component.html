@@ -1,39 +1,127 @@
+<h1 class="mb-4">Employees</h1>
 <div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Employee List</h5>
+            <a routerLink="add" class="btn btn-primary">Add Employee</a>
+        </div>
+    </div>
     <div class="card-body">
-        <div *ngIf="!employees" class="text-center">
+        <div *ngIf="!employees" class="text-center p-5">
             <span class="spinner-border spinner-border-lg align-center"></span>
         </div>
         <table *ngIf="employees" class="table table-striped">
             <thead>
                 <tr>
-                    <th style="width: 20%">Employee ID</th>
-                    <th style="width: 20%">Name</th>
-                    <th style="width: 20%">Department</th>
-                    <th style="width: 20%">Position</th>
-                    <th style="width: 20%"></th>
+                    <th>Employee ID</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Position</th>
+                    <th>Hire Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <tr *ngFor="let employee of employees">
                     <td>{{employee.employeeId}}</td>
                     <td>{{employee.account?.firstName}} {{employee.account?.lastName}}</td>
-                    <td>{{employee.department}}</td>
+                    <td>{{employee.departmentName}}</td>
                     <td>{{employee.position}}</td>
-                    <td style="white-space: nowrap">
-                        <a routerLink="../edit/{{employee.id}}" class="btn btn-sm btn-primary me-1">Edit</a>
-                        <button (click)="deleteEmployee(employee.id)" class="btn btn-sm btn-danger btn-delete-employee"
-                            [disabled]="employee.isDeleting">
-                            <span *ngIf="employee.isDeleting" class="spinner-border spinner-border-sm"></span>
-                            <span *ngIf="!employee.isDeleting">Delete</span>
-                        </button>
+                    <td>{{employee.hireDate | date:'MM/dd/yyyy'}}</td>
+                    <td><span class="badge" [ngClass]="{
+                        'bg-success': employee.status === 'Active',
+                        'bg-warning': employee.status === 'On Leave',
+                        'bg-danger': employee.status === 'Terminated',
+                        'bg-secondary': employee.status === 'Inactive'
+                    }">{{employee.status}}</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <a [routerLink]="['/employees/edit', employee.id]" class="btn btn-sm btn-primary">Edit</a>
+                            <button (click)="openChangeDepartment(employee)" class="btn btn-sm btn-info text-white">Change Department</button>
+                            <button (click)="openDeleteModal(employee)" class="btn btn-sm btn-danger">Delete</button>
+                        </div>
                     </td>
                 </tr>
                 <tr *ngIf="employees.length === 0">
-                    <td colspan="5" class="text-center">
+                    <td colspan="7" class="text-center">
                         <span class="text-muted">No employees found</span>
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
-</div> 
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal" [class.show]="showDeleteModal" [class.d-block]="showDeleteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" (click)="cancelDelete()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <p class="text-center mb-1">Are you sure you want to delete this employee?</p>
+                <p class="text-center mb-0"><strong>{{employeeToDelete?.employeeId}} - {{employeeToDelete?.account?.firstName}} {{employeeToDelete?.account?.lastName}}</strong></p>
+                <p class="text-center text-muted small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+                <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="loading">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                    Delete Employee
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Department Modal -->
+<div class="modal" [class.show]="showDepartmentModal" [class.d-block]="showDepartmentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Change Department</h5>
+                <button type="button" class="btn-close btn-close-white" (click)="cancelChangeDepartment()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Employee</h6>
+                    <p class="h5 mb-3">{{selectedEmployee?.employeeId}} - {{selectedEmployee?.account?.firstName | titlecase}} {{selectedEmployee?.account?.lastName | titlecase}}</p>
+                    
+                    <h6 class="text-muted mb-2">Current Department</h6>
+                    <p class="h5 mb-3">{{selectedEmployee?.departmentName}}</p>
+
+                    <h6 class="text-muted mb-2">New Department</h6>
+                    <select [(ngModel)]="newDepartmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && !newDepartmentId }">
+                        <option value="">Select Department...</option>
+                        <option *ngFor="let dept of availableDepartments" [value]="dept.id">
+                            {{dept.name}}
+                        </option>
+                    </select>
+                    <div *ngIf="submitted && !newDepartmentId" class="invalid-feedback d-block">
+                        Please select a department
+                    </div>
+                    <div class="text-muted small mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Current department is excluded from selection
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="cancelChangeDepartment()">Cancel</button>
+                <button type="button" class="btn btn-info text-white" (click)="confirmChangeDepartment()" [disabled]="loading">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal Backdrop -->
+<div class="modal-backdrop show" *ngIf="showDeleteModal || showDepartmentModal"></div> 

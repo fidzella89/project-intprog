@@ -6,6 +6,11 @@ import { first } from 'rxjs/operators';
 import { AccountService, AlertService, EmployeeService, DepartmentService } from '@app/_services';
 import { Employee, Account, Department, Role } from '@app/_models';
 
+// Update Employee interface to allow string for hireDate
+interface EmployeeForm extends Omit<Employee, 'hireDate'> {
+    hireDate: string;
+}
+
 @Component({ templateUrl: 'add-edit.component.html' })
 export class AddEditComponent implements OnInit {
     form: FormGroup;
@@ -17,8 +22,12 @@ export class AddEditComponent implements OnInit {
     availableAccounts: Account[] = [];
     departments: Department[] = [];
     selectedAccountName: string = '';
+    existingEmployeeIds: string[] = [];
     showDeleteModal = false;
+    showDepartmentModal = false;
     employeeToDelete: string = null;
+    newDepartmentId: string = '';
+    currentEmployee: EmployeeForm = null;
 
     constructor(
         private formBuilder: FormBuilder,
@@ -34,14 +43,15 @@ export class AddEditComponent implements OnInit {
         this.id = this.route.snapshot.params['id'];
         this.isAddMode = !this.id;
         
-        // Load accounts and departments
+        // Load all necessary data
         this.loadAccounts();
         this.loadDepartments();
+        this.loadExistingEmployeeIds();
         
         this.form = this.formBuilder.group({
-            accountId: ['', Validators.required],
-            employeeId: [{ value: this.generateEmployeeId(), disabled: true }, Validators.required],
-            departmentId: ['', Validators.required],
+            accountId: [{ value: '', disabled: !this.isAddMode }, Validators.required],
+            employeeId: [{ value: '', disabled: true }, Validators.required],
+            departmentId: [{ value: '', disabled: !this.isAddMode }, Validators.required],
             position: ['', Validators.required],
             hireDate: ['', Validators.required],
             salary: [''],
@@ -62,6 +72,13 @@ export class AddEditComponent implements OnInit {
             this.employeeService.getById(this.id)
                 .pipe(first())
                 .subscribe(employee => {
+                    // Convert Date to string for the form
+                    const employeeForm: EmployeeForm = {
+                        ...employee,
+                        hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : ''
+                    };
+                    this.currentEmployee = employeeForm;
+
                     // Find the account details
                     this.accountService.getById(employee.accountId.toString())
                         .pipe(first())
@@ -73,38 +90,71 @@ export class AddEditComponent implements OnInit {
                     this.departmentService.getById(employee.departmentId)
                         .pipe(first())
                         .subscribe(department => {
-                            employee.departmentName = department.name;
+                            this.currentEmployee.departmentName = department.name;
                         });
 
-                    this.form.patchValue(employee);
-                    this.form.get('employeeId').enable();
+                    // Patch all form values
+                    Object.keys(this.form.controls).forEach(key => {
+                        this.form.get(key).patchValue(employeeForm[key]);
+                    });
                 });
+        } else {
+            // Generate unique employee ID for new employees
+            this.generateUniqueEmployeeId();
         }
+    }
+
+    // Load existing employee IDs to ensure uniqueness
+    private loadExistingEmployeeIds() {
+        this.employeeService.getAll()
+            .pipe(first())
+            .subscribe(employees => {
+                this.existingEmployeeIds = employees.map(e => e.employeeId);
+                if (this.isAddMode) {
+                    this.generateUniqueEmployeeId();
+                }
+            });
     }
 
     // Load all accounts and filter available ones
     private loadAccounts() {
-        this.accountService.getAll()
+        // First, get all employees to know which accounts are already assigned
+        this.employeeService.getAll()
             .pipe(first())
-            .subscribe(accounts => {
-                this.accounts = accounts;
+            .subscribe(employees => {
+                const usedAccountIds = employees.map(e => e.accountId.toString());
                 
-                // Filter out admin accounts and accounts that already have employees
-                this.availableAccounts = accounts.filter(account => {
-                    return account.role !== Role.Admin && !this.employeeExists(account.id);
-                });
-            });
-    }
+                // Then load all accounts and filter them
+                this.accountService.getAll()
+                    .pipe(first())
+                    .subscribe(accounts => {
+                        this.accounts = accounts;
+                        
+                        // Filter accounts:
+                        // 1. Remove admin accounts
+                        // 2. Remove accounts that are already assigned to employees (except in edit mode for current account)
+                        this.availableAccounts = accounts.filter(account => {
+                            const isAdmin = account.role === Role.Admin;
+                            const isAlreadyAssigned = usedAccountIds.includes(account.id);
+                            const isCurrentAccount = !this.isAddMode && account.id === this.form?.get('accountId')?.value;
+                            
+                            return !isAdmin && (!isAlreadyAssigned || isCurrentAccount);
+                        });
 
-    // Check if an employee already exists for an account
-    private employeeExists(accountId: string): boolean {
-        let exists = false;
-        this.employeeService.getByAccountId(accountId)
-            .pipe(first())
-            .subscribe(employee => {
-                exists = !!employee;
+                        // If in edit mode, ensure the current account is in the list
+                        if (!this.isAddMode && this.form?.get('accountId')?.value) {
+                            const currentAccount = this.accounts.find(a => a.id === this.form.get('accountId').value);
+                            if (currentAccount && !this.availableAccounts.some(a => a.id === currentAccount.id)) {
+                                this.availableAccounts.push(currentAccount);
+                            }
+                        }
+
+                        // Sort accounts by name for better UX
+                        this.availableAccounts.sort((a, b) => 
+                            `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+                        );
+                    });
             });
-        return exists;
     }
 
     // Load all departments
@@ -116,12 +166,17 @@ export class AddEditComponent implements OnInit {
             });
     }
 
-    // Generate a random employee ID
-    private generateEmployeeId(): string {
-        const prefix = 'EMP';
-        const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        const year = new Date().getFullYear().toString().substr(-2);
-        return `${prefix}${year}${randomNum}`;
+    // Generate a unique employee ID
+    private generateUniqueEmployeeId() {
+        let newId: string;
+        do {
+            const prefix = 'EMP';
+            const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+            const year = new Date().getFullYear().toString().substr(-2);
+            newId = `${prefix}${year}${randomNum}`;
+        } while (this.existingEmployeeIds.includes(newId));
+
+        this.form.get('employeeId').patchValue(newId);
     }
 
     // convenience getter for easy access to form fields
@@ -145,8 +200,7 @@ export class AddEditComponent implements OnInit {
 
     private createEmployee() {
         const formData = {
-            ...this.form.value,
-            employeeId: this.form.get('employeeId').value
+            ...this.form.getRawValue() // Get values from disabled fields too
         };
         
         this.employeeService.create(formData)
@@ -165,8 +219,7 @@ export class AddEditComponent implements OnInit {
 
     private updateEmployee() {
         const formData = {
-            ...this.form.value,
-            employeeId: this.form.get('employeeId').value
+            ...this.form.getRawValue() // Get values from disabled fields too
         };
         
         this.employeeService.update(this.id, formData)
@@ -203,6 +256,41 @@ export class AddEditComponent implements OnInit {
             .subscribe({
                 next: () => {
                     this.alertService.success('Employee deleted successfully', { keepAfterRouteChange: true });
+                    this.router.navigate(['/employees']);
+                },
+                error: error => {
+                    this.alertService.error(error);
+                    this.loading = false;
+                }
+            });
+    }
+
+    // Change Department modal methods
+    openChangeDepartment() {
+        this.newDepartmentId = '';
+        this.showDepartmentModal = true;
+    }
+
+    cancelChangeDepartment() {
+        this.showDepartmentModal = false;
+        this.newDepartmentId = '';
+    }
+
+    confirmChangeDepartment() {
+        if (!this.newDepartmentId || !this.currentEmployee) return;
+        
+        this.loading = true;
+        const updateData: Employee = {
+            ...this.currentEmployee,
+            departmentId: this.newDepartmentId,
+            hireDate: new Date(this.currentEmployee.hireDate)
+        };
+        
+        this.employeeService.update(this.id, updateData)
+            .pipe(first())
+            .subscribe({
+                next: () => {
+                    this.alertService.success('Department changed successfully', { keepAfterRouteChange: true });
                     this.router.navigate(['/employees']);
                 },
                 error: error => {
