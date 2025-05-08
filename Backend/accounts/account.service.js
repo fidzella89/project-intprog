@@ -113,6 +113,9 @@ async function register(params, origin) {
 
     // send email
     await sendVerificationEmail(account, origin);
+    
+    // return verification token for development purposes
+    return { verificationToken: account.verificationToken };
 }
 
 async function verifyEmail({ token }) {

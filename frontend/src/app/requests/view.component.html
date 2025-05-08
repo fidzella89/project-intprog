@@ -1,0 +1,169 @@
+<h1>Request Details</h1>
+
+<div *ngIf="loading" class="text-center">
+    <span class="spinner-border spinner-border-lg align-center"></span>
+</div>
+
+<div *ngIf="!loading && request">
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{request.title}}</h5>
+            <div>
+                <span [ngClass]="{
+                    'badge bg-success': request.status === 'Completed',
+                    'badge bg-danger': request.status === 'Rejected' || request.status === 'Cancelled',
+                    'badge bg-warning': request.status === 'Pending',
+                    'badge bg-info': request.status === 'In Progress'
+                }">{{request.status}}</span>
+                
+                <span class="ms-2" [ngClass]="{
+                    'badge bg-danger': request.priority === 'High',
+                    'badge bg-warning': request.priority === 'Medium',
+                    'badge bg-info': request.priority === 'Low'
+                }">{{request.priority}}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <p><strong>Request Type:</strong> {{request.requestType}}</p>
+                    <p><strong>Requester:</strong> 
+                        <span *ngIf="request.requester">
+                            {{request.requester.account?.firstName}} {{request.requester.account?.lastName}}
+                        </span>
+                    </p>
+                    <p><strong>Created:</strong> {{formatDate(request.created)}}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Assignee:</strong> 
+                        <span *ngIf="request.assignee">
+                            {{request.assignee.account?.firstName}} {{request.assignee.account?.lastName}}
+                        </span>
+                        <span *ngIf="!request.assignee" class="text-muted">Unassigned</span>
+                    </p>
+                    <p><strong>Due Date:</strong> 
+                        <span *ngIf="request.dueDate">{{formatDate(request.dueDate)}}</span>
+                        <span *ngIf="!request.dueDate" class="text-muted">Not specified</span>
+                    </p>
+                    <p><strong>Last Updated:</strong> 
+                        <span *ngIf="request.updated">{{formatDate(request.updated)}}</span>
+                        <span *ngIf="!request.updated" class="text-muted">Not updated yet</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h5>Description</h5>
+                <p>{{request.description}}</p>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="mb-4">
+                <a routerLink="../edit/{{request.id}}" class="btn btn-primary me-2">Edit</a>
+                
+                <!-- Status change dropdown -->
+                <div class="btn-group me-2">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Change Status
+                    </button>
+                    <div class="dropdown-menu">
+                        <button class="dropdown-item" [disabled]="!canChangeStatus('In Progress')" 
+                            (click)="changeStatus('In Progress')">In Progress</button>
+                        <button class="dropdown-item" [disabled]="!canChangeStatus('Completed')" 
+                            (click)="changeStatus('Completed')">Completed</button>
+                        <button class="dropdown-item" [disabled]="!canChangeStatus('Rejected')" 
+                            (click)="changeStatus('Rejected')">Rejected</button>
+                        <button class="dropdown-item" [disabled]="!canChangeStatus('Cancelled')" 
+                            (click)="changeStatus('Cancelled')">Cancelled</button>
+                    </div>
+                </div>
+
+                <!-- Delete button -->
+                <button *ngIf="isAdmin || isModerator || isOwner" (click)="deleteRequest()" class="btn btn-danger">
+                    Delete
+                </button>
+                
+                <!-- Back button -->
+                <a routerLink="{{isAdmin || isModerator ? '../' : '../my-requests'}}" class="btn btn-link">Back to List</a>
+            </div>
+            
+            <!-- Workflow timeline -->
+            <div class="workflow-timeline" *ngIf="request.workflows && request.workflows.length > 0">
+                <h5>Workflow Timeline</h5>
+                
+                <div class="timeline">
+                    <div *ngFor="let workflow of request.workflows" class="timeline-item">
+                        <div class="timeline-badge" [ngClass]="{
+                            'bg-success': workflow.status === 'Completed',
+                            'bg-warning': workflow.status === 'Pending',
+                            'bg-danger': workflow.status === 'Rejected'
+                        }"></div>
+                        <div class="timeline-panel card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    Stage: {{workflow.stage}}
+                                    <span class="float-end" [ngClass]="{
+                                        'badge bg-success': workflow.status === 'Completed',
+                                        'badge bg-warning': workflow.status === 'Pending',
+                                        'badge bg-danger': workflow.status === 'Rejected'
+                                    }">{{workflow.status}}</span>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <p>{{workflow.comments}}</p>
+                                <p class="text-muted mb-0">
+                                    <small>
+                                        <strong>Created:</strong> {{formatDate(workflow.created)}}
+                                        <span *ngIf="workflow.completedAt">
+                                            <br><strong>Completed:</strong> {{formatDate(workflow.completedAt)}}
+                                        </span>
+                                        <span *ngIf="workflow.handledBy">
+                                            <br><strong>Handled by:</strong> {{workflow.handler?.firstName}} {{workflow.handler?.lastName}}
+                                        </span>
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div *ngIf="!loading && !request" class="alert alert-danger">
+    Request not found.
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    .timeline:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 20px;
+        width: 4px;
+        background: #e9ecef;
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+    }
+    .timeline-badge {
+        position: absolute;
+        top: 0;
+        left: 12px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        z-index: 1;
+    }
+    .timeline-panel {
+        position: relative;
+        margin-left: 50px;
+    }
+</style> 

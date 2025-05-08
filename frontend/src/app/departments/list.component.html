@@ -1,0 +1,61 @@
+<div class="card">
+    <div class="card-body">
+        <div *ngIf="!departments" class="text-center">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+        </div>
+        <table *ngIf="departments" class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 30%">Name</th>
+                    <th style="width: 50%">Description</th>
+                    <th style="width: 20%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let department of departments">
+                    <td>{{department.name}}</td>
+                    <td>{{department.description}}</td>
+                    <td style="white-space: nowrap">
+                        <a routerLink="edit/{{department.id}}" class="btn btn-sm btn-primary me-1">Edit</a>
+                        <button (click)="openDeleteModal(department)" class="btn btn-sm btn-danger btn-delete-department"
+                            [disabled]="department.isDeleting">
+                            <span *ngIf="department.isDeleting" class="spinner-border spinner-border-sm"></span>
+                            <span *ngIf="!department.isDeleting">Delete</span>
+                        </button>
+                    </td>
+                </tr>
+                <tr *ngIf="departments.length === 0">
+                    <td colspan="3" class="text-center">
+                        <span class="text-muted">No departments found</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteModal" class="modal-backdrop"></div>
+<div *ngIf="showDeleteModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" (click)="closeDeleteModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the department <strong>{{departmentToDelete?.name}}</strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+                <p>If employees are assigned to this department, they will need to be reassigned.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" (click)="confirmDelete()" 
+                    [disabled]="departmentToDelete?.isDeleting">
+                    <span *ngIf="departmentToDelete?.isDeleting" class="spinner-border spinner-border-sm me-1"></span>
+                    Confirm Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div> 

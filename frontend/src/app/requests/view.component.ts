@@ -1,0 +1,110 @@
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { first } from 'rxjs/operators';
+
+import { RequestService, AlertService, AccountService } from '@app/_services';
+import { Role, Request } from '@app/_models';
+
+@Component({ templateUrl: 'view.component.html' })
+export class ViewComponent implements OnInit {
+    id: string;
+    request: Request;
+    loading = false;
+    isAdmin = false;
+    isModerator = false;
+    isOwner = false;
+
+    constructor(
+        private route: ActivatedRoute,
+        private router: Router,
+        private requestService: RequestService,
+        private alertService: AlertService,
+        private accountService: AccountService
+    ) {
+        // Check roles
+        this.isAdmin = this.accountService.accountValue?.role === Role.Admin;
+        this.isModerator = this.accountService.accountValue?.role === Role.Moderator;
+    }
+
+    ngOnInit() {
+        this.id = this.route.snapshot.params['id'];
+        this.loadRequest();
+    }
+
+    private loadRequest() {
+        this.loading = true;
+        this.requestService.getById(this.id)
+            .pipe(first())
+            .subscribe({
+                next: request => {
+                    this.request = request;
+                    
+                    // Since we only have employeeId in the request, we'll determine ownership
+                    // through the my-requests endpoint instead of direct comparison
+                    this.requestService.getMyRequests()
+                        .pipe(first())
+                        .subscribe(myRequests => {
+                            this.isOwner = myRequests.some(r => r.id === this.id);
+                            this.loading = false;
+                        });
+                },
+                error: error => {
+                    this.alertService.error(error);
+                    this.loading = false;
+                }
+            });
+    }
+
+    changeStatus(status: string) {
+        if (!this.canChangeStatus(status)) return;
+        
+        const comments = prompt('Please enter comments for this status change:');
+        if (comments === null) return; // User cancelled
+        
+        this.requestService.changeStatus(this.id, status, comments)
+            .pipe(first())
+            .subscribe({
+                next: () => {
+                    this.alertService.success('Request status updated successfully');
+                    this.loadRequest(); // Reload the request to show updated status
+                },
+                error: error => {
+                    this.alertService.error(error);
+                }
+            });
+    }
+    
+    canChangeStatus(status: string): boolean {
+        // Regular users can only cancel their own requests
+        if (!this.isAdmin && !this.isModerator) {
+            return this.isOwner && status === 'Cancelled';
+        }
+        
+        // Moderators and admins can change to any status
+        return true;
+    }
+    
+    deleteRequest() {
+        if (confirm('Are you sure you want to delete this request? This cannot be undone.')) {
+            this.requestService.delete(this.id)
+                .pipe(first())
+                .subscribe({
+                    next: () => {
+                        this.alertService.success('Request deleted successfully', { keepAfterRouteChange: true });
+                        if (this.isAdmin || this.isModerator) {
+                            this.router.navigate(['../../'], { relativeTo: this.route });
+                        } else {
+                            this.router.navigate(['../../my-requests'], { relativeTo: this.route });
+                        }
+                    },
+                    error: error => this.alertService.error(error)
+                });
+        }
+    }
+    
+    // Helper function to get readable date
+    formatDate(date: Date): string {
+        if (!date) return '';
+        return new Date(date).toLocaleString();
+    }
+} 

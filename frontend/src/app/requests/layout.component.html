@@ -1,0 +1,16 @@
+<h1>Requests</h1>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a routerLink="my-requests" routerLinkActive="active" class="nav-link">My Requests</a>
+    </li>
+    <li class="nav-item">
+        <a routerLink="assigned-to-me" routerLinkActive="active" class="nav-link">Assigned to Me</a>
+    </li>
+    <li *ngIf="isAdmin || isModerator" class="nav-item">
+        <a routerLink="./all" routerLinkActive="active" class="nav-link">All Requests</a>
+    </li>
+</ul>
+
+<a routerLink="add" class="btn btn-sm btn-success mb-2">New Request</a>
+<router-outlet></router-outlet> 

@@ -11,6 +11,10 @@ export class RegisterComponent implements OnInit {
     form: UntypedFormGroup;
     loading = false;
     submitted = false;
+    verificationToken: string = null;
+    verificationUrl: string = null;
+    verificationApiUrl: string = null;
+    registrationSuccessful = false;
 
     constructor(
         private formBuilder: UntypedFormBuilder,
@@ -52,17 +56,49 @@ export class RegisterComponent implements OnInit {
         this.accountService.register(this.form.value)
             .pipe(first())
             .subscribe({
-                next: () => {
-                    this.alertService.success(
-                        'Registration successful, please check your email for verification instructions',
-                        { keepAfterRouteChange: true }
-                    );
-                    this.router.navigate(['../login'], { relativeTo: this.route });
+                next: (response) => {
+                    if (response && response.body) {
+                        const body = response.body as any;
+                        this.registrationSuccessful = true;
+                        this.verificationToken = body.verificationToken;
+                        this.verificationUrl = body.verificationUrl;
+                        this.verificationApiUrl = body.verificationApiUrl;
+                        
+                        this.alertService.success(
+                            body.message || 'Registration successful, please check your email for verification instructions',
+                            { keepAfterRouteChange: false }
+                        );
+                    } else {
+                        this.alertService.success(
+                            'Registration successful, please check your email for verification instructions',
+                            { keepAfterRouteChange: true }
+                        );
+                        this.router.navigate(['../login'], { relativeTo: this.route });
+                    }
+                    this.loading = false;
                 },
                 error: error => {
                     this.alertService.error(error);
                     this.loading = false;
                 }
             });
+    }
+
+    verifyNow() {
+        if (this.verificationToken) {
+            this.loading = true;
+            this.accountService.verifyEmail(this.verificationToken)
+                .pipe(first())
+                .subscribe({
+                    next: () => {
+                        this.alertService.success('Verification successful, you can now login', { keepAfterRouteChange: true });
+                        this.router.navigate(['../login'], { relativeTo: this.route });
+                    },
+                    error: error => {
+                        this.alertService.error(error);
+                        this.loading = false;
+                    }
+                });
+        }
     }
 }

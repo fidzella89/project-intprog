@@ -1,0 +1,66 @@
+<div class="card">
+    <div class="card-body">
+        <div *ngIf="loading" class="text-center">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+        </div>
+        <table *ngIf="!loading && requests" class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 25%">Title</th>
+                    <th style="width: 15%">Type</th>
+                    <th style="width: 15%">Assignee</th>
+                    <th style="width: 15%">Status</th>
+                    <th style="width: 10%">Priority</th>
+                    <th style="width: 10%">Created</th>
+                    <th style="width: 10%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let request of requests">
+                    <td>{{request.title}}</td>
+                    <td>{{request.requestType}}</td>
+                    <td>
+                        <span *ngIf="request.assignee">
+                            {{request.assignee.account?.firstName}} {{request.assignee.account?.lastName}}
+                        </span>
+                        <span *ngIf="!request.assignee" class="text-muted">Unassigned</span>
+                    </td>
+                    <td>
+                        <span [ngClass]="{
+                            'badge bg-success': request.status === 'Completed',
+                            'badge bg-danger': request.status === 'Rejected' || request.status === 'Cancelled',
+                            'badge bg-warning': request.status === 'Pending',
+                            'badge bg-info': request.status === 'In Progress'
+                        }">
+                            {{request.status}}
+                        </span>
+                    </td>
+                    <td>
+                        <span [ngClass]="{
+                            'badge bg-danger': request.priority === 'High',
+                            'badge bg-warning': request.priority === 'Medium',
+                            'badge bg-info': request.priority === 'Low'
+                        }">
+                            {{request.priority}}
+                        </span>
+                    </td>
+                    <td>{{request.created | date:'shortDate'}}</td>
+                    <td style="white-space: nowrap">
+                        <a routerLink="../view/{{request.id}}" class="btn btn-sm btn-primary me-1">View</a>
+                        <a routerLink="../edit/{{request.id}}" class="btn btn-sm btn-secondary me-1">Edit</a>
+                        <button (click)="deleteRequest(request.id)" class="btn btn-sm btn-danger btn-delete-request"
+                            [disabled]="request.isDeleting">
+                            <span *ngIf="request.isDeleting" class="spinner-border spinner-border-sm"></span>
+                            <span *ngIf="!request.isDeleting">Delete</span>
+                        </button>
+                    </td>
+                </tr>
+                <tr *ngIf="!loading && requests?.length === 0">
+                    <td colspan="7" class="text-center">
+                        <span class="text-muted">You have not created any requests yet</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div> 

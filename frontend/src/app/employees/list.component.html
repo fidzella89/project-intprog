@@ -1,0 +1,39 @@
+<div class="card">
+    <div class="card-body">
+        <div *ngIf="!employees" class="text-center">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+        </div>
+        <table *ngIf="employees" class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 20%">Employee ID</th>
+                    <th style="width: 20%">Name</th>
+                    <th style="width: 20%">Department</th>
+                    <th style="width: 20%">Position</th>
+                    <th style="width: 20%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let employee of employees">
+                    <td>{{employee.employeeId}}</td>
+                    <td>{{employee.account?.firstName}} {{employee.account?.lastName}}</td>
+                    <td>{{employee.department}}</td>
+                    <td>{{employee.position}}</td>
+                    <td style="white-space: nowrap">
+                        <a routerLink="../edit/{{employee.id}}" class="btn btn-sm btn-primary me-1">Edit</a>
+                        <button (click)="deleteEmployee(employee.id)" class="btn btn-sm btn-danger btn-delete-employee"
+                            [disabled]="employee.isDeleting">
+                            <span *ngIf="employee.isDeleting" class="spinner-border spinner-border-sm"></span>
+                            <span *ngIf="!employee.isDeleting">Delete</span>
+                        </button>
+                    </td>
+                </tr>
+                <tr *ngIf="employees.length === 0">
+                    <td colspan="5" class="text-center">
+                        <span class="text-muted">No employees found</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div> 

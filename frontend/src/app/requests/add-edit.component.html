@@ -1,0 +1,54 @@
+<h1>{{isAddMode ? 'Create' : 'Edit'}} Request</h1>
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="mb-3">
+        <label class="form-label">Request Type</label>
+        <select formControlName="type" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.type.errors }">
+            <option value="Equipment">Equipment</option>
+            <option value="Software">Software</option>
+            <option value="Access">Access</option>
+            <option value="Other">Other</option>
+        </select>
+        <div *ngIf="submitted && f.type.errors" class="invalid-feedback">
+            <div *ngIf="f.type.errors.required">Request type is required</div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Items</label>
+        <div formArrayName="items">
+            <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="row mb-2">
+                <div class="col-md-6">
+                    <input type="text" formControlName="name" class="form-control" placeholder="Item name"
+                        [ngClass]="{ 'is-invalid': submitted && item.get('name').errors }" />
+                    <div *ngIf="submitted && item.get('name').errors" class="invalid-feedback">
+                        <div *ngIf="item.get('name').errors.required">Item name is required</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <input type="number" formControlName="quantity" class="form-control" placeholder="Quantity"
+                        [ngClass]="{ 'is-invalid': submitted && item.get('quantity').errors }" />
+                    <div *ngIf="submitted && item.get('quantity').errors" class="invalid-feedback">
+                        <div *ngIf="item.get('quantity').errors.required">Quantity is required</div>
+                        <div *ngIf="item.get('quantity').errors.min">Quantity must be at least 1</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger" (click)="removeItem(i)" [disabled]="items.length === 1">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-secondary mt-2" (click)="addItem()">
+            Add Item
+        </button>
+    </div>
+
+    <div class="mb-3">
+        <button [disabled]="loading" class="btn btn-primary me-2">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+            Save Request
+        </button>
+        <a routerLink="../" class="btn btn-link">Cancel</a>
+    </div>
+</form> 

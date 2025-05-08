@@ -107,7 +107,23 @@ function registerSchema(req, res, next) {
 
 function register(req, res, next) {
     accountService.register(req.body, req.get('origin'))
-        .then(() => res.json({ message: 'Registration successful, please check your email for verification instructions' }))
+        .then((result) => {
+            if (result && result.verificationToken) {
+                // Get the base URL dynamically
+                const baseUrl = req.protocol + '://' + req.get('host');
+                res.json({ 
+                    message: 'Registration successful, please check your email for verification instructions',
+                    verificationToken: result.verificationToken,
+                    // URL for frontend
+                    verificationUrl: `${req.get('origin') || baseUrl}/account/verify-email?token=${result.verificationToken}`,
+                    // Direct API URL
+                    verificationApiUrl: `${baseUrl}/accounts/verify-email`,
+                    note: "POST to the verificationApiUrl with body: { \"token\": \"your-token\" }"
+                });
+            } else {
+                res.json({ message: 'Registration successful, please check your email for verification instructions' });
+            }
+        })
         .catch(next);
 }
 

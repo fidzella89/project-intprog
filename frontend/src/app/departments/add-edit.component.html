@@ -1,0 +1,73 @@
+<h1>{{isAddMode ? 'Add' : 'Edit'}} Department</h1>
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input type="text" formControlName="name" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.name.errors }" />
+        <div *ngIf="submitted && f.name.errors" class="invalid-feedback">
+            <div *ngIf="f.name.errors.required">Name is required</div>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea formControlName="description" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.description.errors }" rows="3"></textarea>
+        <div *ngIf="submitted && f.description.errors" class="invalid-feedback">
+            <div *ngIf="f.description.errors.required">Description is required</div>
+        </div>
+    </div>
+    <div class="mb-3">
+        <button [disabled]="loading" class="btn btn-primary">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+            Save
+        </button>
+        <a routerLink="../" class="btn btn-link">Cancel</a>
+    </div>
+</form>
+
+<!-- Save Confirmation Modal -->
+<div *ngIf="showConfirmModal" class="modal-backdrop"></div>
+<div *ngIf="showConfirmModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Department Update</h5>
+                <button type="button" class="btn-close" (click)="closeConfirmModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>You are about to update the department <strong>{{originalDepartment?.name}}</strong>.</p>
+                <p class="text-warning">This change may affect employees assigned to this department.</p>
+                <p>Please confirm that you want to make the following changes:</p>
+                
+                <div class="card mb-3">
+                    <div class="card-header">Changes</div>
+                    <div class="card-body">
+                        <p><strong>Name:</strong> 
+                            <span *ngIf="originalDepartment?.name !== f.name.value" class="text-danger">
+                                {{originalDepartment?.name}} → {{f.name.value}}
+                            </span>
+                            <span *ngIf="originalDepartment?.name === f.name.value">
+                                {{f.name.value}} (unchanged)
+                            </span>
+                        </p>
+                        <p><strong>Description:</strong> 
+                            <span *ngIf="originalDepartment?.description !== f.description.value" class="text-danger">
+                                {{originalDepartment?.description}} → {{f.description.value}}
+                            </span>
+                            <span *ngIf="originalDepartment?.description === f.description.value">
+                                {{f.description.value}} (unchanged)
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                
+                <p>Do you want to proceed with these changes?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="closeConfirmModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" (click)="confirmSave()" [disabled]="loading">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                    Confirm Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div> 
