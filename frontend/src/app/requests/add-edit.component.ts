@@ -3,7 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
 
-import { RequestService, AlertService, AccountService } from '@app/_services';
+import { RequestService, AlertService, AccountService, EmployeeService } from '@app/_services';
 import { Role, RequestType, RequestStatus } from '@app/_models';
 
 @Component({ templateUrl: 'add-edit.component.html' })
@@ -14,15 +14,11 @@ export class AddEditComponent implements OnInit {
     loading = false;
     submitted = false;
     employeeId: string | null = null;
+    employeeFullName: string | null = null;
     isAdmin = false;
     deletedItems: any[] = []; // Track items marked for deletion
     originalItems: any[] = []; // Store original items for comparison
-
-    // Getter for checking if items section should be shown
-    get showItemsSection(): boolean {
-        const type = this.form?.get('type')?.value;
-        return type === 'Equipment' || type === 'Resources';
-    }
+    hiddenItems: { [key: number]: boolean } = {}; // Track visually hidden items
 
     constructor(
         private formBuilder: FormBuilder,
@@ -30,42 +26,99 @@ export class AddEditComponent implements OnInit {
         private router: Router,
         private requestService: RequestService,
         private alertService: AlertService,
-        private accountService: AccountService
+        private accountService: AccountService,
+        private employeeService: EmployeeService
     ) {
-        this.isAdmin = this.accountService.isAdmin;
-        this.employeeId = this.accountService.userValue?.id;
+        this.isAdmin = this.accountService.accountValue?.role === Role.Admin;
     }
 
-    // convenience getter for easy access to form fields
-    get f() { return this.form.controls; }
+    // Getter for checking if items section should be shown
+    get showItemsSection(): boolean {
+        const type = this.form?.get('type')?.value;
+        return type === 'Equipment' || type === 'Resources';
+    }
 
     // getter for items FormArray
     get items() { return this.f.items as FormArray; }
+
+    // convenience getter for easy access to form fields
+    get f() { return this.form.controls; }
 
     ngOnInit() {
         this.id = this.route.snapshot.params['id'];
         this.isAddMode = !this.id;
 
-        // Create base form
+        // Get employeeId from query params
+        const params = this.route.snapshot.queryParams;
+        this.employeeId = params['employeeId'];
+
+        // If we have an employeeId, load employee details
+        if (this.employeeId) {
+            this.employeeService.getById(this.employeeId)
+                .pipe(first())
+                .subscribe({
+                    next: (employee) => {
+                        if (employee && employee.account) {
+                            this.employeeFullName = `${employee.account.firstName} ${employee.account.lastName}`;
+                        }
+                    },
+                    error: error => {
+                        this.alertService.error(error);
+                    }
+                });
+        }
+
         this.form = this.formBuilder.group({
             type: ['', Validators.required],
-            description: ['', Validators.required],
             items: this.formBuilder.array([])
+        });
+
+        // Watch for type changes to handle item validation
+        this.form.get('type')?.valueChanges.subscribe(type => {
+            const itemsArray = this.form.get('items') as FormArray;
+            if (type === 'Leave') {
+                itemsArray.clearValidators();
+            } else {
+                itemsArray.setValidators([Validators.required, Validators.minLength(1)]);
+            }
+            itemsArray.updateValueAndValidity();
         });
 
         if (!this.isAddMode) {
             this.requestService.getById(this.id)
                 .pipe(first())
-                .subscribe(x => {
-                    this.form.patchValue({
-                        type: x.type,
-                        description: x.description
-                    });
-                    
-                    // Store original items and load them into form
-                    if (x.items) {
-                        this.originalItems = [...x.items];
-                        x.items.forEach(item => this.addItem(item));
+                .subscribe({
+                    next: (request) => {
+                        // If editing, use the employeeId from the request
+                        this.employeeId = request.employeeId?.toString();
+                        
+                        // Load employee details if not already loaded
+                        if (this.employeeId && !this.employeeFullName) {
+                            this.employeeService.getById(this.employeeId)
+                                .pipe(first())
+                                .subscribe(employee => {
+                                    if (employee && employee.account) {
+                                        this.employeeFullName = `${employee.account.firstName} ${employee.account.lastName}`;
+                                    }
+                                });
+                        }
+                        
+                        this.form.patchValue({ type: request.type });
+                        
+                        // Load items if any
+                        if (request.items && request.items.length > 0) {
+                            request.items.forEach(item => {
+                                this.items.push(this.formBuilder.group({
+                                    id: [item.id],
+                                    name: [item.name, [Validators.required, Validators.maxLength(100)]],
+                                    quantity: [item.quantity, [Validators.required, Validators.min(1), Validators.max(9999)]]
+                                }));
+                            });
+                            this.originalItems = [...request.items];
+                        }
+                    },
+                    error: error => {
+                        this.alertService.error(error);
                     }
                 });
         }
@@ -82,47 +135,22 @@ export class AddEditComponent implements OnInit {
         this.items.push(itemForm);
     }
 
-    // Remove item from form
+    // Remove item
     removeItem(index: number) {
         const item = this.items.at(index).value;
         if (item.id) {
-            // If item has an ID, it exists in database - mark for deletion
-            this.deletedItems.push(item);
+            // If item has an ID, it exists in the database
+            this.deletedItems.push(item.id);
+            this.hiddenItems[index] = true;
+        } else {
+            // If no ID, it's a new item that can be removed directly
+            this.items.removeAt(index);
         }
-        this.items.removeAt(index);
     }
 
-    private prepareItemsForSubmission() {
-        const formItems = this.items.value;
-        const itemsToAdd: any[] = [];
-        const itemsToUpdate: any[] = [];
-
-        formItems.forEach((item: any) => {
-            if (!item.id) {
-                // New item
-                itemsToAdd.push(item);
-            } else {
-                // Existing item - check if modified
-                const originalItem = this.originalItems.find(oi => oi.id === item.id);
-                if (originalItem && (originalItem.name !== item.name || originalItem.quantity !== item.quantity)) {
-                    itemsToUpdate.push(item);
-                }
-            }
-        });
-
-        // Filter out deleted items that match new items
-        const itemsToDelete = this.deletedItems.filter(deletedItem => {
-            return !itemsToAdd.some(newItem => 
-                newItem.name === deletedItem.name && 
-                newItem.quantity === deletedItem.quantity
-            );
-        });
-
-        return {
-            itemsToAdd,
-            itemsToUpdate,
-            itemsToDelete
-        };
+    // Check if item is hidden
+    isItemHidden(index: number): boolean {
+        return this.hiddenItems[index] === true;
     }
 
     onSubmit() {
@@ -134,66 +162,96 @@ export class AddEditComponent implements OnInit {
             return;
         }
 
+        // Ensure employeeId is set
         if (!this.employeeId) {
-            this.alertService.error('Employee ID is required');
+            // Try to get employeeId from query params again
+            const params = this.route.snapshot.queryParams;
+            this.employeeId = params['employeeId'] || this.accountService.accountValue?.id?.toString();
+            
+            if (!this.employeeId) {
+                this.alertService.error('Employee ID is required');
+                return;
+            }
+        }
+
+        // Validate items if type is not Leave
+        if (this.form.value.type !== 'Leave' && this.items.length === 0) {
+            this.alertService.error('At least one item is required for Equipment and Resources requests');
             return;
         }
 
         this.loading = true;
 
-        const { itemsToAdd, itemsToUpdate, itemsToDelete } = this.prepareItemsForSubmission();
-        
+        // Get visible items only
+        const visibleItems = this.items.controls
+            .filter((_, index) => !this.isItemHidden(index))
+            .map(control => {
+                const value = control.value;
+                // Only include id if it exists (for existing items)
+                return {
+                    ...(value.id ? { id: value.id } : {}),
+                    name: value.name,
+                    quantity: value.quantity
+                };
+            });
+
+        // Prepare request data
         const requestData = {
-            ...this.form.value,
+            type: this.form.value.type,
             employeeId: Number(this.employeeId),
-            itemChanges: {
-                add: itemsToAdd,
-                update: itemsToUpdate,
-                delete: itemsToDelete.map(item => item.id)
-            }
+            items: visibleItems,
+            isAdmin: this.accountService.accountValue?.role === Role.Admin
         };
 
         if (this.isAddMode) {
-            this.requestService.create(requestData)
-                .pipe(first())
-                .subscribe({
-                    next: () => {
-                        this.alertService.success('Request added successfully');
-                        this.router.navigate(['../'], { relativeTo: this.route });
-                    },
-                    error: error => {
-                        this.alertService.error(error);
-                        this.loading = false;
-                    }
-                });
+            this.createRequest(requestData);
         } else {
-            this.requestService.update(this.id, requestData)
-                .pipe(first())
-                .subscribe({
-                    next: () => {
-                        this.alertService.success('Request updated successfully');
-                        this.router.navigate(['/requests']);
-                    },
-                    error: error => {
-                        this.alertService.error(error);
-                        this.loading = false;
-                    }
-                });
+            this.updateRequest(requestData);
         }
     }
 
-    submitRequest() {
-        this.requestService.changeStatus(this.id, 'Submitted', 'Request submitted by employee')
+    private createRequest(requestData: any) {
+        this.requestService.create(requestData)
             .pipe(first())
             .subscribe({
                 next: () => {
-                    this.alertService.success('Request submitted successfully', { keepAfterRouteChange: true });
-                    this.router.navigate(['../../'], { relativeTo: this.route });
+                    this.alertService.success('Request added successfully', { keepAfterRouteChange: true });
+                    this.router.navigate(['../'], { 
+                        relativeTo: this.route,
+                        queryParams: { employeeId: this.employeeId }
+                    });
                 },
                 error: error => {
                     this.alertService.error(error);
                     this.loading = false;
                 }
             });
+    }
+
+    private updateRequest(requestData: any) {
+        this.requestService.update(this.id, requestData)
+            .pipe(first())
+            .subscribe({
+                next: () => {
+                    this.alertService.success('Request updated successfully', { keepAfterRouteChange: true });
+                    this.router.navigate(['../../'], { 
+                        relativeTo: this.route,
+                        queryParams: { employeeId: this.employeeId }
+                    });
+                },
+                error: error => {
+                    this.alertService.error(error);
+                    this.loading = false;
+                }
+            });
+    }
+
+    onCancel() {
+        // Navigate back to the requests list with the employee parameter if it exists
+        if (this.employeeId) {
+            this.router.navigate(['/requests'], { queryParams: { employeeId: this.employeeId } });
+        } else {
+            this.router.navigate(['/requests']);
+        }
     }
 } 

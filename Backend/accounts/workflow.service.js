@@ -34,7 +34,16 @@ async function getById(id) {
 async function getByEmployeeId(employeeid) {
     return await db.Workflow.findAll({
         where: { employeeid: employeeid },
-        include: ['employee'],
+        include: [
+            {
+                model: db.Employee,
+                as: 'employee',
+                include: [{
+                    model: db.Account,
+                    attributes: ['id', 'firstName', 'lastName', 'email']
+                }]
+            }
+        ],
         order: [['datetimecreated', 'DESC']]
     });
 }

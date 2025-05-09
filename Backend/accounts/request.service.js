@@ -21,6 +21,10 @@ async function getAll() {
                     model: db.Account,
                     attributes: ['id', 'firstName', 'lastName', 'email']
                 }]
+            },
+            {
+                model: db.RequestItem,
+                as: 'items'
             }
         ],
         attributes: {
@@ -36,9 +40,18 @@ async function getAll() {
                         WHERE request_items.requestId = Request.id
                     )`),
                     'itemsDisplay'
+                ],
+                [
+                    literal(`(
+                        SELECT GROUP_CONCAT(CONCAT(name, ' (', quantity, ')') SEPARATOR ', ')
+                        FROM request_items 
+                        WHERE request_items.requestId = Request.id
+                    )`),
+                    'itemsList'
                 ]
             ]
-        }
+        },
+        order: [['createdDate', 'DESC']]
     });
     return requests;
 }
@@ -82,7 +95,7 @@ async function getById(id) {
 
 async function getByRequesterId(requesterId) {
     const requests = await db.Request.findAll({
-        where: { requesterId },
+        where: { employeeId: requesterId },
         include: [
             {
                 model: db.Employee,
@@ -91,6 +104,10 @@ async function getByRequesterId(requesterId) {
                     model: db.Account,
                     attributes: ['id', 'firstName', 'lastName', 'email']
                 }]
+            },
+            {
+                model: db.RequestItem,
+                as: 'items'
             }
         ],
         attributes: {
@@ -106,37 +123,140 @@ async function getByRequesterId(requesterId) {
                         WHERE request_items.requestId = Request.id
                     )`),
                     'itemsDisplay'
+                ],
+                [
+                    literal(`(
+                        SELECT GROUP_CONCAT(CONCAT(name, ' (', quantity, ')') SEPARATOR ', ')
+                        FROM request_items 
+                        WHERE request_items.requestId = Request.id
+                    )`),
+                    'itemsList'
                 ]
             ]
-        }
+        },
+        order: [['createdDate', 'DESC']]
     });
     return requests;
 }
 
-async function create(params) {
+async function create(params, retryCount = 0) {
+    const MAX_RETRIES = 5;
+    
+    // Extract items and isAdmin from params
+    const items = params.items || [];
+    const isAdmin = params.isAdmin === true; // Ensure boolean conversion
+    delete params.items;
+    delete params.isAdmin;
+
+    console.log('Creating request with admin status:', isAdmin); // Debug log
+
     // Generate request number
     const requestNumber = await generateRequestNumber();
+    
+    // Check if request number already exists
+    const existingRequest = await db.Request.findOne({
+        where: { requestNumber }
+    });
+    
+    if (existingRequest) {
+        if (retryCount >= MAX_RETRIES) {
+            throw new Error('Failed to generate unique request number after maximum retries');
+        }
+        // If exists, try to generate a new one with incremented retry count
+        return create({ ...params, items, isAdmin }, retryCount + 1);
+    }
+    
     params.requestNumber = requestNumber;
+    params.status = isAdmin ? 'Approved' : 'Pending';
     
-    // Set initial status based on role
-    params.status = params.isAdmin ? 'Approved' : 'Pending';
+    console.log('Setting request status to:', params.status); // Debug log
     
-    // Create a new request
-    const request = new db.Request(params);
-    await request.save();
+    try {
+        // Create request and items in a transaction
+        const result = await db.Request.sequelize.transaction(async (t) => {
+            // Create the request
+            const request = await db.Request.create(params, { transaction: t });
+            
+            // Create items
+            if (items.length > 0) {
+                const requestItems = items.map(item => ({
+                    ...item,
+                    requestId: request.id
+                }));
+                await db.RequestItem.bulkCreate(requestItems, { 
+                    transaction: t,
+                    validate: true
+                });
+            }
+            
+            return request;
+        });
 
-    return getById(request.id);
+        console.log('Request created successfully:', result.id); // Debug log
+        return getById(result.id);
+    } catch (error) {
+        console.error('Error creating request:', error); // Debug log
+        throw new Error('Failed to create request. Please try again later.');
+    }
 }
 
 async function update(id, params) {
     const request = await getRequest(id);
+    
+    // Extract items from params
+    const newItems = params.items || [];
+    delete params.items;
 
-    // copy params to request and save
-    Object.assign(request, params);
-    request.updated = Date.now();
-    await request.save();
+    // Update request and items in a transaction
+    await db.Request.sequelize.transaction(async (t) => {
+        // Update request
+        Object.assign(request, params);
+        request.lastModifiedDate = new Date();
+        await request.save({ transaction: t });
 
-    return getById(request.id);
+        // Get existing items
+        const existingItems = await db.RequestItem.findAll({
+            where: { requestId: id },
+            transaction: t
+        });
+
+        // Create maps for tracking
+        const existingItemsMap = new Map(
+            existingItems.map(item => [item.id, item])
+        );
+        const newItemsMap = new Map(
+            newItems.filter(item => item.id).map(item => [item.id, item])
+        );
+
+        // 1. Update existing items
+        for (const [itemId, existingItem] of existingItemsMap) {
+            if (newItemsMap.has(itemId)) {
+                const newItem = newItemsMap.get(itemId);
+                await existingItem.update({
+                    name: newItem.name,
+                    quantity: newItem.quantity
+                }, { transaction: t });
+            } else {
+                // Item was removed in the edit
+                await existingItem.destroy({ transaction: t });
+            }
+        }
+
+        // 2. Add new items
+        const itemsToCreate = newItems.filter(item => !item.id);
+        if (itemsToCreate.length > 0) {
+            await db.RequestItem.bulkCreate(
+                itemsToCreate.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    requestId: id
+                })),
+                { transaction: t }
+            );
+        }
+    });
+
+    return getById(id);
 }
 
 async function changeStatus(id, { status, handledById, comments }) {
@@ -248,9 +368,10 @@ async function generateRequestNumber() {
         }
     });
     
-    // Format: REQ-YY-MM-XXXX where XXXX is a sequential number
+    // Add a random suffix to reduce collision probability
+    const randomSuffix = Math.floor(Math.random() * 100).toString().padStart(2, '0');
     const sequence = (count + 1).toString().padStart(4, '0');
-    return `REQ-${year}-${month}-${sequence}`;
+    return `REQ-${year}-${month}-${sequence}-${randomSuffix}`;
 }
 
 // Helper function to map request type to workflow type

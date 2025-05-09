@@ -25,7 +25,8 @@ function model(sequelize) {
             type: DataTypes.STRING(50),
             allowNull: false,
             validate: {
-                isIn: [['Leave Request', 'Equipment Request', 'Department Change', 'Other']]
+                isIn: [['Leave Request', 'Equipment Request', 'Department Change', 'Other',
+                       'Added', 'Updated', 'Department Transfer', 'Deleted']]
             }
         },
         details: {
@@ -35,9 +36,9 @@ function model(sequelize) {
         status: {
             type: DataTypes.STRING(20),
             allowNull: false,
-            defaultValue: 'Pending',
+            defaultValue: 'ForReviewing',
             validate: {
-                isIn: [['Pending', 'Approved', 'Rejected']]
+                isIn: [['ForReviewing', 'Completed']]
             }
         },
         datetimecreated: {

@@ -10,7 +10,7 @@ const employeeService = require('./employee.service');
 // routes
 router.get('/', authorize(), getAll);
 router.get('/:id', authorize(), getById);
-router.get('/employee/:id', authorize(), getByRequesterId);
+router.get('/employee/:id', authorize(), getByEmployeeId);
 router.post('/', authorize(), createSchema, create);
 router.put('/:id', authorize(), updateSchema, update);
 router.put('/:id/status', authorize(), changeStatusSchema, changeStatus);
@@ -39,7 +39,7 @@ function getById(req, res, next) {
         .catch(next);
 }
 
-function getByRequesterId(req, res, next) {
+function getByEmployeeId(req, res, next) {
     // Users can only view their own requests
     // Admins and moderators can view all requests
     if (req.params.id !== req.user.id && 
@@ -54,10 +54,12 @@ function getByRequesterId(req, res, next) {
 
 function createSchema(req, res, next) {
     const schema = Joi.object({
-        description: Joi.string().required(),
         type: Joi.string().valid('Equipment', 'Leave', 'Resources').required(),
         employeeId: Joi.number().required(),
-        status: Joi.string().valid('Pending', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed').default('Pending')
+        items: Joi.array().items(Joi.object({
+            name: Joi.string().required().max(100),
+            quantity: Joi.number().integer().min(1).required()
+        })).min(1).required()  // Require at least one item
     });
     validateRequest(req, next, schema);
 }
@@ -65,14 +67,26 @@ function createSchema(req, res, next) {
 function create(req, res, next) {
     requestService.create(req.body)
         .then(request => res.json(request))
-        .catch(next);
+        .catch(error => {
+            // Add more detailed error response
+            if (error.name === 'ValidationError') {
+                return res.status(400).json({
+                    message: 'Validation error',
+                    details: error.errors
+                });
+            }
+            next(error);
+        });
 }
 
 function updateSchema(req, res, next) {
     const schema = Joi.object({
-        description: Joi.string(),
         type: Joi.string().valid('Equipment', 'Leave', 'Resources'),
-        status: Joi.string().valid('Pending', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed')
+        status: Joi.string().valid('Pending', 'Approved', 'Rejected'),
+        items: Joi.array().items(Joi.object({
+            name: Joi.string().required(),
+            quantity: Joi.number().integer().min(1).required()
+        })).default([])
     }).min(1);
     validateRequest(req, next, schema);
 }

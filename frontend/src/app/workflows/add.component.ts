@@ -58,7 +58,7 @@ export class AddWorkflowComponent implements OnInit {
         const workflowData = {
             ...this.form.value,
             employeeId: Number(this.employeeId),
-            status: 'Pending'
+            status: 'ForReviewing'
         };
 
         this.workflowService.create(workflowData)

@@ -6,39 +6,53 @@
 
 <div *ngIf="!loading && workflow" class="card">
     <div class="card-body">
-        <div class="row mb-3">
+        <div class="row mb-4">
             <div class="col-md-6">
-                <p><strong>Type:</strong> {{workflow.type}}</p>
-                <p><strong>Status:</strong> 
-                    <span class="badge" [ngClass]="{
-                        'bg-warning': workflow.status === 'Pending',
-                        'bg-info': workflow.status === 'InProgress',
-                        'bg-success': workflow.status === 'Completed',
-                        'bg-danger': workflow.status === 'Rejected'
-                    }">{{workflow.status}}</span>
-                </p>
+                <div class="mb-3">
+                    <label class="text-muted mb-1">Type</label>
+                    <h5 class="mb-0">{{workflow.type}}</h5>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted mb-1">Status</label>
+                    <div>
+                        <span class="badge" [ngClass]="{
+                            'bg-info': workflow.status === 'ForReviewing',
+                            'bg-success': workflow.status === 'Completed'
+                        }">{{workflow.status}}</span>
+                    </div>
+                </div>
             </div>
             <div class="col-md-6">
-                <p><strong>Employee:</strong> 
-                    <span *ngIf="employee">
+                <div class="mb-3">
+                    <label class="text-muted mb-1">Employee</label>
+                    <h5 class="mb-0" *ngIf="employee">
                         {{employee.account?.firstName}} {{employee.account?.lastName}}
-                    </span>
-                </p>
-                <p><strong>Created:</strong> {{workflow.createdDate | date:'medium'}}</p>
-                <p><strong>Last Modified:</strong> {{workflow.lastModifiedDate | date:'medium'}}</p>
+                    </h5>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted mb-1">Created</label>
+                    <div>{{workflow.createdDate | date:'medium'}}</div>
+                </div>
+                <div>
+                    <label class="text-muted mb-1">Last Modified</label>
+                    <div>{{workflow.lastModifiedDate | date:'medium'}}</div>
+                </div>
             </div>
         </div>
 
-        <div class="mb-3">
-            <h4>Task Details</h4>
-            <p><strong>Task:</strong> {{workflow.details.task}}</p>
-            <p *ngIf="workflow.details.additionalInfo">
-                <strong>Additional Information:</strong><br>
-                {{workflow.details.additionalInfo}}
-            </p>
+        <div class="bg-light p-4 rounded mb-4">
+            <h5 class="mb-3">Task Details</h5>
+            <div class="mb-3">
+                <label class="text-muted mb-1">Task Name</label>
+                <h6 class="mb-0">{{workflow.details.task}}</h6>
+            </div>
+            <div *ngIf="workflow.details.additionalInfo">
+                <label class="text-muted mb-1">Additional Information</label>
+                <p class="mb-0">{{workflow.details.additionalInfo}}</p>
+            </div>
         </div>
 
-        <div class="border-top pt-3">
+        <div class="border-top pt-4">
             <button *ngIf="isAdmin" (click)="deleteWorkflow()" class="btn btn-danger me-2" [disabled]="loading">
                 <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
                 Delete Workflow

@@ -4,6 +4,7 @@ import { first } from 'rxjs/operators';
 
 import { RequestService, AlertService, AccountService } from '@app/_services';
 import { Role, Request } from '@app/_models';
+declare var bootstrap: any;
 
 @Component({ templateUrl: 'view.component.html' })
 export class ViewComponent implements OnInit {
@@ -14,6 +15,8 @@ export class ViewComponent implements OnInit {
     isModerator = false;
     isOwner = false;
     employeeId: string | null = null;
+    deleting = false;
+    deleteModal: any;
 
     constructor(
         private route: ActivatedRoute,
@@ -46,7 +49,7 @@ export class ViewComponent implements OnInit {
                     this.request = request;
                     // Check if current user is the owner of the request
                     this.isOwner = request.employeeId === Number(this.accountService.accountValue?.id);
-                            this.loading = false;
+                    this.loading = false;
                 },
                 error: error => {
                     this.alertService.error(error);
@@ -89,26 +92,30 @@ export class ViewComponent implements OnInit {
         return true;
     }
     
+    openDeleteModal(request: any) {
+        this.deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        this.deleteModal.show();
+    }
+
     deleteRequest() {
-        if (confirm('Are you sure you want to delete this request? This cannot be undone.')) {
-            this.loading = true;
-            this.requestService.delete(this.id)
-                .pipe(first())
-                .subscribe({
-                    next: () => {
-                        this.alertService.success('Request deleted successfully', { keepAfterRouteChange: true });
-                        // Navigate back preserving the employeeId
-                        this.router.navigate(['../../'], { 
-                            relativeTo: this.route,
-                            queryParams: { employeeId: this.employeeId }
-                        });
-                    },
-                    error: error => {
-                        this.alertService.error(error);
-                        this.loading = false;
-                    }
-                });
-        }
+        this.deleting = true;
+        this.requestService.delete(this.id)
+            .pipe(first())
+            .subscribe({
+                next: () => {
+                    this.deleteModal.hide();
+                    this.alertService.success('Request deleted successfully', { keepAfterRouteChange: true });
+                    // Navigate back preserving the employeeId
+                    this.router.navigate(['../../'], { 
+                        relativeTo: this.route,
+                        queryParams: { employeeId: this.employeeId }
+                    });
+                },
+                error: error => {
+                    this.alertService.error(error?.message || 'Something went wrong. Please try again later.');
+                    this.deleting = false;
+                }
+            });
     }
     
     // Helper function to get readable date

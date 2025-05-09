@@ -1,16 +1,25 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { first } from 'rxjs/operators';
 
 import { WorkflowService, AlertService, AccountService } from '@app/_services';
 import { Role, WorkflowStatus } from '@app/_models';
+import { ConfirmModalComponent } from './confirm-modal.component';
 
 @Component({ templateUrl: 'list.component.html' })
 export class ListWorkflowComponent implements OnInit {
+    @ViewChild('confirmModal') confirmModal!: ConfirmModalComponent;
     workflows = null;
     loading = false;
     isAdmin = false;
     employeeId: string | null = null;
+    employeeFullName: string | null = null;
+    confirmMessage: string = '';
+    notFound = false;
+    private pendingStatusChange: { id: string; status: WorkflowStatus } | null = null;
+    
+    // Make enum available in template
+    WorkflowStatus = WorkflowStatus;
 
     constructor(
         private workflowService: WorkflowService,
@@ -22,60 +31,81 @@ export class ListWorkflowComponent implements OnInit {
         
         // Get employeeId from query params
         this.route.queryParams.subscribe(params => {
-            this.employeeId = params['employeeId'];
+            this.employeeId = params['employeeid'];
             if (this.employeeId) {
+                this.loadWorkflows();
+            } else {
+                this.notFound = false;
                 this.loadWorkflows();
             }
         });
     }
 
     ngOnInit() {
-        if (!this.employeeId) {
-            this.loadAllWorkflows();
-        }
-    }
-
-    private loadAllWorkflows() {
-        this.loading = true;
-        this.workflowService.getAll()
-            .pipe(first())
-            .subscribe({
-                next: workflows => {
-                    this.workflows = workflows;
-                    this.loading = false;
-                },
-                error: error => {
-                    this.alertService.error(error);
-                    this.loading = false;
-                }
-            });
+        this.loadWorkflows();
     }
 
     private loadWorkflows() {
         this.loading = true;
-        this.workflowService.getByEmployeeId(this.employeeId)
-            .pipe(first())
-            .subscribe({
-                next: workflows => {
-                    this.workflows = workflows;
-                    this.loading = false;
-                },
-                error: error => {
-                    this.alertService.error(error);
-                    this.loading = false;
-                }
-            });
+        this.notFound = false;
+        this.employeeFullName = null;
+        
+        if (this.employeeId) {
+            // Load workflows for specific employee
+            this.workflowService.getByEmployeeId(this.employeeId)
+                .pipe(first())
+                .subscribe({
+                    next: workflows => {
+                        if (!workflows || workflows.length === 0) {
+                            this.notFound = true;
+                        } else if (workflows.length > 0 && workflows[0].employee?.account) {
+                            const account = workflows[0].employee.account;
+                            this.employeeFullName = `${account.firstName} ${account.lastName}`;
+                        }
+                        this.workflows = workflows;
+                        this.loading = false;
+                    },
+                    error: error => {
+                        this.notFound = true;
+                        this.alertService.error(error);
+                        this.loading = false;
+                    }
+                });
+        } else {
+            // Load all workflows
+            this.workflowService.getAll()
+                .pipe(first())
+                .subscribe({
+                    next: workflows => {
+                        this.workflows = workflows;
+                        this.loading = false;
+                    },
+                    error: error => {
+                        this.alertService.error(error);
+                        this.loading = false;
+                    }
+                });
+        }
     }
 
-    changeStatus(id: string, status: WorkflowStatus) {
+    openStatusChangeModal(id: string, status: WorkflowStatus) {
         const workflow = this.workflows.find(x => x.id === id);
         if (!workflow) return;
 
-        const comments = prompt('Please enter comments for this status change:');
-        if (comments === null) return; // User cancelled
+        this.pendingStatusChange = { id, status };
+        this.confirmMessage = `Are you sure you want to mark this workflow ${status === WorkflowStatus.ForReviewing ? 'for review' : 'as completed'}?`;
+        this.confirmModal.show();
+    }
+
+    onStatusChangeConfirmed() {
+        if (!this.pendingStatusChange) return;
+
+        const { id, status } = this.pendingStatusChange;
+        const workflow = this.workflows.find(x => x.id === id);
+        if (!workflow) return;
 
         workflow.isUpdating = true;
-        this.workflowService.changeStatus(id, status, comments)
+        this.workflowService.changeStatus(id, status)
             .pipe(first())
             .subscribe({
                 next: () => {
@@ -88,6 +118,8 @@ export class ListWorkflowComponent implements OnInit {
                     workflow.isUpdating = false;
                 }
             });
+
+        this.pendingStatusChange = null;
     }
 
     deleteWorkflow(id: string) {

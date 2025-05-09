@@ -1,18 +1,31 @@
-<h1>All Requests</h1>
-
 <div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">
+                <ng-container *ngIf="!employeeId">All Requests</ng-container>
+                <ng-container *ngIf="employeeId">Employee Requests</ng-container>
+            </h2>
+            <div *ngIf="employeeId">
+                <a routerLink="/requests" class="btn btn-secondary">View All Requests</a>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
         <div *ngIf="loading" class="text-center">
             <span class="spinner-border spinner-border-lg align-center"></span>
         </div>
-        <table *ngIf="!loading && requests" class="table table-striped">
+        <div *ngIf="!loading && notFound" class="alert alert-warning">
+            No requests found for Employee #{{employeeId}}
+        </div>
+        <table *ngIf="!loading && !notFound && requests.length > 0" class="table table-striped">
             <thead>
                 <tr>
                     <th style="width: 12%">Request #</th>
                     <th style="width: 15%">Employee</th>
-                    <th style="width: 12%">Type</th>
-                    <th style="width: 12%">Status</th>
-                    <th style="width: 22%">Created</th>
+                    <th style="width: 10%">Type</th>
+                    <th style="width: 20%">Items</th>
+                    <th style="width: 10%">Status</th>
+                    <th style="width: 18%">Created</th>
                     <th style="width: 15%"></th>
                 </tr>
             </thead>
@@ -25,6 +38,42 @@
                         </span>
                     </td>
                     <td>{{request.type}}</td>
+                    <td>
+                        <ng-container *ngIf="request.type !== 'Leave'">
+                            <div *ngIf="!request.items?.length" class="text-muted">
+                                No items
+                            </div>
+                            <div *ngIf="request.items?.length" [title]="getItemsTooltip(request)">
+                                <ng-container *ngIf="!isExpanded(request.id)">
+                                    <div class="d-flex align-items-center">
+                                        <span class="text-truncate">{{getVisibleItems(request).slice(0, itemsPerRow).join(', ')}}</span>
+                                        <button *ngIf="hasMoreItems(request)" 
+                                                (click)="toggleExpand(request.id)" 
+                                                class="btn btn-link btn-sm p-0 ms-1">
+                                            {{getToggleText(request)}}
+                                        </button>
+                                    </div>
+                                </ng-container>
+                                <ng-container *ngIf="isExpanded(request.id)">
+                                    <div class="items-list">
+                                        <div *ngFor="let item of getVisibleItems(request)" class="item-line">
+                                            {{item}}
+                                        </div>
+                                        <button (click)="toggleExpand(request.id)" 
+                                                class="btn btn-link btn-sm p-0">
+                                            {{getToggleText(request)}}
+                                        </button>
+                                    </div>
+                                </ng-container>
+                                <small class="text-muted d-block">
+                                    {{request.items?.length === 0 ? 'No items' : 
+                                      request.items?.length === 1 ? '1 Item' : 
+                                      request.items?.length + ' Items'}}
+                                </small>
+                            </div>
+                        </ng-container>
+                        <span *ngIf="request.type === 'Leave'" class="text-muted">N/A</span>
+                    </td>
                     <td>
                         <span class="badge" [ngClass]="{
                             'bg-secondary': request.status === 'Pending',
@@ -50,13 +99,13 @@
                                 </ul>
                             </div>
                             <button (click)="openDeleteModal(request)" class="btn btn-sm btn-danger" [disabled]="request.isDeleting">
-                                <span *ngIf="request.isDeleting" class="spinner-border spinner-border-sm"></span>
+                                <span *ngIf="request.isDeleting" class="spinner-border spinner-border-sm me-1"></span>
                                 <span *ngIf="!request.isDeleting">Delete</span>
                             </button>
                         </ng-container>
                     </td>
                 </tr>
-                <tr *ngIf="!loading && requests?.length === 0">
+                <tr *ngIf="!loading && !notFound && requests?.length === 0">
                     <td colspan="7" class="text-center">
                         <span class="text-muted">No requests found</span>
                     </td>
@@ -87,4 +136,32 @@
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<style>
+    .btn-link.btn-sm {
+        text-decoration: none;
+        color: #0d6efd;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    .btn-link.btn-sm:hover {
+        text-decoration: underline;
+    }
+    .text-truncate {
+        max-width: 100%;
+        display: inline-block;
+    }
+    td .d-flex {
+        gap: 0.25rem;
+    }
+    .items-list {
+        margin-bottom: 0.25rem;
+    }
+    .item-line {
+        line-height: 1.4;
+    }
+    .item-line:not(:last-child) {
+        margin-bottom: 0.125rem;
+    }
+</style> 

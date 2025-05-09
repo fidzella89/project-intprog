@@ -11,15 +11,10 @@ function model(sequelize) {
         },
         requestNumber: {
             type: DataTypes.STRING(20),
-            allowNull: false,
-            unique: true
+            allowNull: false
         },
         employeeId: {
             type: DataTypes.INTEGER,
-            allowNull: false
-        },
-        description: {
-            type: DataTypes.TEXT,
             allowNull: false
         },
         type: {
@@ -44,8 +39,7 @@ function model(sequelize) {
         },
         lastModifiedDate: {
             type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW
+            allowNull: true
         }
     };
 

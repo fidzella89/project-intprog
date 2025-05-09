@@ -42,21 +42,64 @@ export class AddEditComponent implements OnInit {
     ngOnInit() {
         this.id = this.route.snapshot.params['id'];
         this.isAddMode = !this.id;
-        
-        // Load all necessary data
-        this.loadAccounts();
-        this.loadDepartments();
-        this.loadExistingEmployeeIds();
-        
+
+        // Load all departments
+        this.departmentService.getAll()
+            .pipe(first())
+            .subscribe(departments => {
+                this.departments = departments;
+            });
+
+        // Load all accounts for dropdown
+        this.accountService.getAll()
+            .pipe(first())
+            .subscribe(accounts => {
+                this.accounts = accounts;
+                this.updateAvailableAccounts();
+            });
+
+        // Load existing employee IDs
+        this.employeeService.getAll()
+            .pipe(first())
+            .subscribe(employees => {
+                this.existingEmployeeIds = employees.map(e => e.employeeId);
+            });
+
+        // Initialize form with appropriate disabled states
         this.form = this.formBuilder.group({
-            accountId: [{ value: '', disabled: !this.isAddMode }, Validators.required],
-            employeeId: [{ value: '', disabled: true }, Validators.required],
-            departmentId: [{ value: '', disabled: !this.isAddMode }, Validators.required],
+            accountId: [{ value: '', disabled: !this.isAddMode }, this.isAddMode ? Validators.required : []],
+            employeeId: [{ value: '', disabled: true }], // Always disabled
+            departmentId: [{ value: '', disabled: !this.isAddMode }, Validators.required], // Disabled in edit mode
             position: ['', Validators.required],
             hireDate: ['', Validators.required],
             salary: [''],
             status: ['Active']
         });
+
+        if (!this.isAddMode) {
+            this.employeeService.getById(this.id)
+                .pipe(first())
+                .subscribe({
+                    next: (employee) => {
+                        // Convert the employee to EmployeeForm type
+                        this.currentEmployee = {
+                            ...employee,
+                            hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : ''
+                        };
+                        // Use patchValue with the raw form values
+                        this.form.patchValue(this.currentEmployee);
+                        if (employee.account) {
+                            this.selectedAccountName = `${employee.account.firstName} ${employee.account.lastName}`;
+                        }
+                    },
+                    error: error => {
+                        this.alertService.error(error);
+                    }
+                });
+        } else {
+            // Generate unique employee ID for new employees
+            this.generateUniqueEmployeeId();
+        }
 
         // Watch for account changes to update the name display
         this.form.get('accountId').valueChanges.subscribe(accountId => {
@@ -67,41 +110,6 @@ export class AddEditComponent implements OnInit {
                 this.selectedAccountName = '';
             }
         });
-
-        if (!this.isAddMode) {
-            this.employeeService.getById(this.id)
-                .pipe(first())
-                .subscribe(employee => {
-                    // Convert Date to string for the form
-                    const employeeForm: EmployeeForm = {
-                        ...employee,
-                        hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : ''
-                    };
-                    this.currentEmployee = employeeForm;
-
-                    // Find the account details
-                    this.accountService.getById(employee.accountId.toString())
-                        .pipe(first())
-                        .subscribe(account => {
-                            this.selectedAccountName = `${account.firstName} ${account.lastName}`;
-                        });
-
-                    // Find the department details
-                    this.departmentService.getById(employee.departmentId)
-                        .pipe(first())
-                        .subscribe(department => {
-                            this.currentEmployee.departmentName = department.name;
-                        });
-
-                    // Patch all form values
-                    Object.keys(this.form.controls).forEach(key => {
-                        this.form.get(key).patchValue(employeeForm[key]);
-                    });
-                });
-        } else {
-            // Generate unique employee ID for new employees
-            this.generateUniqueEmployeeId();
-        }
     }
 
     // Load existing employee IDs to ensure uniqueness
@@ -267,6 +275,7 @@ export class AddEditComponent implements OnInit {
 
     // Change Department modal methods
     openChangeDepartment() {
+        this.submitted = false;
         this.newDepartmentId = '';
         this.showDepartmentModal = true;
     }
@@ -274,29 +283,58 @@ export class AddEditComponent implements OnInit {
     cancelChangeDepartment() {
         this.showDepartmentModal = false;
         this.newDepartmentId = '';
+        this.submitted = false;
     }
 
     confirmChangeDepartment() {
-        if (!this.newDepartmentId || !this.currentEmployee) return;
-        
+        this.submitted = true;
+
+        if (!this.newDepartmentId) {
+            return;
+        }
+
         this.loading = true;
-        const updateData: Employee = {
+
+        // Convert the current employee to the correct type
+        const updateData = {
             ...this.currentEmployee,
             departmentId: this.newDepartmentId,
-            hireDate: new Date(this.currentEmployee.hireDate)
+            hireDate: this.currentEmployee.hireDate ? new Date(this.currentEmployee.hireDate) : null
         };
-        
+
         this.employeeService.update(this.id, updateData)
             .pipe(first())
             .subscribe({
                 next: () => {
                     this.alertService.success('Department changed successfully', { keepAfterRouteChange: true });
-                    this.router.navigate(['/employees']);
+                    this.loading = false;
+                    this.showDepartmentModal = false;
+                    // Refresh the current employee data
+                    this.employeeService.getById(this.id)
+                        .pipe(first())
+                        .subscribe(employee => {
+                            // Convert the employee to EmployeeForm type
+                            this.currentEmployee = {
+                                ...employee,
+                                hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : ''
+                            };
+                            this.form.patchValue(this.currentEmployee);
+                        });
                 },
                 error: error => {
                     this.alertService.error(error);
                     this.loading = false;
                 }
             });
+    }
+
+    // Computed property to get available departments (excluding current department)
+    get availableDepartments(): Department[] {
+        if (!this.currentEmployee) return this.departments;
+        return this.departments.filter(dept => dept.id.toString() !== this.currentEmployee?.departmentId?.toString());
+    }
+
+    private updateAvailableAccounts() {
+        this.loadAccounts();
     }
 } 

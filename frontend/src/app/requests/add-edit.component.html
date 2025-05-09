@@ -1,6 +1,9 @@
 <div class="card">
     <h4 class="card-header">
         {{isAddMode ? 'Add Request' : 'Edit Request'}}
+        <ng-container *ngIf="employeeId && employeeFullName">
+            for Employee #{{employeeId}} - {{employeeFullName}}
+        </ng-container>
     </h4>
     <div class="card-body">
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
@@ -17,45 +20,44 @@
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Details</label>
-                <textarea formControlName="description" class="form-control" rows="3" 
-                    [ngClass]="{ 'is-invalid': submitted && f.description.errors }"></textarea>
-                <div *ngIf="submitted && f.description.errors" class="invalid-feedback">
-                    <div *ngIf="f.description.errors.required">Details are required</div>
-                </div>
-            </div>
-
             <!-- Items section only for Equipment and Resources -->
             <div *ngIf="showItemsSection" class="mb-3">
-                <label class="form-label">Items</label>
+                <h3>Items</h3>
                 <div formArrayName="items">
-                    <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="row mb-2">
+                    <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="row mb-2" [class.d-none]="isItemHidden(i)">
                         <div class="col-5">
                             <input type="text" formControlName="name" class="form-control" placeholder="Item name"
-                                [ngClass]="{ 'is-invalid': submitted && item.get('name').errors }">
-                            <div *ngIf="submitted && item.get('name').errors" class="invalid-feedback">
-                                <div *ngIf="item.get('name').errors.required">Name is required</div>
+                                [ngClass]="{ 'is-invalid': submitted && item.get('name')?.errors }" />
+                            <div *ngIf="submitted && item.get('name')?.errors" class="invalid-feedback">
+                                <div *ngIf="item.get('name')?.errors?.required">Item name is required</div>
+                                <div *ngIf="item.get('name')?.errors?.maxlength">Item name must be less than 100 characters</div>
                             </div>
                         </div>
-                        <div class="col-5">
+                        <div class="col-3">
                             <input type="number" formControlName="quantity" class="form-control" placeholder="Quantity"
-                                [ngClass]="{ 'is-invalid': submitted && item.get('quantity').errors }">
-                            <div *ngIf="submitted && item.get('quantity').errors" class="invalid-feedback">
-                                <div *ngIf="item.get('quantity').errors.required">Quantity is required</div>
-                                <div *ngIf="item.get('quantity').errors.min">Quantity must be at least 1</div>
+                                [ngClass]="{ 'is-invalid': submitted && item.get('quantity')?.errors }" />
+                            <div *ngIf="submitted && item.get('quantity')?.errors" class="invalid-feedback">
+                                <div *ngIf="item.get('quantity')?.errors?.required">Quantity is required</div>
+                                <div *ngIf="item.get('quantity')?.errors?.min">Quantity must be at least 1</div>
+                                <div *ngIf="item.get('quantity')?.errors?.max">Quantity must be less than 10000</div>
                             </div>
                         </div>
-                        <div class="col-2">
-                            <button type="button" class="btn btn-danger" (click)="removeItem(i)">
+                        <div class="col-4">
+                            <button type="button" (click)="removeItem(i)" class="btn btn-danger me-2" *ngIf="!isItemHidden(i)">
                                 <i class="fas fa-trash"></i>
+                            </button>
+                            <button type="button" (click)="restoreItem(i)" class="btn btn-secondary" *ngIf="isItemHidden(i)">
+                                <i class="fas fa-undo"></i> Restore
                             </button>
                         </div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-secondary mt-2" (click)="addItem()">
-                    Add Item
-                </button>
+                <div class="mt-2">
+                    <button type="button" (click)="addItem()" class="btn btn-secondary">Add Item</button>
+                </div>
+                <div *ngIf="submitted && form.get('type')?.value !== 'Leave' && items.length === 0" class="text-danger mt-2">
+                    At least one item is required for Equipment and Resources requests
+                </div>
             </div>
 
             <div class="mt-4">
@@ -63,7 +65,7 @@
                     <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
                     Save Request
                 </button>
-                <a routerLink="/requests" class="btn btn-link">Cancel</a>
+                <button type="button" (click)="onCancel()" class="btn btn-link">Cancel</button>
             </div>
         </form>
     </div>

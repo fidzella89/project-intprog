@@ -39,7 +39,7 @@ function createSchema(req, res, next) {
         employeeid: Joi.number().required(),
         type: Joi.string().required().valid('Leave Request', 'Equipment Request', 'Department Change', 'Other'),
         details: Joi.string().allow('', null),
-        status: Joi.string().required().valid('Pending', 'In Progress', 'Approved', 'Rejected', 'Completed').default('Pending'),
+        status: Joi.string().required().valid('ForReviewing', 'Completed').default('ForReviewing'),
         comments: Joi.string().allow('', null),
         handledBy: Joi.number().allow(null)
     });
@@ -56,7 +56,7 @@ function updateSchema(req, res, next) {
     const schema = Joi.object({
         type: Joi.string().valid('Leave Request', 'Equipment Request', 'Department Change', 'Other'),
         details: Joi.string().allow('', null),
-        status: Joi.string().valid('Pending', 'InProgress', 'Completed', 'Rejected'),
+        status: Joi.string().valid('ForReviewing', 'Completed'),
         comments: Joi.string().allow('', null),
         handledBy: Joi.number().allow(null)
     });

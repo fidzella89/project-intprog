@@ -12,18 +12,15 @@ export interface Workflow {
 }
 
 export enum WorkflowType {
-    Onboarding = 'Onboarding',
-    OffBoarding = 'OffBoarding',
-    EquipmentSetup = 'EquipmentSetup',
-    AccessRequest = 'AccessRequest',
+    LeaveRequest = 'Leave Request',
+    EquipmentRequest = 'Equipment Request',
+    DepartmentChange = 'Department Change',
     Other = 'Other'
 }
 
 export enum WorkflowStatus {
-    Pending = 'Pending',
-    InProgress = 'InProgress',
-    Completed = 'Completed',
-    Rejected = 'Rejected'
+    ForReviewing = 'ForReviewing',
+    Completed = 'Completed'
 }
 
 export interface WorkflowDetails {

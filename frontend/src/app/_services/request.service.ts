@@ -13,13 +13,7 @@ export class RequestService {
 
     // Create a new request
     create(params: any) {
-        // Extract items from itemChanges for new requests
-        const requestData = {
-            ...params,
-            items: params.itemChanges.add // For new requests, we only need the items to add
-        };
-        delete requestData.itemChanges;
-        return this.http.post(baseUrl, requestData);
+        return this.http.post(baseUrl, params);
     }
 
     // Get all requests (Admin only)
@@ -49,7 +43,6 @@ export class RequestService {
 
     // Update request
     update(id: string, params: any) {
-        // For updates, send the itemChanges object as is
         return this.http.put(`${baseUrl}/${id}`, params);
     }
 

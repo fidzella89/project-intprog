@@ -19,7 +19,7 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Employee ID</label>
                     <div class="input-group">
-                        <input type="text" formControlName="employeeId" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.employeeId.errors }" readonly />
+                        <input type="text" formControlName="employeeId" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.employeeId.errors }" />
                         <span class="input-group-text bg-light" *ngIf="selectedAccountName">{{selectedAccountName | titlecase}}</span>
                     </div>
                     <div *ngIf="submitted && f.employeeId.errors" class="invalid-feedback">
@@ -31,7 +31,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Department</label>
-                    <select formControlName="departmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.departmentId.errors }" [attr.disabled]="!isAddMode ? '' : null">
+                    <select formControlName="departmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.departmentId.errors }">
                         <option value="">Select Department...</option>
                         <option *ngFor="let dept of departments" [value]="dept.id">
                             {{dept.name}}
@@ -39,6 +39,10 @@
                     </select>
                     <div *ngIf="submitted && f.departmentId.errors" class="invalid-feedback">
                         <div *ngIf="f.departmentId.errors.required">Department is required</div>
+                    </div>
+                    <div *ngIf="!isAddMode" class="text-muted small mt-1">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Use the "Change Department" button to transfer employee to another department
                     </div>
                 </div>
 
@@ -140,12 +144,16 @@
                     <h6 class="text-muted mb-2">New Department</h6>
                     <select [(ngModel)]="newDepartmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && !newDepartmentId }">
                         <option value="">Select Department...</option>
-                        <option *ngFor="let dept of departments" [value]="dept.id">
+                        <option *ngFor="let dept of availableDepartments" [value]="dept.id">
                             {{dept.name}}
                         </option>
                     </select>
                     <div *ngIf="submitted && !newDepartmentId" class="invalid-feedback d-block">
                         Please select a department
+                    </div>
+                    <div class="text-muted small mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Current department is excluded from selection
                     </div>
                 </div>
             </div>

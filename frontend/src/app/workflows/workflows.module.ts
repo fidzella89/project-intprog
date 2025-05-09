@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { ListWorkflowComponent } from './list.component';
 import { AddWorkflowComponent } from './add.component';
 import { ViewWorkflowComponent } from './view.component';
+import { ConfirmModalComponent } from './confirm-modal.component';
 
 @NgModule({
     imports: [
@@ -20,7 +21,8 @@ import { ViewWorkflowComponent } from './view.component';
     declarations: [
         ListWorkflowComponent,
         AddWorkflowComponent,
-        ViewWorkflowComponent
+        ViewWorkflowComponent,
+        ConfirmModalComponent
     ]
 })
 export class WorkflowsModule { } 
