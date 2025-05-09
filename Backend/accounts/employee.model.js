@@ -4,6 +4,11 @@ module.exports = model;
 
 function model(sequelize) {
     const attributes = {
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
+        },
         employeeId: { type: DataTypes.STRING, allowNull: false },
         accountId: { type: DataTypes.INTEGER, allowNull: false },
         departmentId: { type: DataTypes.INTEGER },

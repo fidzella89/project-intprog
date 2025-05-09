@@ -3,8 +3,7 @@ import { Employee } from './employee';
 export enum RequestType {
     Equipment = 'Equipment',
     Leave = 'Leave',
-    DepartmentChange = 'Department Change',
-    Onboarding = 'Onboarding'
+    Resources = 'Resources'
 }
 
 export enum RequestStatus {
@@ -33,12 +32,9 @@ export interface Request {
     requestNumber: string;
     employeeId: number;
     employee?: Employee;
-    title: string;
     description: string;
     type: string;
     status: string;
-    currentStep: number;
-    totalSteps: number;
     items: any[];
     createdDate?: Date;
     lastModifiedDate?: Date;

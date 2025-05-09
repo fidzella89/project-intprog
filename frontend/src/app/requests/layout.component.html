@@ -6,7 +6,7 @@
 </h1>
 
 <div class="mb-3">
-    <a routerLink="add" class="btn btn-sm btn-success">New Request</a>
+    <a routerLink="add" [queryParams]="{ employeeId: employeeId }" class="btn btn-sm btn-success">New Request</a>
 </div>
 
 <router-outlet></router-outlet> 

@@ -1,42 +1,92 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { first } from 'rxjs/operators';
 
-import { WorkflowService, AlertService } from '@app/_services';
-import { Workflow } from '@app/_models';
+import { WorkflowService, AlertService, AccountService, EmployeeService } from '@app/_services';
+import { Role, Workflow } from '@app/_models';
 
 @Component({ templateUrl: 'view.component.html' })
-export class ViewComponent implements OnInit {
-    id: string;
+export class ViewWorkflowComponent implements OnInit {
     workflow: Workflow;
     loading = false;
+    isAdmin = false;
+    employee: any = null;
+    employeeId: string | null = null;
 
     constructor(
         private route: ActivatedRoute,
         private router: Router,
         private workflowService: WorkflowService,
-        private alertService: AlertService
-    ) {}
-
-    ngOnInit() {
-        this.id = this.route.snapshot.params['id'];
-        this.loadWorkflow();
+        private employeeService: EmployeeService,
+        private alertService: AlertService,
+        private accountService: AccountService
+    ) {
+        this.isAdmin = this.accountService.accountValue?.role === Role.Admin;
     }
 
-    private loadWorkflow() {
+    ngOnInit() {
+        this.route.queryParams.subscribe(params => {
+            this.employeeId = params['employeeId'];
+        });
+
+        const id = this.route.snapshot.params['id'];
+        this.loadWorkflow(id);
+    }
+
+    private loadWorkflow(id: string) {
         this.loading = true;
-        this.workflowService.getById(this.id)
+        this.workflowService.getById(id)
             .pipe(first())
             .subscribe({
                 next: workflow => {
                     this.workflow = workflow;
+                    if (workflow.employeeId) {
+                        this.loadEmployee(workflow.employeeId);
+                    }
                     this.loading = false;
                 },
                 error: error => {
                     this.alertService.error(error);
                     this.loading = false;
-                    this.router.navigate(['/workflows']);
+                    this.router.navigate(['../'], { 
+                        relativeTo: this.route,
+                        queryParams: { employeeId: this.employeeId }
+                    });
                 }
             });
+    }
+
+    private loadEmployee(employeeId: number) {
+        this.employeeService.getById(employeeId.toString())
+            .pipe(first())
+            .subscribe({
+                next: employee => {
+                    this.employee = employee;
+                },
+                error: error => {
+                    this.alertService.error(error);
+                }
+            });
+    }
+
+    deleteWorkflow() {
+        if (confirm('Are you sure you want to delete this workflow?')) {
+            this.loading = true;
+            this.workflowService.delete(this.workflow.id)
+                .pipe(first())
+                .subscribe({
+                    next: () => {
+                        this.alertService.success('Workflow deleted successfully');
+                        this.router.navigate(['../'], { 
+                            relativeTo: this.route,
+                            queryParams: { employeeId: this.employeeId }
+                        });
+                    },
+                    error: error => {
+                        this.alertService.error(error);
+                        this.loading = false;
+                    }
+                });
+        }
     }
 } 

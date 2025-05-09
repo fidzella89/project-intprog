@@ -1,15 +1,38 @@
 import { Employee } from './employee';
-import { Request } from './request';
 
 export interface Workflow {
     id?: string;
-    requestId: number;
-    request?: Request;
-    step: number;
-    status: 'Pending' | 'Approved' | 'Rejected';
-    handledBy?: number;
-    handler?: Employee;
-    notes?: string;
+    employeeId: number;
+    type: WorkflowType;
+    details: WorkflowDetails;
+    status: WorkflowStatus;
+    employee?: Employee;
     createdDate?: Date;
     lastModifiedDate?: Date;
+}
+
+export enum WorkflowType {
+    Onboarding = 'Onboarding',
+    OffBoarding = 'OffBoarding',
+    EquipmentSetup = 'EquipmentSetup',
+    AccessRequest = 'AccessRequest',
+    Other = 'Other'
+}
+
+export enum WorkflowStatus {
+    Pending = 'Pending',
+    InProgress = 'InProgress',
+    Completed = 'Completed',
+    Rejected = 'Rejected'
+}
+
+export interface WorkflowDetails {
+    task: string;
+    additionalInfo?: string;
+}
+
+export class WorkflowItem {
+    id: string;
+    name: string;
+    quantity: number;
 } 

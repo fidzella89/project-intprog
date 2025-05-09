@@ -38,33 +38,46 @@ CREATE TABLE employees (
     is_active BOOLEAN DEFAULT true
 );
 
--- Requests Table
+-- Drop tables if they exist (in correct order)
+DROP TABLE IF EXISTS workflows;
+DROP TABLE IF EXISTS requests;
+
+-- Create Requests table first
 CREATE TABLE requests (
-    id SERIAL PRIMARY KEY,
-    request_number VARCHAR(20) UNIQUE NOT NULL,
-    employee_id INTEGER REFERENCES employees(id),
-    type VARCHAR(50) NOT NULL CHECK (type IN ('Equipment', 'Leave', 'Department Change', 'Onboarding')),
-    status VARCHAR(20) NOT NULL CHECK (status IN ('Draft', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed', 'Cancelled')),
-    current_step INTEGER NOT NULL DEFAULT 1,
-    total_steps INTEGER NOT NULL,
-    notes TEXT,
-    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    requestNumber VARCHAR(20) NOT NULL UNIQUE,
+    employeeId INT NOT NULL,
+    description TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+    createdDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    lastModifiedDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (employeeId) REFERENCES employees(id),
+    CHECK (type IN ('Equipment', 'Leave', 'Resources')),
+    CHECK (status IN ('Pending', 'Approved', 'Rejected'))
+);
+
+-- Create Workflows table without reference to Requests
+CREATE TABLE workflows (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    requestId INT NULL,  -- Made nullable and removed foreign key
+    employeeid INT NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    details TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+    datetimecreated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employeeid) REFERENCES employees(id),
+    CHECK (type IN ('Leave Request', 'Equipment Request', 'Department Change', 'Other')),
+    CHECK (status IN ('Pending', 'Approved', 'Rejected'))
 );
 
 -- Request Items Table
 CREATE TABLE request_items (
-    id SERIAL PRIMARY KEY,
-    request_id INTEGER REFERENCES requests(id) ON DELETE CASCADE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    request_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    quantity INTEGER,
-    start_date DATE,
-    end_date DATE,
-    notes TEXT,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('Draft', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed')),
-    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    quantity INT NOT NULL CHECK (quantity > 0),
+    FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
 );
 
 -- Request Attachments Table
@@ -103,7 +116,7 @@ CREATE TABLE department_changes (
 
 -- Indexes
 CREATE INDEX idx_employees_department ON employees(department_id);
-CREATE INDEX idx_requests_employee ON requests(employee_id);
+CREATE INDEX idx_requests_employee ON requests(employeeId);
 CREATE INDEX idx_request_items_request ON request_items(request_id);
 CREATE INDEX idx_request_attachments_request ON request_attachments(request_id);
 CREATE INDEX idx_request_approvers_request ON request_approvers(request_id);

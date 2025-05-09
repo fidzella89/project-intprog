@@ -1,4 +1,4 @@
 export const environment = {
     production: true,
-    apiUrl: 'https://localhost:4000'
+    apiUrl: '/api'  // In production, use relative path since both frontend and API are served from the same origin
 }

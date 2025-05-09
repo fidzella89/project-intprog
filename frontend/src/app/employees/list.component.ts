@@ -140,7 +140,7 @@ export class ListComponent implements OnInit {
         this.router.navigate(['/requests'], { queryParams: { employeeId } });
     }
 
-    viewWorkflows(employeeId: string) {
-        this.router.navigate(['/workflows'], { queryParams: { employeeId } });
+    viewWorkflows(employeeid: string) {
+        this.router.navigate(['/workflows'], { queryParams: { employeeid } });
     }
 } 

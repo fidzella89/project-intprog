@@ -8,11 +8,11 @@
         <table *ngIf="!loading && requests" class="table table-striped">
             <thead>
                 <tr>
-                    <th style="width: 15%">Request #</th>
+                    <th style="width: 12%">Request #</th>
                     <th style="width: 15%">Employee</th>
-                    <th style="width: 15%">Type</th>
-                    <th style="width: 15%">Status</th>
-                    <th style="width: 25%">Created</th>
+                    <th style="width: 12%">Type</th>
+                    <th style="width: 12%">Status</th>
+                    <th style="width: 22%">Created</th>
                     <th style="width: 15%"></th>
                 </tr>
             </thead>
@@ -27,29 +27,64 @@
                     <td>{{request.type}}</td>
                     <td>
                         <span class="badge" [ngClass]="{
-                            'bg-secondary': request.status === 'Draft',
-                            'bg-primary': request.status === 'Submitted',
-                            'bg-info': request.status === 'In Progress',
+                            'bg-secondary': request.status === 'Pending',
                             'bg-success': request.status === 'Approved',
-                            'bg-danger': request.status === 'Rejected',
-                            'bg-dark': request.status === 'Completed'
+                            'bg-danger': request.status === 'Rejected'
                         }">{{request.status}}</span>
                     </td>
                     <td>{{request.createdDate | date:'medium'}}</td>
-                    <td>
+                    <td style="white-space: nowrap">
                         <a routerLink="view/{{request.id}}" class="btn btn-sm btn-primary me-1">View</a>
-                        <button *ngIf="request.status === 'Draft'" (click)="deleteRequest(request.id)" class="btn btn-sm btn-danger btn-delete-request" [disabled]="request.isDeleting">
-                            <span *ngIf="request.isDeleting" class="spinner-border spinner-border-sm"></span>
-                            <span *ngIf="!request.isDeleting">Delete</span>
-                        </button>
+                        <!-- Edit, Delete, and Status Change buttons only for admin -->
+                        <ng-container *ngIf="isAdmin">
+                            <a routerLink="edit/{{request.id}}" class="btn btn-sm btn-warning me-1">Edit</a>
+                            <div class="btn-group me-1">
+                                <button type="button" class="btn btn-sm btn-info dropdown-toggle" data-bs-toggle="dropdown" [disabled]="request.isUpdating">
+                                    <span *ngIf="request.isUpdating" class="spinner-border spinner-border-sm me-1"></span>
+                                    Status
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" (click)="changeStatus(request.id, 'Pending')" [class.disabled]="request.status === 'Pending'">Pending</a></li>
+                                    <li><a class="dropdown-item" (click)="changeStatus(request.id, 'Approved')" [class.disabled]="request.status === 'Approved'">Approved</a></li>
+                                    <li><a class="dropdown-item" (click)="changeStatus(request.id, 'Rejected')" [class.disabled]="request.status === 'Rejected'">Rejected</a></li>
+                                </ul>
+                            </div>
+                            <button (click)="openDeleteModal(request)" class="btn btn-sm btn-danger" [disabled]="request.isDeleting">
+                                <span *ngIf="request.isDeleting" class="spinner-border spinner-border-sm"></span>
+                                <span *ngIf="!request.isDeleting">Delete</span>
+                            </button>
+                        </ng-container>
                     </td>
                 </tr>
                 <tr *ngIf="!loading && requests?.length === 0">
-                    <td colspan="6" class="text-center">
+                    <td colspan="7" class="text-center">
                         <span class="text-muted">No requests found</span>
                     </td>
                 </tr>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete request <strong>#{{selectedRequest?.requestNumber}}</strong>?</p>
+                <p class="mb-0 text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="isDeleting">
+                    <span *ngIf="isDeleting" class="spinner-border spinner-border-sm me-1"></span>
+                    Delete Request
+                </button>
+            </div>
+        </div>
     </div>
 </div> 

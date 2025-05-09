@@ -1,9 +1,8 @@
-<h1>
-    Workflows
-    <ng-container *ngIf="employeeId && employee">
-        for Employee {{employee.employeeId}} - {{getEmployeeFullName()}}
-    </ng-container>
-</h1>
+<h1>Workflows</h1>
+
+<div class="mb-3">
+    <a routerLink="add" [queryParams]="{ employeeId: employeeId }" class="btn btn-sm btn-success">New Workflow</a>
+</div>
 
 <div class="card">
     <div class="card-body">
@@ -13,38 +12,50 @@
         <table *ngIf="!loading && workflows" class="table table-striped">
             <thead>
                 <tr>
-                    <th>Request ID</th>
-                    <th>Employee ID</th>
-                    <th>Type</th>
-                    <th>Details</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th style="width: 20%">Type</th>
+                    <th style="width: 30%">Task</th>
+                    <th style="width: 15%">Status</th>
+                    <th style="width: 20%">Created</th>
+                    <th style="width: 15%"></th>
                 </tr>
             </thead>
             <tbody>
                 <tr *ngFor="let workflow of workflows">
-                    <td>{{workflow.requestId}}</td>
-                    <td>
-                        <span *ngIf="workflow.request?.employee">
-                            {{workflow.request.employee.employeeId}}
-                        </span>
-                    </td>
-                    <td>{{workflow.request?.type}}</td>
-                    <td>{{workflow.request?.title}}</td>
+                    <td>{{workflow.type}}</td>
+                    <td>{{workflow.details.task}}</td>
                     <td>
                         <span class="badge" [ngClass]="{
                             'bg-warning': workflow.status === 'Pending',
-                            'bg-success': workflow.status === 'Approved',
+                            'bg-info': workflow.status === 'InProgress',
+                            'bg-success': workflow.status === 'Completed',
                             'bg-danger': workflow.status === 'Rejected'
                         }">{{workflow.status}}</span>
                     </td>
+                    <td>{{workflow.createdDate | date:'medium'}}</td>
                     <td>
-                        <a [routerLink]="['/workflows/view', workflow.id]" class="btn btn-sm btn-primary me-1">View</a>
-                        <a [routerLink]="['/workflows/edit', workflow.id]" class="btn btn-sm btn-warning me-1">Edit</a>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" [disabled]="workflow.isUpdating">
+                                <span *ngIf="workflow.isUpdating" class="spinner-border spinner-border-sm me-1"></span>
+                                Actions
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" routerLink="view/{{workflow.id}}">View Details</a></li>
+                                <li *ngIf="isAdmin"><a class="dropdown-item" (click)="changeStatus(workflow.id, 'InProgress')" [class.disabled]="workflow.status === 'InProgress'">Start Processing</a></li>
+                                <li *ngIf="isAdmin"><a class="dropdown-item" (click)="changeStatus(workflow.id, 'Completed')" [class.disabled]="workflow.status === 'Completed'">Mark Complete</a></li>
+                                <li *ngIf="isAdmin"><a class="dropdown-item" (click)="changeStatus(workflow.id, 'Rejected')" [class.disabled]="workflow.status === 'Rejected'">Reject</a></li>
+                                <li *ngIf="isAdmin && workflow.status === 'Pending'"><hr class="dropdown-divider"></li>
+                                <li *ngIf="isAdmin && workflow.status === 'Pending'">
+                                    <a class="dropdown-item text-danger" (click)="deleteWorkflow(workflow.id)" [class.disabled]="workflow.isDeleting">
+                                        <span *ngIf="workflow.isDeleting" class="spinner-border spinner-border-sm me-1"></span>
+                                        Delete
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </td>
                 </tr>
-                <tr *ngIf="workflows.length === 0">
-                    <td colspan="6" class="text-center">
+                <tr *ngIf="!loading && (!workflows || workflows.length === 0)">
+                    <td colspan="5" class="text-center">
                         <span class="text-muted">No workflows found</span>
                     </td>
                 </tr>

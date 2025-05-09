@@ -54,12 +54,8 @@ export class LoginComponent implements OnInit {
             .pipe(first())
             .subscribe({
                 next: () => {
-                    // Successful login - navigate to returnUrl or home
-                    this.router.navigateByUrl(this.returnUrl)
-                        .then(() => {
-                            // Optional: Force reload if needed
-                            window.location.reload();
-                        });
+                    // Navigate to return URL
+                    this.router.navigate([this.returnUrl]);
                 },
                 error: error => {
                     this.alertService.error(error);

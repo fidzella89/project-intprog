@@ -15,7 +15,14 @@ export class AddEditComponent implements OnInit {
     submitted = false;
     employeeId: string | null = null;
     isAdmin = false;
-    requestTypes = Object.values(RequestType);
+    deletedItems: any[] = []; // Track items marked for deletion
+    originalItems: any[] = []; // Store original items for comparison
+
+    // Getter for checking if items section should be shown
+    get showItemsSection(): boolean {
+        const type = this.form?.get('type')?.value;
+        return type === 'Equipment' || type === 'Resources';
+    }
 
     constructor(
         private formBuilder: FormBuilder,
@@ -25,67 +32,101 @@ export class AddEditComponent implements OnInit {
         private alertService: AlertService,
         private accountService: AccountService
     ) {
-        this.isAdmin = this.accountService.accountValue?.role === Role.Admin;
-        
-        // Get employeeId from query params
-        this.route.queryParams.subscribe(params => {
-            this.employeeId = params['employeeId'];
-        });
-        
-        // Initialize the form immediately
-        this.form = this.formBuilder.group({
-            title: ['', Validators.required],
-            description: ['', Validators.required],
-            type: ['', Validators.required],
-            status: [{ value: RequestStatus.Draft, disabled: false }],
-            items: this.formBuilder.array([]),
-            currentStep: [{ value: 1, disabled: true }],
-            totalSteps: [{ value: 3, disabled: true }]
-        });
+        this.isAdmin = this.accountService.isAdmin;
+        this.employeeId = this.accountService.userValue?.id;
     }
+
+    // convenience getter for easy access to form fields
+    get f() { return this.form.controls; }
+
+    // getter for items FormArray
+    get items() { return this.f.items as FormArray; }
 
     ngOnInit() {
         this.id = this.route.snapshot.params['id'];
         this.isAddMode = !this.id;
 
+        // Create base form
+        this.form = this.formBuilder.group({
+            type: ['', Validators.required],
+            description: ['', Validators.required],
+            items: this.formBuilder.array([])
+        });
+
         if (!this.isAddMode) {
             this.requestService.getById(this.id)
                 .pipe(first())
                 .subscribe(x => {
-                    this.form.patchValue(x);
-                    
-                    // Load items
-                    x.items?.forEach(item => {
-                        this.addItem(item);
+                    this.form.patchValue({
+                        type: x.type,
+                        description: x.description
                     });
+                    
+                    // Store original items and load them into form
+                    if (x.items) {
+                        this.originalItems = [...x.items];
+                        x.items.forEach(item => this.addItem(item));
+                    }
                 });
         }
     }
 
-    // convenience getter for easy access to form fields
-    get f() { return this.form.controls; }
-    
-    get items() { return this.form.get('items') as FormArray; }
-
+    // Add item to form
     addItem(item: any = null) {
         const itemForm = this.formBuilder.group({
-            id: [item?.id || null],
-            name: [item?.name || '', Validators.required],
-            quantity: [item?.quantity || null, [Validators.required, Validators.min(1)]],
-            status: [{ value: item?.status || RequestStatus.Draft, disabled: !this.isAddMode }]
+            id: [item ? item.id : null],
+            name: [item ? item.name : '', [Validators.required, Validators.maxLength(100)]],
+            quantity: [item ? item.quantity : '', [Validators.required, Validators.min(1), Validators.max(9999)]]
         });
 
         this.items.push(itemForm);
     }
 
+    // Remove item from form
     removeItem(index: number) {
+        const item = this.items.at(index).value;
+        if (item.id) {
+            // If item has an ID, it exists in database - mark for deletion
+            this.deletedItems.push(item);
+        }
         this.items.removeAt(index);
+    }
+
+    private prepareItemsForSubmission() {
+        const formItems = this.items.value;
+        const itemsToAdd: any[] = [];
+        const itemsToUpdate: any[] = [];
+
+        formItems.forEach((item: any) => {
+            if (!item.id) {
+                // New item
+                itemsToAdd.push(item);
+            } else {
+                // Existing item - check if modified
+                const originalItem = this.originalItems.find(oi => oi.id === item.id);
+                if (originalItem && (originalItem.name !== item.name || originalItem.quantity !== item.quantity)) {
+                    itemsToUpdate.push(item);
+                }
+            }
+        });
+
+        // Filter out deleted items that match new items
+        const itemsToDelete = this.deletedItems.filter(deletedItem => {
+            return !itemsToAdd.some(newItem => 
+                newItem.name === deletedItem.name && 
+                newItem.quantity === deletedItem.quantity
+            );
+        });
+
+        return {
+            itemsToAdd,
+            itemsToUpdate,
+            itemsToDelete
+        };
     }
 
     onSubmit() {
         this.submitted = true;
-
-        // reset alerts on submit
         this.alertService.clear();
 
         // stop here if form is invalid
@@ -93,47 +134,52 @@ export class AddEditComponent implements OnInit {
             return;
         }
 
+        if (!this.employeeId) {
+            this.alertService.error('Employee ID is required');
+            return;
+        }
+
         this.loading = true;
 
-        // Get the form value and add employeeId
-        const formValue = this.form.value;
-        formValue.employeeId = this.employeeId;
+        const { itemsToAdd, itemsToUpdate, itemsToDelete } = this.prepareItemsForSubmission();
+        
+        const requestData = {
+            ...this.form.value,
+            employeeId: Number(this.employeeId),
+            itemChanges: {
+                add: itemsToAdd,
+                update: itemsToUpdate,
+                delete: itemsToDelete.map(item => item.id)
+            }
+        };
 
         if (this.isAddMode) {
-            this.createRequest(formValue);
+            this.requestService.create(requestData)
+                .pipe(first())
+                .subscribe({
+                    next: () => {
+                        this.alertService.success('Request added successfully');
+                        this.router.navigate(['../'], { relativeTo: this.route });
+                    },
+                    error: error => {
+                        this.alertService.error(error);
+                        this.loading = false;
+                    }
+                });
         } else {
-            this.updateRequest(formValue);
+            this.requestService.update(this.id, requestData)
+                .pipe(first())
+                .subscribe({
+                    next: () => {
+                        this.alertService.success('Request updated successfully');
+                        this.router.navigate(['/requests']);
+                    },
+                    error: error => {
+                        this.alertService.error(error);
+                        this.loading = false;
+                    }
+                });
         }
-    }
-
-    private createRequest(formValue: any) {
-        this.requestService.create(formValue)
-            .pipe(first())
-            .subscribe({
-                next: () => {
-                    this.alertService.success('Request created successfully', { keepAfterRouteChange: true });
-                    this.router.navigate(['../'], { relativeTo: this.route });
-                },
-                error: error => {
-                    this.alertService.error(error);
-                    this.loading = false;
-                }
-            });
-    }
-
-    private updateRequest(formValue: any) {
-        this.requestService.update(this.id, formValue)
-            .pipe(first())
-            .subscribe({
-                next: () => {
-                    this.alertService.success('Update successful', { keepAfterRouteChange: true });
-                    this.router.navigate(['../../'], { relativeTo: this.route });
-                },
-                error: error => {
-                    this.alertService.error(error);
-                    this.loading = false;
-                }
-            });
     }
 
     submitRequest() {

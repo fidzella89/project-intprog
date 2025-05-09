@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: request-management-system
+    env: node
+    buildCommand: npm run render-build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: CORS_ORIGIN
+        value: https://your-app-name.onrender.com
+      - key: DATABASE_URL
+        sync: false
+    healthCheckPath: /
+    autoDeploy: true 

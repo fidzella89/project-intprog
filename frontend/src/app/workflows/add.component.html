@@ -1,0 +1,42 @@
+<h1>Create Workflow</h1>
+
+<div class="card">
+    <div class="card-body">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+            <div class="mb-3">
+                <label class="form-label">Workflow Type</label>
+                <select formControlName="type" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.type.errors }">
+                    <option value="">Select Type</option>
+                    <option *ngFor="let type of workflowTypes" [value]="type">{{type}}</option>
+                </select>
+                <div *ngIf="submitted && f.type.errors" class="invalid-feedback">
+                    <div *ngIf="f.type.errors.required">Type is required</div>
+                </div>
+            </div>
+
+            <div formGroupName="details">
+                <div class="mb-3">
+                    <label class="form-label">Task</label>
+                    <input type="text" formControlName="task" class="form-control" 
+                           [ngClass]="{ 'is-invalid': submitted && form.get('details.task')?.errors }" />
+                    <div *ngIf="submitted && form.get('details.task')?.errors" class="invalid-feedback">
+                        <div *ngIf="form.get('details.task')?.errors?.required">Task is required</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Additional Information</label>
+                    <textarea formControlName="additionalInfo" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <button [disabled]="loading" class="btn btn-primary">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                    Create Workflow
+                </button>
+                <a routerLink="/workflows" [queryParams]="{employeeId: employeeId}" class="btn btn-link">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div> 

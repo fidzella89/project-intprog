@@ -13,6 +13,7 @@ export class ViewComponent implements OnInit {
     isAdmin = false;
     isModerator = false;
     isOwner = false;
+    employeeId: string | null = null;
 
     constructor(
         private route: ActivatedRoute,
@@ -24,6 +25,11 @@ export class ViewComponent implements OnInit {
         // Check roles
         this.isAdmin = this.accountService.accountValue?.role === Role.Admin;
         this.isModerator = this.accountService.accountValue?.role === Role.Moderator;
+        
+        // Get employeeId from query params
+        this.route.queryParams.subscribe(params => {
+            this.employeeId = params['employeeId'];
+        });
     }
 
     ngOnInit() {
@@ -36,21 +42,20 @@ export class ViewComponent implements OnInit {
         this.requestService.getById(this.id)
             .pipe(first())
             .subscribe({
-                next: request => {
+                next: (request) => {
                     this.request = request;
-                    
-                    // Since we only have employeeId in the request, we'll determine ownership
-                    // through the my-requests endpoint instead of direct comparison
-                    this.requestService.getMyRequests()
-                        .pipe(first())
-                        .subscribe(myRequests => {
-                            this.isOwner = myRequests.some(r => r.id === this.id);
+                    // Check if current user is the owner of the request
+                    this.isOwner = request.employeeId === Number(this.accountService.accountValue?.id);
                             this.loading = false;
-                        });
                 },
                 error: error => {
                     this.alertService.error(error);
                     this.loading = false;
+                    // Navigate back on error
+                    this.router.navigate(['../'], { 
+                        relativeTo: this.route,
+                        queryParams: { employeeId: this.employeeId }
+                    });
                 }
             });
     }
@@ -86,18 +91,22 @@ export class ViewComponent implements OnInit {
     
     deleteRequest() {
         if (confirm('Are you sure you want to delete this request? This cannot be undone.')) {
+            this.loading = true;
             this.requestService.delete(this.id)
                 .pipe(first())
                 .subscribe({
                     next: () => {
                         this.alertService.success('Request deleted successfully', { keepAfterRouteChange: true });
-                        if (this.isAdmin || this.isModerator) {
-                            this.router.navigate(['../../'], { relativeTo: this.route });
-                        } else {
-                            this.router.navigate(['../../my-requests'], { relativeTo: this.route });
-                        }
+                        // Navigate back preserving the employeeId
+                        this.router.navigate(['../../'], { 
+                            relativeTo: this.route,
+                            queryParams: { employeeId: this.employeeId }
+                        });
                     },
-                    error: error => this.alertService.error(error)
+                    error: error => {
+                        this.alertService.error(error);
+                        this.loading = false;
+                    }
                 });
         }
     }

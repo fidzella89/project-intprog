@@ -17,18 +17,27 @@ function authorize(roles = []) {
 
         // authorize based on user role
         async (req, res, next) => {
-            const account = await db.Account.findByPk(req.user.id);
+            try {
+                const account = await db.Account.findByPk(req.user.id, {
+                    include: [{
+                        model: db.RefreshToken,
+                        as: 'refreshTokens'
+                    }]
+                });
 
-            if (!account || (roles.length && !roles.includes(account.role))) {
-                // account no longer exists or role not authorized
-                return res.status(401).json({ message: 'Unauthorized' });
+                if (!account || (roles.length && !roles.includes(account.role))) {
+                    // account no longer exists or role not authorized
+                    return res.status(401).json({ message: 'Unauthorized' });
+                }
+
+                // authentication and authorization successful
+                req.user.role = account.role;
+                req.user.ownsToken = token => !!account.refreshTokens?.find(x => x.token === token);
+                next();
+            } catch (error) {
+                console.error('Authorization error:', error);
+                return res.status(500).json({ message: 'Internal server error during authorization' });
             }
-
-            // authentication and authorization successful
-            req.user.role = account.role;
-            const refreshTokens = await account.getRefreshTokens();
-            req.user.ownsToken = token => !!refreshTokens.find(x => x.token === token);
-            next();
         }
     ];
 }

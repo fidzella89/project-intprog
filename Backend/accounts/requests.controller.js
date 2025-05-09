@@ -54,12 +54,10 @@ function getByRequesterId(req, res, next) {
 
 function createSchema(req, res, next) {
     const schema = Joi.object({
-        title: Joi.string().required(),
         description: Joi.string().required(),
-        requestType: Joi.string().required(),
+        type: Joi.string().valid('Equipment', 'Leave', 'Resources').required(),
         employeeId: Joi.number().required(),
-        priority: Joi.string().valid('Low', 'Medium', 'High', 'Urgent'),
-        dueDate: Joi.date()
+        status: Joi.string().valid('Pending', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed').default('Pending')
     });
     validateRequest(req, next, schema);
 }
@@ -72,11 +70,9 @@ function create(req, res, next) {
 
 function updateSchema(req, res, next) {
     const schema = Joi.object({
-        title: Joi.string(),
         description: Joi.string(),
-        requestType: Joi.string(),
-        priority: Joi.string().valid('Low', 'Medium', 'High', 'Urgent'),
-        dueDate: Joi.date()
+        type: Joi.string().valid('Equipment', 'Leave', 'Resources'),
+        status: Joi.string().valid('Pending', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed')
     }).min(1);
     validateRequest(req, next, schema);
 }
@@ -100,7 +96,7 @@ async function update(req, res, next) {
 
 function changeStatusSchema(req, res, next) {
     const schema = Joi.object({
-        status: Joi.string().valid('Draft', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed', 'Cancelled').required(),
+        status: Joi.string().valid('Pending', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed').required(),
         comments: Joi.string()
     });
     validateRequest(req, next, schema);

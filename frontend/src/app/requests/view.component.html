@@ -77,19 +77,6 @@
                 </table>
             </div>
 
-            <div class="mb-3">
-                <h4>Workflow Progress</h4>
-                <div class="progress mb-2">
-                    <div class="progress-bar" role="progressbar" 
-                        [style.width.%]="(request.currentStep / request.totalSteps) * 100"
-                        [attr.aria-valuenow]="request.currentStep"
-                        [attr.aria-valuemin]="0"
-                        [attr.aria-valuemax]="request.totalSteps">
-                        Step {{request.currentStep}} of {{request.totalSteps}}
-                    </div>
-                </div>
-            </div>
-
             <div class="border-top pt-3">
                 <button *ngIf="isOwner && request.status === 'Draft'" routerLink="/requests/edit/{{request.id}}" class="btn btn-primary me-2">
                     Edit Request

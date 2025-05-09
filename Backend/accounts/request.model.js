@@ -18,10 +18,6 @@ function model(sequelize) {
             type: DataTypes.INTEGER,
             allowNull: false
         },
-        title: {
-            type: DataTypes.STRING(100),
-            allowNull: false
-        },
         description: {
             type: DataTypes.TEXT,
             allowNull: false
@@ -30,28 +26,16 @@ function model(sequelize) {
             type: DataTypes.STRING(50),
             allowNull: false,
             validate: {
-                isIn: [['Equipment', 'Leave', 'Department Change', 'Onboarding']]
+                isIn: [['Equipment', 'Leave', 'Resources']]
             }
         },
         status: {
             type: DataTypes.STRING(20),
             allowNull: false,
-            defaultValue: 'Draft',
+            defaultValue: 'Pending',
             validate: {
-                isIn: [['Draft', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed', 'Cancelled']]
+                isIn: [['Pending', 'Approved', 'Rejected']]
             }
-        },
-        currentStep: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 1
-        },
-        totalSteps: {
-            type: DataTypes.INTEGER,
-            allowNull: false
-        },
-        notes: {
-            type: DataTypes.TEXT
         },
         createdDate: {
             type: DataTypes.DATE,

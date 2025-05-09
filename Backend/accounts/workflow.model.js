@@ -11,12 +11,26 @@ function model(sequelize) {
         },
         requestId: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: true
         },
-        step: {
+        employeeid: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            defaultValue: 1
+            references: {
+                model: 'employees',
+                key: 'id'
+            }
+        },
+        type: {
+            type: DataTypes.STRING(50),
+            allowNull: false,
+            validate: {
+                isIn: [['Leave Request', 'Equipment Request', 'Department Change', 'Other']]
+            }
+        },
+        details: {
+            type: DataTypes.TEXT,
+            allowNull: true
         },
         status: {
             type: DataTypes.STRING(20),
@@ -26,33 +40,16 @@ function model(sequelize) {
                 isIn: [['Pending', 'Approved', 'Rejected']]
             }
         },
-        handledBy: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
-        notes: {
-            type: DataTypes.TEXT
-        },
-        createdDate: {
+        datetimecreated: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
-        },
-        lastModifiedDate: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW
+            defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
         }
     };
 
     const options = {
         timestamps: false,
-        tableName: 'workflows',
-        hooks: {
-            beforeUpdate: (workflow) => {
-                workflow.lastModifiedDate = new Date();
-            }
-        }
+        tableName: 'workflows'
     };
 
     return sequelize.define('Workflow', attributes, options);

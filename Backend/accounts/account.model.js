@@ -4,6 +4,11 @@ module.exports = model;
 
 function model(sequelize) {
     const attributes = {
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
+        },
         email: { type: DataTypes.STRING, allowNull: false },
         passwordHash: { type: DataTypes.STRING, allowNull: false },
         title: { type: DataTypes.STRING, allowNull: false },
@@ -32,6 +37,10 @@ function model(sequelize) {
     const options = {
         // disable default timestamp fields (createdAt and updatedAt)
         timestamps: false,
+        // Prevent Sequelize from pluralizing table names
+        freezeTableName: true,
+        // Use the exact table name
+        tableName: 'account',
         defaultScope: {
             // exclude password hash by default
             attributes: { exclude: ['passwordHash'] }

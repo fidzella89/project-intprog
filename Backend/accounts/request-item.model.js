@@ -17,53 +17,18 @@ function model(sequelize) {
             type: DataTypes.STRING(100),
             allowNull: false
         },
-        type: {
-            type: DataTypes.STRING(50),
-            allowNull: false
-        },
         quantity: {
             type: DataTypes.INTEGER,
+            allowNull: false,
             validate: {
-                min: 0
+                min: 1
             }
-        },
-        startDate: {
-            type: DataTypes.DATE
-        },
-        endDate: {
-            type: DataTypes.DATE
-        },
-        notes: {
-            type: DataTypes.TEXT
-        },
-        status: {
-            type: DataTypes.STRING(20),
-            allowNull: false,
-            defaultValue: 'Draft',
-            validate: {
-                isIn: [['Draft', 'Submitted', 'In Progress', 'Approved', 'Rejected', 'Completed']]
-            }
-        },
-        createdDate: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW
-        },
-        lastModifiedDate: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW
         }
     };
 
     const options = {
         timestamps: false,
-        tableName: 'request_items',
-        hooks: {
-            beforeUpdate: (item) => {
-                item.lastModifiedDate = new Date();
-            }
-        }
+        tableName: 'request_items'
     };
 
     return sequelize.define('RequestItem', attributes, options);

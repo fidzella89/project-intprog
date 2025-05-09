@@ -2,9 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
+import { HttpResponse } from '@angular/common/http';
 
 import { AccountService, AlertService } from '@app/_services';
 import { MustMatch } from '@app/_helpers';
+import { RegistrationResponse } from '@app/_models';
 
 @Component({ templateUrl: 'register.component.html' })
 export class RegisterComponent implements OnInit {
@@ -56,16 +58,16 @@ export class RegisterComponent implements OnInit {
         this.accountService.register(this.form.value)
             .pipe(first())
             .subscribe({
-                next: (response) => {
+                next: (response: HttpResponse<RegistrationResponse>) => {
                     if (response && response.body) {
-                        const body = response.body as any;
+                        const responseData = response.body;
                         this.registrationSuccessful = true;
-                        this.verificationToken = body.verificationToken;
-                        this.verificationUrl = body.verificationUrl;
-                        this.verificationApiUrl = body.verificationApiUrl;
+                        this.verificationToken = responseData.verificationToken;
+                        this.verificationUrl = responseData.verificationUrl;
+                        this.verificationApiUrl = responseData.verificationApiUrl;
                         
                         this.alertService.success(
-                            body.message || 'Registration successful, please check your email for verification instructions',
+                            responseData.message || 'Registration successful, please check your email for verification instructions',
                             { keepAfterRouteChange: false }
                         );
                     } else {
