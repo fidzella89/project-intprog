@@ -10,8 +10,7 @@
     "server": "nodemon server.js",
     "client": "ng serve --open",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "render-build": "npm install --legacy-peer-deps && npm install @angular-devkit/build-angular --legacy-peer-deps && ng build --configuration production",
-    "postinstall": "npm run render-build"
+    "render-build": "ng build --configuration production"
   },
   "engines": {
     "node": "18.x",
@@ -39,6 +38,7 @@
     "express-jwt": "^8.4.1",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.0",
+    "nodemailer": "^6.9.9",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "path": "^0.12.7",
