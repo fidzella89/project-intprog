@@ -59,6 +59,13 @@ async function authenticate({ email, password, ipAddress }) {
 
 async function refreshToken({ token, ipAddress }) {
     try {
+        if (!token) {
+            throw {
+                name: 'ValidationError',
+                message: 'Refresh token is required'
+            };
+        }
+
         const refreshToken = await db.RefreshToken.findOne({
             where: { token },
             include: [{
@@ -91,12 +98,12 @@ async function refreshToken({ token, ipAddress }) {
 
         // replace old refresh token with a new one and save
         const newRefreshToken = generateRefreshToken(account, ipAddress);
-        refreshToken.revoked = Date.now();
-        refreshToken.revokedByIp = ipAddress;
-        refreshToken.replacedByToken = newRefreshToken.token;
         
         // Save both tokens in a transaction
         await db.sequelize.transaction(async (t) => {
+            refreshToken.revoked = Date.now();
+            refreshToken.revokedByIp = ipAddress;
+            refreshToken.replacedByToken = newRefreshToken.token;
             await refreshToken.save({ transaction: t });
             await newRefreshToken.save({ transaction: t });
         });
@@ -112,9 +119,15 @@ async function refreshToken({ token, ipAddress }) {
         };
     } catch (error) {
         console.error('Refresh token error:', error);
-        if (error.name === 'NotFoundError' || error.name === 'InvalidTokenError') {
+        
+        // If it's one of our known error types, rethrow it
+        if (error.name === 'ValidationError' || 
+            error.name === 'NotFoundError' || 
+            error.name === 'InvalidTokenError') {
             throw error;
         }
+        
+        // For any other error, throw a generic error
         throw {
             name: 'InternalError',
             message: 'An error occurred while refreshing the token'

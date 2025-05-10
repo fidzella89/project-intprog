@@ -110,12 +110,22 @@ export class AccountService {
 
         this.refreshingToken = true;
         
+        const storedAccount = localStorage.getItem('account');
+        if (!storedAccount) {
+            this.refreshingToken = false;
+            return throwError(() => new Error('No stored account found'));
+        }
+
+        const account = JSON.parse(storedAccount);
+        const headers = new HttpHeaders({
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Authorization': `Bearer ${account.jwtToken}`
+        });
+
         return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
+            headers
         }).pipe(
             map(account => {
                 if (!account || !account.jwtToken) {
@@ -128,6 +138,7 @@ export class AccountService {
             catchError(error => {
                 console.error('Token refresh failed:', error);
                 this.clearAccountData();
+                this.router.navigate(['/account/login']);
                 return throwError(() => error);
             }),
             finalize(() => {
