@@ -8,8 +8,8 @@ const app = express();
 // CORS configuration
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.FRONTEND_URL || 'https://your-app.netlify.app']
-        : ['http://localhost:4200'],
+        ? [process.env.FRONTEND_URL || 'https://your-app.onrender.com']
+        : ['http://localhost:4200', 'http://localhost:4000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -32,30 +32,12 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// API routes prefix
-const apiRouter = express.Router();
-
-// Authentication routes
-apiRouter.post('/accounts/authenticate', (req, res) => {
-    try {
-        // Temporary authentication logic
-        const { email, password } = req.body;
-        if (email && password) {
-            res.json({
-                id: '1',
-                email: email,
-                token: 'dummy-token'
-            });
-        } else {
-            res.status(400).json({ message: 'Email and password are required' });
-        }
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// Mount API routes under /api
-app.use('/api', apiRouter);
+// API routes
+app.use('/accounts', require('./Backend/accounts/accounts.controller'));
+app.use('/employees', require('./Backend/accounts/employees.controller'));
+app.use('/departments', require('./Backend/accounts/departments.controller'));
+app.use('/requests', require('./Backend/accounts/requests.controller'));
+app.use('/workflows', require('./Backend/accounts/workflow.controller'));
 
 // Serve static files from the Angular app
 app.use(express.static(path.join(__dirname, 'dist/frontend')));

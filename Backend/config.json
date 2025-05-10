@@ -1,10 +1,14 @@
 {
   "database": {
-    "host": "localhost",
-    "port": 3306,
-    "user": "root",
-    "password": "",
-    "database": "management"
+    "use_env_variable": "DATABASE_URL",
+    "dialect": "postgres",
+    "ssl": true,
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
   },
   "secret": "E9g$2kL8#pXq5!RnW7vY4*zZb6@dF1jH3mPcQs",
   "emailFrom": "admin@gmail.com",
