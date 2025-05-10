@@ -4,7 +4,9 @@
 
 export const environment = {
     production: false,
-    apiUrl: 'http://localhost:4000'  // Local development API URL
+    apiUrl: 'http://localhost:4000',
+    allowedDomains: ['localhost:4000'],
+    disallowedRoutes: []
 };
 
 /*

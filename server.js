@@ -8,12 +8,14 @@ const app = express();
 // CORS configuration
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.FRONTEND_URL || 'https://final-intprog-project-1.onrender.com']
-        : ['http://localhost:4200', 'http://localhost:4000'],
+        ? ['https://final-intprog-project-1.onrender.com', 'http://localhost:4200', 'http://localhost:4000']
+        : true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Length', 'X-Refresh-Token'],
     credentials: true,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    maxAge: 86400
 };
 
 // Apply CORS before other middleware
