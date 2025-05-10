@@ -7,7 +7,9 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-    origin: ['http://localhost:4000', 'http://localhost:3000'],
+    origin: process.env.NODE_ENV === 'production' 
+        ? [process.env.FRONTEND_URL || 'https://your-app.netlify.app']
+        : ['http://localhost:4200'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -20,6 +22,15 @@ app.use(cors(corsOptions));
 // Other middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV
+    });
+});
 
 // API routes prefix
 const apiRouter = express.Router();

@@ -9,9 +9,15 @@ services:
         value: production
       - key: PORT
         value: 3000
-      - key: CORS_ORIGIN
-        value: https://your-app-name.onrender.com
-      - key: DATABASE_URL
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_HOST
         sync: false
-    healthCheckPath: /
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+    healthCheckPath: /api/health
     autoDeploy: true 
