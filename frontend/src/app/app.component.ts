@@ -1,15 +1,16 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AccountService } from './_services';
 import { Account, Role } from './_models';
 
 @Component({
-    selector: 'app',
-    templateUrl: 'app.component.html'
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.css']
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
     Role = Role;
-    account: Account;
+    account?: Account | null;
     showLogoutModal = false;
 
     constructor(
@@ -17,6 +18,10 @@ export class AppComponent {
         private router: Router
     ) {
         this.accountService.account.subscribe(x => this.account = x);
+    }
+
+    ngOnInit() {
+        // The account service will handle initialization and token refresh
     }
 
     openLogoutModal() {

@@ -125,7 +125,7 @@ export class AccountService {
         }
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, {
-            refreshToken: account.refreshToken
+            token: account.refreshToken // Send as 'token' instead of 'refreshToken'
         }, { 
             withCredentials: true,
             headers: {
@@ -139,11 +139,13 @@ export class AccountService {
                     throw new Error('Invalid refresh token response');
                 }
                 
-                // Store the new account details
+                // Create new account object with the refresh token
                 const newAccount = {
                     ...response,
-                    refreshToken: account.refreshToken // Keep the refresh token
+                    refreshToken: account.refreshToken // Keep the existing refresh token
                 };
+                
+                // Store the new account details
                 this.storeAccount(newAccount);
                 
                 // Restart the refresh timer
