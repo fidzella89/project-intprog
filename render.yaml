@@ -2,7 +2,7 @@ services:
   - type: web
     name: request-management-system
     env: node
-    buildCommand: npm run render-build
+    buildCommand: npm install --legacy-peer-deps && npm run render-build
     startCommand: npm start
     envVars:
       - key: NODE_ENV

@@ -1,5 +1,4 @@
 const config = require('../config.json');
-const mysql = require('mysql2/promise');
 const { Sequelize } = require('sequelize');
 
 module.exports = db = {};
@@ -11,27 +10,14 @@ initialize().catch(err => {
 
 async function initialize() {
     try {
-        const { host, port, user, password, database } = config.database;
+        // Get database URL from environment variable or config
+        const databaseUrl = process.env.DATABASE_URL || `postgres://${config.database.user}:${config.database.password}@${config.database.host}:${config.database.port}/${config.database.database}`;
         
-        console.log('Connecting to MySQL server...');
-        const connection = await mysql.createConnection({ 
-            host, 
-            port, 
-            user, 
-            password,
-            connectTimeout: 30000
-        });
-
-        // Create database if it doesn't exist
-        console.log('Checking database existence...');
-        await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
-        await connection.query(`USE \`${database}\`;`);
+        console.log('Connecting to PostgreSQL server...');
         
         // Connect to db with Sequelize
-        const sequelize = new Sequelize(database, user, password, { 
-            host,
-            port,
-            dialect: 'mysql',
+        const sequelize = new Sequelize(databaseUrl, { 
+            dialect: 'postgres',
             logging: console.log,
             pool: {
                 max: 5,
@@ -40,7 +26,10 @@ async function initialize() {
                 idle: 10000
             },
             dialectOptions: {
-                connectTimeout: 60000
+                ssl: process.env.NODE_ENV === 'production' ? {
+                    require: true,
+                    rejectUnauthorized: false
+                } : false
             }
         });
 
@@ -129,8 +118,8 @@ async function initialize() {
         // Check if tables exist and create/sync them
         console.log('Checking and syncing database tables...');
         try {
-            // First check if any tables exist
-            const [tables] = await sequelize.query('SHOW TABLES');
+            // Check if any tables exist
+            const tables = await sequelize.queryInterface.showAllTables();
             const tableExists = tables.length > 0;
 
             if (!tableExists) {
@@ -141,9 +130,7 @@ async function initialize() {
             } else {
                 // Tables exist, sync with alter to preserve data
                 console.log('Existing tables found. Syncing with alter...');
-                await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
                 await sequelize.sync({ alter: true });
-                await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
                 console.log('Database synchronization completed');
             }
         } catch (syncError) {
@@ -151,7 +138,6 @@ async function initialize() {
             throw syncError;
         }
         
-        await connection.end();
         return db;
     } catch (error) {
         console.error('Database initialization error:', error);
