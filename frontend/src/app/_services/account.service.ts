@@ -118,47 +118,35 @@ export class AccountService {
         }
 
         const account = JSON.parse(storedAccount);
-        if (!account || !account.refreshToken) {
-            this.refreshingToken = false;
-            this.clearAccountData();
-            return throwError(() => new Error('No refresh token found'));
-        }
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, {
-            token: account.refreshToken // Send as 'token' instead of 'refreshToken'
+            refreshToken: account.refreshToken // Send token in request body
         }, { 
             withCredentials: true,
             headers: {
-                'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
             }
         }).pipe(
-            map(response => {
-                if (!response || !response.jwtToken) {
+            map(account => {
+                if (!account || !account.jwtToken) {
                     throw new Error('Invalid refresh token response');
                 }
                 
-                // Create new account object with the refresh token
-                const newAccount = {
-                    ...response,
-                    refreshToken: account.refreshToken // Keep the existing refresh token
-                };
-                
                 // Store the new account details
-                this.storeAccount(newAccount);
+                this.storeAccount(account);
                 
                 // Restart the refresh timer
                 this.startRefreshTokenTimer();
                 
-                return newAccount;
+                return account;
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);
-                if (error.status === 401 || error.status === 403 || error.status === 404) {
+                // Only clear account data if it's an authentication error
+                if (error.status === 401 || error.status === 403) {
                     this.clearAccountData();
                     this.router.navigate(['/account/login']);
-                    return throwError(() => new Error('Session expired. Please log in again.'));
                 }
                 return throwError(() => error);
             }),
