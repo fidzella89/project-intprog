@@ -60,7 +60,7 @@ function authenticate(req, res, next) {
 function refreshToken(req, res, next) {
     try {
         // try to get token from request body first, then from cookie
-        const token = req.body.refreshToken || req.cookies.refreshToken;
+        const token = req.body.token || req.cookies.refreshToken;
         const ipAddress = req.ip;
 
         if (!token) {
@@ -69,12 +69,13 @@ function refreshToken(req, res, next) {
 
         accountService.refreshToken({ token, ipAddress })
             .then(response => {
-                if (!response) {
+                if (!response || !response.refreshToken) {
                     throw new Error('Invalid response from refresh token service');
                 }
-                const { refreshToken, ...account } = response;
-                setTokenCookie(res, refreshToken);
-                res.json(account);
+                setTokenCookie(res, response.refreshToken);
+                // Remove refresh token from response to avoid sending it twice
+                const { refreshToken, ...accountDetails } = response;
+                res.json(accountDetails);
             })
             .catch(error => {
                 console.error('Refresh token error:', error);

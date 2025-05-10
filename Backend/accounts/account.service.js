@@ -110,6 +110,12 @@ async function refreshToken({ token, ipAddress }) {
             refreshToken.replacedByToken = newRefreshToken.token;
             await refreshToken.save({ transaction: t });
             await newRefreshToken.save({ transaction: t });
+        }).catch(error => {
+            console.error('Transaction failed:', error);
+            throw {
+                name: 'InternalError',
+                message: 'Failed to update refresh token'
+            };
         });
 
         // generate new jwt
