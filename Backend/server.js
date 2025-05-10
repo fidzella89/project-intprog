@@ -1,11 +1,10 @@
-require('rootpath')();
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
-const errorHandler = require('_middleware/error-handler');
+const errorHandler = require('./_middleware/error-handler');
 
 // Disable SSL verification for development
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -50,7 +49,7 @@ app.use('/departments', require('./accounts/departments.controller'));
 app.use('/workflows', require('./accounts/workflow.controller'));
 
 // swagger docs route
-app.use('/api-docs', require('_helpers/swagger'));
+app.use('/api-docs', require('./_helpers/swagger'));
 
 // Serve static files from the Angular app
 app.use(express.static(path.join(__dirname, '../frontend/dist/frontend')));
@@ -60,13 +59,38 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/frontend/index.html'));
 });
 
+// Add health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
 // global error handler
 app.use(errorHandler);
 
 // start server
 const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 4000;
-app.listen(port, '0.0.0.0', () => {
+
+// Add error handling for the server
+const server = app.listen(port, '0.0.0.0', () => {
     console.log('Server listening on port ' + port);
     console.log('Environment:', process.env.NODE_ENV || 'development');
     console.log('CORS enabled for:', allowedOrigins);
+}).on('error', (err) => {
+    console.error('Server failed to start:', err);
+    process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    process.exit(1);
 });

@@ -1,38 +1,24 @@
 services:
   - type: web
-    name: request-management-system
+    name: final-intprog-project-1
     env: node
     buildCommand: npm install && npm run render-build
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3000
-      - key: JWT_SECRET
-        generateValue: true
-      - key: DB_HOST
-        sync: false
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_NAME
-        sync: false
       - key: DATABASE_URL
-        sync: false
-      - key: FRONTEND_URL
-        value: https://final-intprog-project-1.onrender.com
-      - key: SMTP_HOST
-        value: smtp.ethereal.email
-      - key: SMTP_PORT
-        value: 587
-      - key: SMTP_USER
-        value: antonina.durgan@ethereal.email
-      - key: SMTP_PASS
-        value: dprRBjW6ZUkUGEBemj
-      - key: EMAIL_FROM
-        value: antonina.durgan@ethereal.email
+        fromDatabase:
+          name: final-intprog-project-1-db
+          property: connectionString
     healthCheckPath: /health
     autoDeploy: true
-    nodeVersion: 18.x 
+    disk:
+      name: tmp
+      mountPath: /tmp
+      sizeGB: 1
+
+databases:
+  - name: final-intprog-project-1-db
+    databaseName: request_management_db
+    ipAllowList: [] 
