@@ -11,13 +11,13 @@
     }
   },
   "secret": "E9g$2kL8#pXq5!RnW7vY4*zZb6@dF1jH3mPcQs",
-  "emailFrom": "admin@gmail.com",
+  "emailFrom": "process.env.EMAIL_FROM",
   "smtpOptions": {
-    "host": "smtp.ethereal.email",
-    "port": 587,
+    "host": "process.env.SMTP_HOST",
+    "port": "process.env.SMTP_PORT",
     "auth": {
-      "user": "antonina.durgan@ethereal.email",
-      "pass": "dprRBjW6ZUkUGEBemj"
+      "user": "process.env.SMTP_USER",
+      "pass": "process.env.SMTP_PASS"
     }
   }
 }
