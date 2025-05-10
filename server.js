@@ -8,7 +8,7 @@ const app = express();
 // CORS configuration
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.FRONTEND_URL || 'https://your-app.onrender.com']
+        ? [process.env.FRONTEND_URL || 'https://final-intprog-project-1.onrender.com']
         : ['http://localhost:4200', 'http://localhost:4000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'healthy', 
         timestamp: new Date().toISOString(),
@@ -32,7 +32,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// API routes
+// API routes without /api prefix
 app.use('/accounts', require('./Backend/accounts/accounts.controller'));
 app.use('/employees', require('./Backend/accounts/employees.controller'));
 app.use('/departments', require('./Backend/accounts/departments.controller'));
@@ -49,6 +49,12 @@ app.get('*', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+    if (err.name === 'UnauthorizedError') {
+        // JWT authentication error
+        return res.status(401).json({ message: 'Invalid Token' });
+    }
+
+    // Default error
     console.error(err.stack);
     res.status(500).json({
         message: 'Something broke!',
