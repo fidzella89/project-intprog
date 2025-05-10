@@ -10,29 +10,47 @@ initialize().catch(err => {
 
 async function initialize() {
     try {
-        // Get database URL from environment variable or config
-        const databaseUrl = process.env.DATABASE_URL || `postgres://${config.database.user}:${config.database.password}@${config.database.host}:${config.database.port}/${config.database.database}`;
+        const env = process.env.NODE_ENV || 'development';
+        console.log(`Current environment: ${env}`);
         
+        let sequelize;
+        
+        if (env === 'production') {
+            // Production: Use DATABASE_URL from environment
+            const databaseUrl = process.env.DATABASE_URL;
+            if (!databaseUrl) {
+                throw new Error('DATABASE_URL environment variable is not set');
+            }
+            
+            sequelize = new Sequelize(databaseUrl, {
+                dialect: 'postgres',
+                logging: false,
+                dialectOptions: {
+                    ssl: {
+                        require: true,
+                        rejectUnauthorized: false
+                    }
+                }
+            });
+        } else {
+            // Development: Use local config
+            const dbConfig = config.database.development;
+            sequelize = new Sequelize(dbConfig.database, dbConfig.user, dbConfig.password, {
+                host: dbConfig.host,
+                port: dbConfig.port,
+                dialect: 'postgres',
+                logging: console.log,
+                pool: {
+                    max: 5,
+                    min: 0,
+                    acquire: 30000,
+                    idle: 10000
+                }
+            });
+        }
+
         console.log('Connecting to PostgreSQL server...');
         
-        // Connect to db with Sequelize
-        const sequelize = new Sequelize(databaseUrl, { 
-            dialect: 'postgres',
-            logging: console.log,
-            pool: {
-                max: 5,
-                min: 0,
-                acquire: 30000,
-                idle: 10000
-            },
-            dialectOptions: {
-                ssl: process.env.NODE_ENV === 'production' ? {
-                    require: true,
-                    rejectUnauthorized: false
-                } : false
-            }
-        });
-
         // Test the connection
         await sequelize.authenticate();
         console.log('Database connection authenticated successfully');

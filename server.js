@@ -6,10 +6,24 @@ const path = require('path');
 const app = express();
 
 // CORS configuration
+const allowedOrigins = [
+    'https://final-intprog-project-1.onrender.com',
+    'http://localhost:4200',
+    'http://localhost:4000',
+    'http://localhost:3000'
+];
+
 const corsOptions = {
-    origin: process.env.NODE_ENV === 'production' 
-        ? ['https://final-intprog-project-1.onrender.com', 'http://localhost:4200', 'http://localhost:4000']
-        : true,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, postman)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
     exposedHeaders: ['Content-Length', 'X-Refresh-Token'],

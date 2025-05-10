@@ -58,26 +58,68 @@ async function authenticate({ email, password, ipAddress }) {
 }
 
 async function refreshToken({ token, ipAddress }) {
-    const refreshToken = await getRefreshToken(token);
-    const account = await refreshToken.getAccount();
+    try {
+        const refreshToken = await db.RefreshToken.findOne({
+            where: { token },
+            include: [{
+                model: db.Account,
+                attributes: { exclude: ['passwordHash'] }
+            }]
+        });
 
-    // replace old refresh token with a new one and save
-    const newRefreshToken = generateRefreshToken(account, ipAddress);
-    refreshToken.revoked = Date.now();
-    refreshToken.revokedByIp = ipAddress;
-    refreshToken.replacedByToken = newRefreshToken.token;
-    await refreshToken.save();
-    await newRefreshToken.save();
+        if (!refreshToken) {
+            throw {
+                name: 'NotFoundError',
+                message: 'Refresh token not found'
+            };
+        }
 
-    // generate new jwt
-    const jwtToken = generateJwtToken(account);
+        if (!refreshToken.isActive) {
+            throw {
+                name: 'InvalidTokenError',
+                message: 'Refresh token has expired or been revoked'
+            };
+        }
 
-    // return basic details and tokens
-    return {
-        ...basicDetails(account),
-        jwtToken,
-        refreshToken: newRefreshToken.token
-    };
+        const account = refreshToken.Account;
+        if (!account) {
+            throw {
+                name: 'NotFoundError',
+                message: 'Associated account not found'
+            };
+        }
+
+        // replace old refresh token with a new one and save
+        const newRefreshToken = generateRefreshToken(account, ipAddress);
+        refreshToken.revoked = Date.now();
+        refreshToken.revokedByIp = ipAddress;
+        refreshToken.replacedByToken = newRefreshToken.token;
+        
+        // Save both tokens in a transaction
+        await db.sequelize.transaction(async (t) => {
+            await refreshToken.save({ transaction: t });
+            await newRefreshToken.save({ transaction: t });
+        });
+
+        // generate new jwt
+        const jwtToken = generateJwtToken(account);
+
+        // return basic details and tokens
+        return {
+            ...basicDetails(account),
+            jwtToken,
+            refreshToken: newRefreshToken.token
+        };
+    } catch (error) {
+        console.error('Refresh token error:', error);
+        if (error.name === 'NotFoundError' || error.name === 'InvalidTokenError') {
+            throw error;
+        }
+        throw {
+            name: 'InternalError',
+            message: 'An error occurred while refreshing the token'
+        };
+    }
 }
 
 async function revokeToken({ token, ipAddress }) {
@@ -234,8 +276,29 @@ async function getAccount(id) {
 }
 
 async function getRefreshToken(token) {
+    if (!token) {
+        throw {
+            name: 'ValidationError',
+            message: 'Refresh token is required'
+        };
+    }
+
     const refreshToken = await db.RefreshToken.findOne({ where: { token } });
-    if (!refreshToken || !refreshToken.isActive) throw 'Invalid token';
+    
+    if (!refreshToken) {
+        throw {
+            name: 'NotFoundError',
+            message: 'Refresh token not found'
+        };
+    }
+    
+    if (!refreshToken.isActive) {
+        throw {
+            name: 'InvalidTokenError',
+            message: 'Refresh token has expired or been revoked'
+        };
+    }
+    
     return refreshToken;
 }
 
