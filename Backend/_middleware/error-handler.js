@@ -29,10 +29,7 @@ function errorHandler(err, req, res, next) {
 
         case err.name === 'InvalidTokenError':
             // invalid token error
-            return res.status(401).json({ 
-                message: err.message,
-                requiresLogin: true
-            });
+            return res.status(401).json({ message: err.message });
 
         case err.name === 'InternalError':
             // internal server error
@@ -42,11 +39,11 @@ function errorHandler(err, req, res, next) {
             });
 
         default:
-            // unexpected error
+            // default to 500 server error
             console.error('Unhandled error:', err);
             return res.status(500).json({ 
                 message: 'An unexpected error occurred',
-                error: process.env.NODE_ENV === 'development' ? err : {}
+                error: process.env.NODE_ENV === 'development' ? err : undefined
             });
     }
 }

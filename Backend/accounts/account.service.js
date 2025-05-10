@@ -77,7 +77,7 @@ async function refreshToken({ token, ipAddress }) {
         if (!refreshToken) {
             throw {
                 name: 'NotFoundError',
-                message: 'Refresh token not found'
+                message: 'Invalid refresh token'
             };
         }
 
@@ -92,21 +92,17 @@ async function refreshToken({ token, ipAddress }) {
         if (!account) {
             throw {
                 name: 'NotFoundError',
-                message: 'Associated account not found'
+                message: 'Account not found'
             };
         }
 
         // replace old refresh token with a new one and save
         const newRefreshToken = generateRefreshToken(account, ipAddress);
-        
-        // Save both tokens in a transaction
-        await db.sequelize.transaction(async (t) => {
-            refreshToken.revoked = Date.now();
-            refreshToken.revokedByIp = ipAddress;
-            refreshToken.replacedByToken = newRefreshToken.token;
-            await refreshToken.save({ transaction: t });
-            await newRefreshToken.save({ transaction: t });
-        });
+        refreshToken.revoked = Date.now();
+        refreshToken.revokedByIp = ipAddress;
+        refreshToken.replacedByToken = newRefreshToken.token;
+        await refreshToken.save();
+        await newRefreshToken.save();
 
         // generate new jwt
         const jwtToken = generateJwtToken(account);
@@ -119,19 +115,7 @@ async function refreshToken({ token, ipAddress }) {
         };
     } catch (error) {
         console.error('Refresh token error:', error);
-        
-        // If it's one of our known error types, rethrow it
-        if (error.name === 'ValidationError' || 
-            error.name === 'NotFoundError' || 
-            error.name === 'InvalidTokenError') {
-            throw error;
-        }
-        
-        // For any other error, throw a generic error
-        throw {
-            name: 'InternalError',
-            message: 'An error occurred while refreshing the token'
-        };
+        throw error;
     }
 }
 

@@ -100,7 +100,7 @@ export class AccountService {
         localStorage.removeItem('account');
         this.stopRefreshTokenTimer();
         this.accountSubject.next(null);
-        // Remove the automatic navigation to prevent routing loops
+        this.router.navigate(['/account/login']);
     }
 
     refreshToken() {
@@ -110,36 +110,32 @@ export class AccountService {
 
         this.refreshingToken = true;
         
-        const storedAccount = localStorage.getItem('account');
-        if (!storedAccount) {
-            this.refreshingToken = false;
-            return throwError(() => new Error('No stored account found'));
-        }
-
-        const account = JSON.parse(storedAccount);
-        const headers = new HttpHeaders({
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Authorization': `Bearer ${account.jwtToken}`
-        });
-
         return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
-            headers
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
         }).pipe(
             map(account => {
                 if (!account || !account.jwtToken) {
                     throw new Error('Invalid refresh token response');
                 }
+                
+                // Store the new account details
                 this.storeAccount(account);
+                
+                // Restart the refresh timer
                 this.startRefreshTokenTimer();
+                
                 return account;
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);
+                // On error, clear the account data and stop the timer
+                this.stopRefreshTokenTimer();
                 this.clearAccountData();
-                this.router.navigate(['/account/login']);
-                return throwError(() => error);
+                return throwError(() => new Error('Session expired. Please log in again.'));
             }),
             finalize(() => {
                 this.refreshingToken = false;
@@ -204,34 +200,23 @@ export class AccountService {
     }
 
     private startRefreshTokenTimer() {
-        try {
-            const account = this.accountSubject.value;
-            if (!account?.jwtToken) return;
+        if (!this.accountValue?.jwtToken) {
+            return;
+        }
 
-            const token = account.jwtToken;
-            const tokenData = JSON.parse(atob(token.split('.')[1]));
-            const expires = new Date(tokenData.exp * 1000);
+        try {
+            // Parse the JWT token
+            const jwtToken = JSON.parse(atob(this.accountValue.jwtToken.split('.')[1]));
+            const expires = new Date(jwtToken.exp * 1000);
             const timeout = expires.getTime() - Date.now() - (60 * 1000); // Refresh 1 minute before expiry
 
-            this.stopRefreshTokenTimer();
+            // Only start the timer if the token is not already expired
             if (timeout > 0) {
-                this.refreshTokenTimeout = setTimeout(() => {
-                    console.log('Token refresh timer triggered');
-                    this.refreshToken().subscribe({
-                        error: (error) => {
-                            console.error('Auto refresh token failed:', error);
-                            this.clearAccountData();
-                        }
-                    });
-                }, timeout);
+                this.stopRefreshTokenTimer();
+                this.refreshTokenTimeout = setTimeout(() => this.refreshToken().subscribe(), timeout);
             } else {
-                // Token is already expired or about to expire, refresh immediately
-                this.refreshToken().subscribe({
-                    error: (error) => {
-                        console.error('Immediate token refresh failed:', error);
-                        this.clearAccountData();
-                    }
-                });
+                // If token is already expired, clear the account data
+                this.clearAccountData();
             }
         } catch (error) {
             console.error('Error starting refresh token timer:', error);
@@ -242,6 +227,7 @@ export class AccountService {
     private stopRefreshTokenTimer() {
         if (this.refreshTokenTimeout) {
             clearTimeout(this.refreshTokenTimeout);
+            this.refreshTokenTimeout = null;
         }
     }
 }
