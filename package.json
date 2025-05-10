@@ -10,8 +10,8 @@
     "server": "nodemon server.js",
     "client": "ng serve --open",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "heroku-postbuild": "ng build --configuration production",
-    "render-build": "npm install --legacy-peer-deps && npm install @angular-devkit/build-angular --legacy-peer-deps && ng build --configuration production"
+    "render-build": "npm install --legacy-peer-deps && npm install @angular-devkit/build-angular --legacy-peer-deps && ng build --configuration production",
+    "postinstall": "npm run render-build"
   },
   "engines": {
     "node": "18.x",

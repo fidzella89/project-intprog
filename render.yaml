@@ -19,6 +19,10 @@ services:
         sync: false
       - key: DB_NAME
         sync: false
-    healthCheckPath: /api/health
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        value: https://final-intprog-project-1.onrender.com
+    healthCheckPath: /health
     autoDeploy: true
     nodeVersion: 18.x 
