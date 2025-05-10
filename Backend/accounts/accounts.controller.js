@@ -267,8 +267,13 @@ function setTokenCookie(res, token) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     };
+
+    // In production, set the domain to match your Render domain
+    if (process.env.NODE_ENV === 'production') {
+        cookieOptions.domain = 'final-intprog-project-1.onrender.com';
+    }
+
     res.cookie('refreshToken', token, cookieOptions);
 }

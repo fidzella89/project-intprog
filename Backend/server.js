@@ -14,16 +14,33 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// Serve static files from the Angular app
-app.use(express.static(path.join(__dirname, '../frontend/dist/frontend')));
+// CORS configuration
+const allowedOrigins = [
+    'https://final-intprog-project-1.onrender.com',
+    'http://localhost:4200',
+    'http://localhost:4000'
+];
 
-// allow cors requests from any origin and with credentials
-app.use(cors({
-    origin: true, // Allow all origins
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, postman)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Length', 'X-Refresh-Token'],
+    maxAge: 86400
+};
+
+// Apply CORS configuration
+app.use(cors(corsOptions));
 
 // api routes
 app.use('/accounts', require('./accounts/accounts.controller'));
@@ -35,6 +52,9 @@ app.use('/workflows', require('./accounts/workflow.controller'));
 // swagger docs route
 app.use('/api-docs', require('_helpers/swagger'));
 
+// Serve static files from the Angular app
+app.use(express.static(path.join(__dirname, '../frontend/dist/frontend')));
+
 // Send all other requests to the Angular app
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/frontend/index.html'));
@@ -45,4 +65,8 @@ app.use(errorHandler);
 
 // start server
 const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 4000;
-app.listen(port, '0.0.0.0', () => console.log('Server listening on port ' + port));
+app.listen(port, '0.0.0.0', () => {
+    console.log('Server listening on port ' + port);
+    console.log('Environment:', process.env.NODE_ENV || 'development');
+    console.log('CORS enabled for:', allowedOrigins);
+});
