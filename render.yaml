@@ -2,7 +2,7 @@ services:
   - type: web
     name: request-management-system
     env: node
-    buildCommand: npm install --legacy-peer-deps && npm run render-build
+    buildCommand: npm install --legacy-peer-deps && npm install @angular-devkit/build-angular --legacy-peer-deps && npm run render-build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -20,4 +20,5 @@ services:
       - key: DB_NAME
         sync: false
     healthCheckPath: /api/health
-    autoDeploy: true 
+    autoDeploy: true
+    nodeVersion: 18.x 

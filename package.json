@@ -11,7 +11,7 @@
     "client": "ng serve --open",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "heroku-postbuild": "ng build --configuration production",
-    "render-build": "npm install --legacy-peer-deps && ng build --configuration production"
+    "render-build": "npm install --legacy-peer-deps && npm install @angular-devkit/build-angular --legacy-peer-deps && ng build --configuration production"
   },
   "engines": {
     "node": "18.x",
@@ -31,6 +31,7 @@
     "@angular/platform-browser": "^16.2.12",
     "@angular/platform-browser-dynamic": "^16.2.12",
     "@angular/router": "^16.2.12",
+    "@angular-devkit/build-angular": "^16.2.12",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
@@ -47,7 +48,6 @@
     "zone.js": "~0.13.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^16.2.12",
     "@types/jasmine": "~4.3.0",
     "concurrently": "^9.1.2",
     "jasmine-core": "~4.6.0",
