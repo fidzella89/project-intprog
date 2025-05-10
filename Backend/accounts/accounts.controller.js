@@ -58,14 +58,28 @@ function authenticate(req, res, next) {
 }
 
 function refreshToken(req, res, next) {
-    const token = req.cookies.refreshToken;
-    const ipAddress = req.ip;
-    accountService.refreshToken({ token, ipAddress })
-        .then(({ refreshToken, ...account }) => {
-            setTokenCookie(res, refreshToken);
-            res.json(account);
-        })
-        .catch(next);
+    try {
+        // try to get token from request body first, then from cookie
+        const token = req.body.refreshToken || req.cookies.refreshToken;
+        const ipAddress = req.ip;
+
+        if (!token) {
+            return res.status(400).json({ message: 'Refresh token is required' });
+        }
+
+        accountService.refreshToken({ token, ipAddress })
+            .then(({ refreshToken, ...account }) => {
+                setTokenCookie(res, refreshToken);
+                res.json(account);
+            })
+            .catch(error => {
+                console.error('Refresh token error:', error);
+                next(error);
+            });
+    } catch (error) {
+        console.error('Refresh token handler error:', error);
+        next(error);
+    }
 }
 
 function revokeTokenSchema(req, res, next) {

@@ -111,31 +111,24 @@ export class AccountService {
         this.refreshingToken = true;
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
-            withCredentials: true,
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
+            withCredentials: true
         }).pipe(
             map(account => {
                 if (!account || !account.jwtToken) {
                     throw new Error('Invalid refresh token response');
                 }
-                
-                // Store the new account details
                 this.storeAccount(account);
-                
-                // Restart the refresh timer
                 this.startRefreshTokenTimer();
-                
                 return account;
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);
-                // On error, clear the account data and stop the timer
-                this.stopRefreshTokenTimer();
-                this.clearAccountData();
-                return throwError(() => new Error('Session expired. Please log in again.'));
+                // Only clear account data if it's an authentication error
+                if (error.status === 401 || error.status === 403) {
+                    this.clearAccountData();
+                    this.router.navigate(['/account/login']);
+                }
+                return throwError(() => error);
             }),
             finalize(() => {
                 this.refreshingToken = false;

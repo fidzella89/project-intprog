@@ -66,6 +66,7 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
+        console.log('Looking for refresh token:', token);
         const refreshToken = await db.RefreshToken.findOne({
             where: { token },
             include: [{
@@ -75,6 +76,7 @@ async function refreshToken({ token, ipAddress }) {
         });
 
         if (!refreshToken) {
+            console.error('Refresh token not found in database');
             throw {
                 name: 'NotFoundError',
                 message: 'Invalid refresh token'
@@ -82,6 +84,7 @@ async function refreshToken({ token, ipAddress }) {
         }
 
         if (!refreshToken.isActive) {
+            console.error('Refresh token is not active:', refreshToken.token);
             throw {
                 name: 'InvalidTokenError',
                 message: 'Refresh token has expired or been revoked'
@@ -90,6 +93,7 @@ async function refreshToken({ token, ipAddress }) {
 
         const account = refreshToken.Account;
         if (!account) {
+            console.error('No account found for refresh token:', refreshToken.token);
             throw {
                 name: 'NotFoundError',
                 message: 'Account not found'
@@ -98,11 +102,15 @@ async function refreshToken({ token, ipAddress }) {
 
         // replace old refresh token with a new one and save
         const newRefreshToken = generateRefreshToken(account, ipAddress);
-        refreshToken.revoked = Date.now();
-        refreshToken.revokedByIp = ipAddress;
-        refreshToken.replacedByToken = newRefreshToken.token;
-        await refreshToken.save();
-        await newRefreshToken.save();
+        
+        // Save both tokens in a transaction
+        await db.sequelize.transaction(async (t) => {
+            refreshToken.revoked = Date.now();
+            refreshToken.revokedByIp = ipAddress;
+            refreshToken.replacedByToken = newRefreshToken.token;
+            await refreshToken.save({ transaction: t });
+            await newRefreshToken.save({ transaction: t });
+        });
 
         // generate new jwt
         const jwtToken = generateJwtToken(account);
