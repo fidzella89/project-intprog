@@ -51,6 +51,8 @@ export class AddEditComponent implements OnInit {
         // Get employeeId from query params
         const params = this.route.snapshot.queryParams;
         this.employeeId = params['employeeId'];
+        console.log('Query params:', params); // Debug log
+        console.log('EmployeeId from query params:', this.employeeId); // Debug log
 
         // If we have an employeeId, load employee details
         if (this.employeeId) {
@@ -58,8 +60,11 @@ export class AddEditComponent implements OnInit {
                 .pipe(first())
                 .subscribe({
                     next: (employee) => {
+                        console.log('Employee details loaded:', employee); // Debug log
                         if (employee && employee.account) {
-                            this.employeeFullName = `${employee.account.firstName} ${employee.account.lastName}`;
+                            const firstName = employee.account.firstName.charAt(0).toUpperCase() + employee.account.firstName.slice(1).toLowerCase();
+                            const lastName = employee.account.lastName.charAt(0).toUpperCase() + employee.account.lastName.slice(1).toLowerCase();
+                            this.employeeFullName = `${firstName} ${lastName}`;
                         }
                     },
                     error: error => {
@@ -73,10 +78,11 @@ export class AddEditComponent implements OnInit {
             items: this.formBuilder.array([])
         });
 
-        // Watch for type changes to handle item validation
+        // Watch for type changes to handle item validation and clear items for Leave requests
         this.form.get('type')?.valueChanges.subscribe(type => {
             const itemsArray = this.form.get('items') as FormArray;
             if (type === 'Leave') {
+                itemsArray.clear(); // Clear all items for Leave requests
                 itemsArray.clearValidators();
             } else {
                 itemsArray.setValidators([Validators.required, Validators.minLength(1)]);
@@ -98,15 +104,23 @@ export class AddEditComponent implements OnInit {
                                 .pipe(first())
                                 .subscribe(employee => {
                                     if (employee && employee.account) {
-                                        this.employeeFullName = `${employee.account.firstName} ${employee.account.lastName}`;
+                                        const firstName = employee.account.firstName.charAt(0).toUpperCase() + employee.account.firstName.slice(1).toLowerCase();
+                                        const lastName = employee.account.lastName.charAt(0).toUpperCase() + employee.account.lastName.slice(1).toLowerCase();
+                                        this.employeeFullName = `${firstName} ${lastName}`;
                                     }
                                 });
                         }
                         
+                        // Set the type first
                         this.form.patchValue({ type: request.type });
                         
-                        // Load items if any
-                        if (request.items && request.items.length > 0) {
+                        // Clear existing items
+                        while (this.items.length) {
+                            this.items.removeAt(0);
+                        }
+                        
+                        // Load items if any and if not a Leave request
+                        if (request.type !== 'Leave' && request.items && request.items.length > 0) {
                             request.items.forEach(item => {
                                 this.items.push(this.formBuilder.group({
                                     id: [item.id],
@@ -145,8 +159,8 @@ export class AddEditComponent implements OnInit {
         } else {
             // If no ID, it's a new item that can be removed directly
             this.items.removeAt(index);
-        }
-    }
+                }
+            }
 
     // Check if item is hidden
     isItemHidden(index: number): boolean {
@@ -162,16 +176,16 @@ export class AddEditComponent implements OnInit {
             return;
         }
 
-        // Ensure employeeId is set
+        // Get employeeId from query params
         if (!this.employeeId) {
-            // Try to get employeeId from query params again
             const params = this.route.snapshot.queryParams;
-            this.employeeId = params['employeeId'] || this.accountService.accountValue?.id?.toString();
-            
-            if (!this.employeeId) {
-                this.alertService.error('Employee ID is required');
-                return;
-            }
+            this.employeeId = params['employeeId'];
+            console.log('EmployeeId from query params:', this.employeeId); // Debug log
+        }
+
+        if (!this.employeeId) {
+            this.alertService.error('Employee ID is required');
+            return;
         }
 
         // Validate items if type is not Leave
@@ -195,13 +209,14 @@ export class AddEditComponent implements OnInit {
                 };
             });
 
-        // Prepare request data
+        // Prepare request data - use the employeeId directly from query params
         const requestData = {
             type: this.form.value.type,
-            employeeId: Number(this.employeeId),
+            employeeId: Number(this.employeeId), // This is now the employee's id, not employeeId
             items: visibleItems,
             isAdmin: this.accountService.accountValue?.role === Role.Admin
         };
+        console.log('Request data being sent:', requestData); // Debug log
 
         if (this.isAddMode) {
             this.createRequest(requestData);
@@ -218,7 +233,8 @@ export class AddEditComponent implements OnInit {
                     this.alertService.success('Request added successfully', { keepAfterRouteChange: true });
                     this.router.navigate(['../'], { 
                         relativeTo: this.route,
-                        queryParams: { employeeId: this.employeeId }
+                        queryParams: { employeeId: this.employeeId },
+                        queryParamsHandling: 'merge'
                     });
                 },
                 error: error => {
@@ -236,7 +252,8 @@ export class AddEditComponent implements OnInit {
                     this.alertService.success('Request updated successfully', { keepAfterRouteChange: true });
                     this.router.navigate(['../../'], { 
                         relativeTo: this.route,
-                        queryParams: { employeeId: this.employeeId }
+                        queryParams: { employeeId: this.employeeId },
+                        queryParamsHandling: 'merge'
                     });
                 },
                 error: error => {
@@ -247,9 +264,12 @@ export class AddEditComponent implements OnInit {
     }
 
     onCancel() {
-        // Navigate back to the requests list with the employee parameter if it exists
+        // Navigate back to the requests list with the employee parameter
         if (this.employeeId) {
-            this.router.navigate(['/requests'], { queryParams: { employeeId: this.employeeId } });
+            this.router.navigate(['/requests'], { 
+                queryParams: { employeeId: this.employeeId },
+                queryParamsHandling: 'merge'
+            });
         } else {
             this.router.navigate(['/requests']);
         }

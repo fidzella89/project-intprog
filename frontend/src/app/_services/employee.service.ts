@@ -25,24 +25,33 @@ export class EmployeeService {
     }
 
     getAll() {
-        return this.http.get<Employee[]>(`${environment.apiUrl}/employees`);
+        return this.http.get<Employee[]>(`${environment.apiUrl}/employees`)
+            .pipe(map(employees => {
+                return employees.map(employee => this.mapDepartmentName(employee));
+            }));
     }
 
     getById(id: string) {
-        return this.http.get<Employee>(`${environment.apiUrl}/employees/${id}`);
+        return this.http.get<Employee>(`${environment.apiUrl}/employees/${id}`)
+            .pipe(map(employee => this.mapDepartmentName(employee)));
     }
 
     getByAccountId(accountId: string) {
-        return this.http.get<Employee>(`${environment.apiUrl}/employees/account/${accountId}`);
+        return this.http.get<Employee>(`${environment.apiUrl}/employees/account/${accountId}`)
+            .pipe(map(employee => this.mapDepartmentName(employee)));
     }
 
     create(employee: Employee) {
-        return this.http.post<Employee>(`${environment.apiUrl}/employees`, employee);
+        return this.http.post<Employee>(`${environment.apiUrl}/employees`, employee)
+            .pipe(map(employee => this.mapDepartmentName(employee)));
     }
 
     update(id: string, params: any) {
         return this.http.put<Employee>(`${environment.apiUrl}/employees/${id}`, params)
             .pipe(map(employee => {
+                // Map department name
+                employee = this.mapDepartmentName(employee);
+                
                 // update employee if it's the current employee
                 if (employee.id === this.employeeValue?.id) {
                     // publish updated employee to subscribers
@@ -60,5 +69,15 @@ export class EmployeeService {
                 if (id === this.employeeValue?.id)
                     this.employeeSubject.next(null);
             }));
+    }
+
+    private mapDepartmentName(employee: Employee): Employee {
+        if (employee && employee['Department']) {
+            return {
+                ...employee,
+                departmentName: employee['Department'].name
+            };
+        }
+        return employee;
     }
 } 

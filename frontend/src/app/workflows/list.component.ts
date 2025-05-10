@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { first } from 'rxjs/operators';
 
-import { WorkflowService, AlertService, AccountService } from '@app/_services';
+import { WorkflowService, AlertService, AccountService, EmployeeService } from '@app/_services';
 import { Role, WorkflowStatus } from '@app/_models';
 import { ConfirmModalComponent } from './confirm-modal.component';
 
@@ -13,6 +13,7 @@ export class ListWorkflowComponent implements OnInit {
     loading = false;
     isAdmin = false;
     employeeId: string | null = null;
+    displayEmployeeId: string | null = null;
     employeeFullName: string | null = null;
     confirmMessage: string = '';
     notFound = false;
@@ -25,6 +26,7 @@ export class ListWorkflowComponent implements OnInit {
         private workflowService: WorkflowService,
         private alertService: AlertService,
         private accountService: AccountService,
+        private employeeService: EmployeeService,
         private route: ActivatedRoute
     ) {
         this.isAdmin = this.accountService.accountValue?.role === Role.Admin;
@@ -33,6 +35,7 @@ export class ListWorkflowComponent implements OnInit {
         this.route.queryParams.subscribe(params => {
             this.employeeId = params['employeeid'];
             if (this.employeeId) {
+                this.loadEmployee();
                 this.loadWorkflows();
             } else {
                 this.notFound = false;
@@ -45,47 +48,56 @@ export class ListWorkflowComponent implements OnInit {
         this.loadWorkflows();
     }
 
+    private loadEmployee() {
+        if (!this.employeeId) return;
+        
+        this.employeeService.getById(this.employeeId)
+            .pipe(first())
+            .subscribe({
+                next: (employee) => {
+                    if (employee && employee.account) {
+                        this.displayEmployeeId = employee.employeeId;
+                        const firstName = employee.account.firstName.charAt(0).toUpperCase() + employee.account.firstName.slice(1).toLowerCase();
+                        const lastName = employee.account.lastName.charAt(0).toUpperCase() + employee.account.lastName.slice(1).toLowerCase();
+                        this.employeeFullName = `${firstName} ${lastName}`;
+                    }
+                },
+                error: error => {
+                    this.alertService.error(error);
+                }
+            });
+    }
+
     private loadWorkflows() {
         this.loading = true;
-        this.notFound = false;
-        this.employeeFullName = null;
-        
+        let request;
+
         if (this.employeeId) {
-            // Load workflows for specific employee
-            this.workflowService.getByEmployeeId(this.employeeId)
-                .pipe(first())
-                .subscribe({
-                    next: workflows => {
-                        if (!workflows || workflows.length === 0) {
-                            this.notFound = true;
-                        } else if (workflows.length > 0 && workflows[0].employee?.account) {
-                            const account = workflows[0].employee.account;
-                            this.employeeFullName = `${account.firstName} ${account.lastName}`;
-                        }
-                        this.workflows = workflows;
-                        this.loading = false;
-                    },
-                    error: error => {
-                        this.notFound = true;
-                        this.alertService.error(error);
-                        this.loading = false;
-                    }
-                });
+            request = this.workflowService.getByEmployeeId(this.employeeId);
         } else {
-            // Load all workflows
-            this.workflowService.getAll()
-                .pipe(first())
-                .subscribe({
-                    next: workflows => {
-                        this.workflows = workflows;
-                        this.loading = false;
-                    },
-                    error: error => {
-                        this.alertService.error(error);
-                        this.loading = false;
-                    }
-                });
+            request = this.workflowService.getAll();
         }
+
+        request.pipe(first())
+            .subscribe({
+                next: (workflows: any) => {
+                    // Sort workflows by date in descending order
+                    this.workflows = workflows.sort((a: any, b: any) => {
+                        const dateA = new Date(a.datetimecreated).getTime();
+                        const dateB = new Date(b.datetimecreated).getTime();
+                        return dateB - dateA;
+                    });
+                    this.loading = false;
+                    this.notFound = false;
+                },
+                error: error => {
+                    if (error.status === 404) {
+                        this.notFound = true;
+                    }
+                    this.alertService.error(error);
+                    this.loading = false;
+                }
+            });
     }
 
     openStatusChangeModal(id: string, status: WorkflowStatus) {

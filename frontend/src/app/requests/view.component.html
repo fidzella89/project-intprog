@@ -27,7 +27,7 @@
                         </span>
                     </p>
                     <p><strong>Created:</strong> {{request.createdDate | date:'medium'}}</p>
-                    <p><strong>Last Modified:</strong> {{request.lastModifiedDate | date:'medium'}}</p>
+                    <p><strong>Last Modified:</strong> {{request.lastModifiedDate | date:'medium' || 'N/A'}}</p>
                 </div>
             </div>
 

@@ -18,3 +18,26 @@ a {
     text-align: center;
     box-sizing: content-box;
 }
+
+/* Badge Styles */
+.badge {
+    font-size: 1rem !important;
+    padding: 0.5rem 0.6rem !important;
+}
+
+/* Custom badge colors */
+.badge.bg-info {
+    color: white !important;
+    background-color: #17a2b8 !important;
+}
+
+.badge.bg-success {
+    color: #fff !important;
+    background-color: #28a745 !important;
+}
+
+/* Table Styles */
+td, th {
+    text-align: center !important;
+    vertical-align: middle !important;
+}

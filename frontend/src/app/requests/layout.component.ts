@@ -11,6 +11,7 @@ import { Employee } from '@app/_models';
 export class LayoutComponent implements OnInit {
     employeeId: string | null = null;
     employee: Employee | null = null;
+    displayEmployeeId: string | null = null;
 
     constructor(
         private employeeService: EmployeeService,
@@ -31,11 +32,14 @@ export class LayoutComponent implements OnInit {
             .pipe(first())
             .subscribe(employee => {
                 this.employee = employee;
+                this.displayEmployeeId = employee.employeeId;
             });
     }
 
     getEmployeeFullName(): string {
         if (!this.employee?.account) return '';
-        return `${this.employee.account.firstName} ${this.employee.account.lastName}`.toUpperCase();
+        const firstName = this.employee.account.firstName.charAt(0).toUpperCase() + this.employee.account.firstName.slice(1).toLowerCase();
+        const lastName = this.employee.account.lastName.charAt(0).toUpperCase() + this.employee.account.lastName.slice(1).toLowerCase();
+        return `${firstName} ${lastName}`;
     }
 } 

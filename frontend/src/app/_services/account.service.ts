@@ -30,13 +30,9 @@ export class AccountService {
             const storedAccount = localStorage.getItem('account');
             if (storedAccount) {
                 const account = JSON.parse(storedAccount);
-                if (this.isTokenValid(account)) {
-                    this.accountSubject.next(account);
-                    this.startRefreshTokenTimer();
-                } else {
-                    // Token is expired or invalid, try to refresh
-                    this.refreshToken().subscribe();
-                }
+                this.accountSubject.next(account);
+                // Always start the refresh timer when loading stored account
+                this.startRefreshTokenTimer();
             }
         } catch (error) {
             console.error('Error loading stored account:', error);
@@ -114,7 +110,8 @@ export class AccountService {
         }
 
         this.refreshingToken = true;
-        return this.http.post<Account>(`${baseUrl}/refresh-token`, {}, { 
+        
+        return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
             headers: {
                 'Cache-Control': 'no-cache',
@@ -132,7 +129,7 @@ export class AccountService {
             catchError(error => {
                 console.error('Token refresh failed:', error);
                 this.clearAccountData();
-                return throwError(() => new Error('Session expired. Please login again.'));
+                return throwError(() => error);
             }),
             finalize(() => {
                 this.refreshingToken = false;
@@ -197,16 +194,15 @@ export class AccountService {
     }
 
     private startRefreshTokenTimer() {
-        if (!this.accountValue?.jwtToken) return;
-
         try {
-            // Parse the JWT token to get expiration time
-            const token = this.accountValue.jwtToken;
+            const account = this.accountSubject.value;
+            if (!account?.jwtToken) return;
+
+            const token = account.jwtToken;
             const tokenData = JSON.parse(atob(token.split('.')[1]));
             const expires = new Date(tokenData.exp * 1000);
-            const timeout = expires.getTime() - Date.now() - this.TOKEN_REFRESH_THRESHOLD;
+            const timeout = expires.getTime() - Date.now() - (60 * 1000); // Refresh 1 minute before expiry
 
-            // Set up refresh timer
             this.stopRefreshTokenTimer();
             if (timeout > 0) {
                 this.refreshTokenTimeout = setTimeout(() => {

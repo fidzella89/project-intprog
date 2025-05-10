@@ -23,6 +23,9 @@
             <!-- Items section only for Equipment and Resources -->
             <div *ngIf="showItemsSection" class="mb-3">
                 <h3>Items</h3>
+                <div class="alert alert-info" *ngIf="items.length === 0">
+                    Please add at least one item for Equipment or Resources requests.
+                </div>
                 <div formArrayName="items">
                     <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="row mb-2" [class.d-none]="isItemHidden(i)">
                         <div class="col-5">
@@ -58,6 +61,11 @@
                 <div *ngIf="submitted && form.get('type')?.value !== 'Leave' && items.length === 0" class="text-danger mt-2">
                     At least one item is required for Equipment and Resources requests
                 </div>
+            </div>
+
+            <!-- Message for Leave requests -->
+            <div *ngIf="form.get('type')?.value === 'Leave'" class="alert alert-info mb-3">
+                Leave requests do not require any items. You can proceed with submitting the request.
             </div>
 
             <div class="mt-4">

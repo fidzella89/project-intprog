@@ -12,6 +12,7 @@ export class ViewWorkflowComponent implements OnInit {
     isAdmin = false;
     employee: any = null;
     employeeId: string | null = null;
+    displayEmployeeId: string | null = null;
 
     constructor(
         private route: ActivatedRoute,
@@ -40,8 +41,9 @@ export class ViewWorkflowComponent implements OnInit {
             .subscribe({
                 next: workflow => {
                     this.workflow = workflow;
-                    if (workflow.employeeId) {
-                        this.loadEmployee(workflow.employeeId);
+                    if (workflow.employee && workflow.employee.account) {
+                        this.employee = workflow.employee;
+                        this.displayEmployeeId = `EMP${workflow.employee.employeeId}`;
                     }
                     this.loading = false;
                 },
@@ -50,23 +52,16 @@ export class ViewWorkflowComponent implements OnInit {
                     this.loading = false;
                     this.router.navigate(['../'], { 
                         relativeTo: this.route,
-                        queryParams: { employeeId: this.employeeId }
+                        queryParams: { employeeId: this.employeeId },
+                        queryParamsHandling: 'merge'
                     });
                 }
             });
     }
 
-    private loadEmployee(employeeId: number) {
-        this.employeeService.getById(employeeId.toString())
-            .pipe(first())
-            .subscribe({
-                next: employee => {
-                    this.employee = employee;
-                },
-                error: error => {
-                    this.alertService.error(error);
-                }
-            });
+    capitalizeFirstLetter(text: string): string {
+        if (!text) return '';
+        return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
     }
 
     deleteWorkflow() {
@@ -79,7 +74,8 @@ export class ViewWorkflowComponent implements OnInit {
                         this.alertService.success('Workflow deleted successfully');
                         this.router.navigate(['../'], { 
                             relativeTo: this.route,
-                            queryParams: { employeeId: this.employeeId }
+                            queryParams: { employeeId: this.employeeId },
+                            queryParamsHandling: 'merge'
                         });
                     },
                     error: error => {

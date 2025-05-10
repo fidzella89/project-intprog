@@ -25,39 +25,33 @@
             <div class="col-md-6">
                 <div class="mb-3">
                     <label class="text-muted mb-1">Employee</label>
-                    <h5 class="mb-0" *ngIf="employee">
-                        {{employee.account?.firstName}} {{employee.account?.lastName}}
+                    <h5 class="mb-0" *ngIf="employee && employee.account">
+                        {{displayEmployeeId}} - {{capitalizeFirstLetter(employee.account.firstName)}} {{capitalizeFirstLetter(employee.account.lastName)}}
                     </h5>
+                    <div *ngIf="!employee?.account" class="text-muted">
+                        No employee details available
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="text-muted mb-1">Created</label>
-                    <div>{{workflow.createdDate | date:'medium'}}</div>
-                </div>
-                <div>
-                    <label class="text-muted mb-1">Last Modified</label>
-                    <div>{{workflow.lastModifiedDate | date:'medium'}}</div>
+                    <div>{{workflow.datetimecreated | date:'medium' || 'N/A'}}</div>
                 </div>
             </div>
         </div>
 
         <div class="bg-light p-4 rounded mb-4">
-            <h5 class="mb-3">Task Details</h5>
-            <div class="mb-3">
-                <label class="text-muted mb-1">Task Name</label>
-                <h6 class="mb-0">{{workflow.details.task}}</h6>
-            </div>
-            <div *ngIf="workflow.details.additionalInfo">
-                <label class="text-muted mb-1">Additional Information</label>
-                <p class="mb-0">{{workflow.details.additionalInfo}}</p>
+            <h5 class="mb-3">Details</h5>
+            <div>
+                <p class="mb-0">{{workflow.details}}</p>
             </div>
         </div>
 
-        <div class="border-top pt-4">
-            <button *ngIf="isAdmin" (click)="deleteWorkflow()" class="btn btn-danger me-2" [disabled]="loading">
+        <div class="border-top pt-3">
+            <a routerLink="/workflows" [queryParams]="{ employeeId: employeeId }" queryParamsHandling="merge" class="btn btn-link">Back to List</a>
+            <button *ngIf="isOwner" (click)="deleteWorkflow()" class="btn btn-danger me-2" [disabled]="loading">
                 <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
                 Delete Workflow
             </button>
-            <a routerLink="/workflows" [queryParams]="{employeeId: employeeId}" class="btn btn-link">Back to List</a>
         </div>
     </div>
 </div>

@@ -137,7 +137,11 @@ export class ListComponent implements OnInit {
     }
 
     viewRequests(employeeId: string) {
-        this.router.navigate(['/requests'], { queryParams: { employeeId } });
+        // Get the employee object
+        const employee = this.employees.find(e => e.id === employeeId);
+        if (employee) {
+            this.router.navigate(['/requests'], { queryParams: { employeeId: employee.id } });
+        }
     }
 
     viewWorkflows(employeeid: string) {

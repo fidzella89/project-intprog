@@ -49,7 +49,7 @@ export class ViewComponent implements OnInit {
                     this.request = request;
                     // Check if current user is the owner of the request
                     this.isOwner = request.employeeId === Number(this.accountService.accountValue?.id);
-                    this.loading = false;
+                            this.loading = false;
                 },
                 error: error => {
                     this.alertService.error(error);
@@ -96,26 +96,26 @@ export class ViewComponent implements OnInit {
         this.deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
         this.deleteModal.show();
     }
-
+    
     deleteRequest() {
         this.deleting = true;
-        this.requestService.delete(this.id)
-            .pipe(first())
-            .subscribe({
-                next: () => {
+            this.requestService.delete(this.id)
+                .pipe(first())
+                .subscribe({
+                    next: () => {
                     this.deleteModal.hide();
-                    this.alertService.success('Request deleted successfully', { keepAfterRouteChange: true });
-                    // Navigate back preserving the employeeId
-                    this.router.navigate(['../../'], { 
-                        relativeTo: this.route,
-                        queryParams: { employeeId: this.employeeId }
-                    });
-                },
-                error: error => {
+                        this.alertService.success('Request deleted successfully', { keepAfterRouteChange: true });
+                        // Navigate back preserving the employeeId
+                        this.router.navigate(['../../'], { 
+                            relativeTo: this.route,
+                            queryParams: { employeeId: this.employeeId }
+                        });
+                    },
+                    error: error => {
                     this.alertService.error(error?.message || 'Something went wrong. Please try again later.');
                     this.deleting = false;
-                }
-            });
+                    }
+                });
     }
     
     // Helper function to get readable date

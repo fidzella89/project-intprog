@@ -11,26 +11,19 @@ export function appInitializer(accountService: AccountService) {
             return;
         }
 
-        // Check if token is valid before attempting refresh
-        if (!accountService.isTokenValid(account)) {
-            // attempt to refresh token on app start up to auto authenticate
-            accountService.refreshToken()
-                .subscribe({
-                    next: () => {
-                        console.log('Token refreshed successfully during app initialization');
-                        resolve();
-                    },
-                    error: (error) => {
-                        console.error('Token refresh failed during app initialization:', error);
-                        // Clear any stored data to ensure clean state
-                        accountService.clearAccountData();
-                        resolve();
-                    }
-                });
-        } else {
-            // Token is still valid, no need to refresh
-            console.log('Token is still valid during app initialization');
-            resolve();
-        }
+        // Always try to refresh token on app start up
+        accountService.refreshToken()
+            .subscribe({
+                next: () => {
+                    console.log('Token refreshed successfully during app initialization');
+                    resolve();
+                },
+                error: (error) => {
+                    console.error('Token refresh failed during app initialization:', error);
+                    // Clear any stored data to ensure clean state
+                    accountService.clearAccountData();
+                    resolve();
+                }
+            });
     });
 }

@@ -142,13 +142,18 @@ async function getByRequesterId(requesterId) {
 async function create(params, retryCount = 0) {
     const MAX_RETRIES = 5;
     
+    console.log('Received create request params:', params); // Debug log
+    
     // Extract items and isAdmin from params
     const items = params.items || [];
     const isAdmin = params.isAdmin === true; // Ensure boolean conversion
     delete params.items;
     delete params.isAdmin;
 
-    console.log('Creating request with admin status:', isAdmin); // Debug log
+    console.log('Creating request with admin status:', isAdmin);
+    console.log('Employee ID:', params.employeeId); // Debug log
+    console.log('Request type:', params.type); // Debug log
+    console.log('Items:', items); // Debug log
 
     // Generate request number
     const requestNumber = await generateRequestNumber();
@@ -169,13 +174,14 @@ async function create(params, retryCount = 0) {
     params.requestNumber = requestNumber;
     params.status = isAdmin ? 'Approved' : 'Pending';
     
-    console.log('Setting request status to:', params.status); // Debug log
+    console.log('Final request params:', params); // Debug log
     
     try {
         // Create request and items in a transaction
         const result = await db.Request.sequelize.transaction(async (t) => {
             // Create the request
             const request = await db.Request.create(params, { transaction: t });
+            console.log('Created request:', request.toJSON()); // Debug log
             
             // Create items
             if (items.length > 0) {
@@ -187,22 +193,23 @@ async function create(params, retryCount = 0) {
                     transaction: t,
                     validate: true
                 });
+                console.log('Created request items:', requestItems); // Debug log
             }
-            
+
             return request;
         });
 
-        console.log('Request created successfully:', result.id); // Debug log
+        console.log('Request created successfully:', result.id);
         return getById(result.id);
     } catch (error) {
-        console.error('Error creating request:', error); // Debug log
+        console.error('Error creating request:', error);
         throw new Error('Failed to create request. Please try again later.');
     }
 }
 
 async function update(id, params) {
     const request = await getRequest(id);
-    
+
     // Extract items from params
     const newItems = params.items || [];
     delete params.items;
@@ -210,7 +217,7 @@ async function update(id, params) {
     // Update request and items in a transaction
     await db.Request.sequelize.transaction(async (t) => {
         // Update request
-        Object.assign(request, params);
+    Object.assign(request, params);
         request.lastModifiedDate = new Date();
         await request.save({ transaction: t });
 

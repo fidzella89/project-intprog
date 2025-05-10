@@ -56,10 +56,18 @@ function createSchema(req, res, next) {
     const schema = Joi.object({
         type: Joi.string().valid('Equipment', 'Leave', 'Resources').required(),
         employeeId: Joi.number().required(),
-        items: Joi.array().items(Joi.object({
-            name: Joi.string().required().max(100),
-            quantity: Joi.number().integer().min(1).required()
-        })).min(1).required()  // Require at least one item
+        items: Joi.when('type', {
+            is: 'Leave',
+            then: Joi.array().items(Joi.object({
+                name: Joi.string().max(100),
+                quantity: Joi.number().integer().min(1)
+            })).optional().default([]),
+            otherwise: Joi.array().items(Joi.object({
+                name: Joi.string().required().max(100),
+                quantity: Joi.number().integer().min(1).required()
+            })).min(1).required()
+        }),
+        isAdmin: Joi.boolean().optional()
     });
     validateRequest(req, next, schema);
 }

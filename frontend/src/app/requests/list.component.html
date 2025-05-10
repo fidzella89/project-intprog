@@ -20,25 +20,19 @@
         <table *ngIf="!loading && !notFound && requests.length > 0" class="table table-striped">
             <thead>
                 <tr>
-                    <th style="width: 12%">Request #</th>
-                    <th style="width: 15%">Employee</th>
-                    <th style="width: 10%">Type</th>
-                    <th style="width: 20%">Items</th>
-                    <th style="width: 10%">Status</th>
-                    <th style="width: 18%">Created</th>
-                    <th style="width: 15%"></th>
+                    <th class="text-center" style="width: 12%">Request #</th>
+                    <th class="text-center" style="width: 10%">Type</th>
+                    <th class="text-center" style="width: 20%">Items</th>
+                    <th class="text-center" style="width: 10%">Status</th>
+                    <th class="text-center" style="width: 18%">Created</th>
+                    <th class="text-center" style="width: 15%">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <tr *ngFor="let request of requests">
-                    <td>{{request.requestNumber}}</td>
-                    <td>
-                        <span *ngIf="request.employee">
-                            {{request.employee.account?.firstName}} {{request.employee.account?.lastName}}
-                        </span>
-                    </td>
-                    <td>{{request.type}}</td>
-                    <td>
+                    <td class="text-center align-middle">{{request.id}}</td>
+                    <td class="text-center align-middle">{{request.type}}</td>
+                    <td class="text-center align-middle">
                         <ng-container *ngIf="request.type !== 'Leave'">
                             <div *ngIf="!request.items?.length" class="text-muted">
                                 No items
@@ -74,15 +68,15 @@
                         </ng-container>
                         <span *ngIf="request.type === 'Leave'" class="text-muted">N/A</span>
                     </td>
-                    <td>
+                    <td class="text-center align-middle">
                         <span class="badge" [ngClass]="{
                             'bg-secondary': request.status === 'Pending',
                             'bg-success': request.status === 'Approved',
                             'bg-danger': request.status === 'Rejected'
                         }">{{request.status}}</span>
                     </td>
-                    <td>{{request.createdDate | date:'medium'}}</td>
-                    <td style="white-space: nowrap">
+                    <td class="text-center align-middle">{{request.createdDate | date:'medium'}}</td>
+                    <td class="text-center align-middle" style="white-space: nowrap">
                         <a routerLink="view/{{request.id}}" class="btn btn-sm btn-primary me-1">View</a>
                         <!-- Edit, Delete, and Status Change buttons only for admin -->
                         <ng-container *ngIf="isAdmin">

@@ -76,19 +76,14 @@ async function initialize() {
         db.RefreshToken.belongsTo(db.Account, { foreignKey: 'accountId' });
 
         // Department-Employee relationships
-        // Department has many employees
         db.Department.hasMany(db.Employee, {
             foreignKey: 'departmentId',
             as: 'employees'
         });
-
-        // Employee belongs to Department
         db.Employee.belongsTo(db.Department, {
             foreignKey: 'departmentId',
-            as: 'Department'  // Capital D to match the service layer
+            as: 'Department'
         });
-
-        // Department has one manager (Employee)
         db.Department.belongsTo(db.Employee, {
             foreignKey: 'managerId',
             as: 'departmentManager'
@@ -96,13 +91,12 @@ async function initialize() {
 
         // Employee-Workflow relationship (one-to-many)
         db.Employee.hasMany(db.Workflow, {
-            foreignKey: 'employeeid',  // This references the employee's id column
+            foreignKey: 'employeeid',
             sourceKey: 'id',
             as: 'workflows'
         });
-        
         db.Workflow.belongsTo(db.Employee, {
-            foreignKey: 'employeeid',  // This references the employee's id column
+            foreignKey: 'employeeid',
             targetKey: 'id',
             as: 'employee'
         });
@@ -113,7 +107,6 @@ async function initialize() {
             sourceKey: 'id',
             as: 'requests'
         });
-        
         db.Request.belongsTo(db.Employee, {
             foreignKey: 'employeeId',
             targetKey: 'id',
@@ -127,21 +120,32 @@ async function initialize() {
             as: 'items',
             onDelete: 'CASCADE'
         });
-
         db.RequestItem.belongsTo(db.Request, {
             foreignKey: 'requestId',
             targetKey: 'id',
             as: 'request'
         });
 
-        // Sync database - use alter for all tables to preserve data
-        console.log('Synchronizing database models...');
+        // Check if tables exist and create/sync them
+        console.log('Checking and syncing database tables...');
         try {
-            // First sync without foreign key checks to handle existing data
-            await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-            await sequelize.sync({ alter: true });
-            await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-            console.log('Database synchronization completed');
+            // First check if any tables exist
+            const [tables] = await sequelize.query('SHOW TABLES');
+            const tableExists = tables.length > 0;
+
+            if (!tableExists) {
+                // No tables exist, create all tables
+                console.log('No tables found. Creating all tables...');
+                await sequelize.sync({ force: true });
+                console.log('All tables created successfully');
+            } else {
+                // Tables exist, sync with alter to preserve data
+                console.log('Existing tables found. Syncing with alter...');
+                await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+                await sequelize.sync({ alter: true });
+                await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+                console.log('Database synchronization completed');
+            }
         } catch (syncError) {
             console.error('Error during database synchronization:', syncError);
             throw syncError;

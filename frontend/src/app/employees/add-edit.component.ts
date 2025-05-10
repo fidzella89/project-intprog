@@ -50,56 +50,64 @@ export class AddEditComponent implements OnInit {
                 this.departments = departments;
             });
 
-        // Load all accounts for dropdown
-        this.accountService.getAll()
-            .pipe(first())
-            .subscribe(accounts => {
-                this.accounts = accounts;
-                this.updateAvailableAccounts();
-            });
-
-        // Load existing employee IDs
-        this.employeeService.getAll()
-            .pipe(first())
-            .subscribe(employees => {
-                this.existingEmployeeIds = employees.map(e => e.employeeId);
-            });
-
         // Initialize form with appropriate disabled states
         this.form = this.formBuilder.group({
             accountId: [{ value: '', disabled: !this.isAddMode }, this.isAddMode ? Validators.required : []],
             employeeId: [{ value: '', disabled: true }], // Always disabled
-            departmentId: [{ value: '', disabled: !this.isAddMode }, Validators.required], // Disabled in edit mode
+            departmentId: ['', Validators.required],
             position: ['', Validators.required],
             hireDate: ['', Validators.required],
             salary: [''],
             status: ['Active']
         });
 
-        if (!this.isAddMode) {
-            this.employeeService.getById(this.id)
-                .pipe(first())
-                .subscribe({
-                    next: (employee) => {
-                        // Convert the employee to EmployeeForm type
-                        this.currentEmployee = {
-                            ...employee,
-                            hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : ''
-                        };
-                        // Use patchValue with the raw form values
-                        this.form.patchValue(this.currentEmployee);
-                        if (employee.account) {
-                            this.selectedAccountName = `${employee.account.firstName} ${employee.account.lastName}`;
-                        }
-                    },
-                    error: error => {
-                        this.alertService.error(error);
+        // Load existing employee IDs
+        this.employeeService.getAll()
+            .pipe(first())
+            .subscribe(employees => {
+                this.existingEmployeeIds = employees.map(e => e.employeeId);
+                if (this.isAddMode) {
+                    this.generateUniqueEmployeeId();
+                }
+            });
+
+        // Load all accounts and filter available ones
+        this.accountService.getAll()
+            .pipe(first())
+            .subscribe({
+                next: (accounts) => {
+                    this.accounts = accounts;
+                    
+                    if (!this.isAddMode) {
+                        // In edit mode, first load the current employee
+                        this.employeeService.getById(this.id)
+                            .pipe(first())
+                            .subscribe({
+                                next: (employee) => {
+                                    this.currentEmployee = {
+                                        ...employee,
+                                        hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : ''
+                                    };
+                                    this.form.patchValue(this.currentEmployee);
+                                    if (employee.account) {
+                                        this.selectedAccountName = `${employee.account.firstName} ${employee.account.lastName}`;
+                                    }
+                                    // Update available accounts after loading current employee
+                                    this.updateAvailableAccounts();
+                                },
+                                error: error => {
+                                    this.alertService.error(error);
+                                }
+                            });
+                    } else {
+                        // In add mode, just update available accounts
+                        this.updateAvailableAccounts();
                     }
-                });
-        } else {
-            // Generate unique employee ID for new employees
-            this.generateUniqueEmployeeId();
-        }
+                },
+                error: error => {
+                    this.alertService.error('Error loading accounts: ' + error);
+                }
+            });
 
         // Watch for account changes to update the name display
         this.form.get('accountId').valueChanges.subscribe(accountId => {
@@ -335,6 +343,36 @@ export class AddEditComponent implements OnInit {
     }
 
     private updateAvailableAccounts() {
-        this.loadAccounts();
+        // First, get all employees to know which accounts are already assigned
+        this.employeeService.getAll()
+            .pipe(first())
+            .subscribe({
+                next: (employees) => {
+                    // Get all account IDs that are already assigned to employees
+                    const usedAccountIds = employees
+                        .filter(e => e.id !== this.id) // Exclude current employee in edit mode
+                        .map(e => e.accountId?.toString()); // Get accountIds, handle possible null/undefined
+
+                    // Filter accounts:
+                    // 1. Remove admin accounts
+                    // 2. Remove accounts that are already assigned to employees (except current account in edit mode)
+                    this.availableAccounts = this.accounts.filter(account => {
+                        const isAdmin = account.role === Role.Admin;
+                        const isAlreadyAssigned = usedAccountIds.includes(account.id?.toString());
+                        const isCurrentAccount = !this.isAddMode && 
+                            this.currentEmployee?.accountId?.toString() === account.id?.toString();
+
+                        return !isAdmin && (!isAlreadyAssigned || isCurrentAccount);
+                    });
+
+                    // Sort accounts by name for better UX
+                    this.availableAccounts.sort((a, b) => 
+                        `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+                    );
+                },
+                error: (error) => {
+                    this.alertService.error('Error loading employees: ' + error);
+                }
+            });
     }
 } 

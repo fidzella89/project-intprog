@@ -1,7 +1,7 @@
 <h1>
     <ng-container *ngIf="!employeeId">All Workflows</ng-container>
     <ng-container *ngIf="employeeId">
-        Workflows for Employee #{{employeeId}}
+        Workflows for Employee {{displayEmployeeId}}
         <ng-container *ngIf="employeeFullName">- {{employeeFullName}}</ng-container>
     </ng-container>
 </h1>
@@ -23,7 +23,7 @@
             <span class="spinner-border spinner-border-lg align-center"></span>
         </div>
         <div *ngIf="notFound" class="alert alert-warning">
-            No workflows found for Employee #{{employeeId}}
+            No workflows found for Employee {{displayEmployeeId}}
         </div>
         <table *ngIf="!loading && !notFound && workflows" class="table table-striped">
             <thead>
@@ -32,8 +32,8 @@
                     <th style="width: 15%">Type</th>
                     <th style="width: 30%">Details</th>
                     <th style="width: 10%">Status</th>
-                    <th style="width: 20%">Date&Time Created</th>
-                    <th style="width: 15%"></th>
+                    <th style="width: 20%">Date & Time Created</th>
+                    <th style="width: 15%">Actions</th>
                 </tr>
             </thead>
             <tbody>

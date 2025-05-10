@@ -25,22 +25,20 @@ export class JwtInterceptor implements HttpInterceptor {
 
         return next.handle(request).pipe(
             catchError(error => {
-                if (error instanceof HttpErrorResponse) {
-                    if (error.status === 401) {
-                        // Try to refresh token only if we're not already refreshing
-                        // and this is not a refresh token request
-                        if (!this.isRefreshing && !this.isRefreshTokenRequest(request)) {
-                            return this.handle401Error(request, next);
-                        } else if (this.isRefreshTokenRequest(request)) {
-                            // If refresh token request fails, logout
-                            this.accountService.logout();
-                            return throwError(() => new Error('Session expired. Please login again.'));
-                        }
-                    } else if (error.status === 403) {
-                        // handle 403 forbidden errors
+                if (error instanceof HttpErrorResponse && error.status === 401) {
+                    // Try to refresh token only if we're not already refreshing
+                    // and this is not a refresh token request
+                    if (!this.isRefreshing && !this.isRefreshTokenRequest(request)) {
+                        return this.handle401Error(request, next);
+                    } else if (this.isRefreshTokenRequest(request)) {
+                        // If refresh token request fails, logout and redirect
                         this.accountService.logout();
-                        return throwError(() => new Error('Access forbidden. Please login again.'));
+                        return throwError(() => error);
                     }
+                } else if (error instanceof HttpErrorResponse && error.status === 403) {
+                    // handle 403 forbidden errors
+                    this.accountService.logout();
+                    return throwError(() => new Error('Access forbidden. Please login again.'));
                 }
                 return throwError(() => error);
             })
@@ -53,7 +51,7 @@ export class JwtInterceptor implements HttpInterceptor {
 
     private addTokenHeader(request: HttpRequest<any>, token: string) {
         return request.clone({
-            setHeaders: { 
+            setHeaders: {
                 Authorization: `Bearer ${token}`,
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
@@ -68,15 +66,14 @@ export class JwtInterceptor implements HttpInterceptor {
 
             return this.accountService.refreshToken().pipe(
                 switchMap((account: any) => {
+                    this.isRefreshing = false;
                     this.refreshTokenSubject.next(account.jwtToken);
                     return next.handle(this.addTokenHeader(request, account.jwtToken));
                 }),
                 catchError(error => {
+                    this.isRefreshing = false;
                     this.accountService.logout();
                     return throwError(() => error);
-                }),
-                finalize(() => {
-                    this.isRefreshing = false;
                 })
             );
         }
@@ -84,11 +81,7 @@ export class JwtInterceptor implements HttpInterceptor {
         return this.refreshTokenSubject.pipe(
             filter(token => token !== null),
             take(1),
-            switchMap(token => next.handle(this.addTokenHeader(request, token))),
-            catchError(error => {
-                this.accountService.logout();
-                return throwError(() => error);
-            })
+            switchMap(token => next.handle(this.addTokenHeader(request, token)))
         );
     }
 }

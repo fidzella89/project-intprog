@@ -17,7 +17,7 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Employee ID</label>
+                    <label class="form-label">Employee ID & Name</label>
                     <div class="input-group">
                         <input type="text" formControlName="employeeId" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.employeeId.errors }" />
                         <span class="input-group-text bg-light" *ngIf="selectedAccountName">{{selectedAccountName | titlecase}}</span>
@@ -78,8 +78,6 @@
                 <select formControlName="status" class="form-select">
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
-                    <option value="On Leave">On Leave</option>
-                    <option value="Terminated">Terminated</option>
                 </select>
             </div>
 
