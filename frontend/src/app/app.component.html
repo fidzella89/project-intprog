@@ -11,9 +11,31 @@
                 routerLink="/departments" routerLinkActive="active" class="nav-item nav-link">Departments</a>
             <a *ngIf="account.role === Role.Admin" routerLink="/admin" routerLinkActive="active"
                 class="nav-item nav-link">Admin</a>
-            <a (click)="logout()" class="nav-item nav-link">Logout</a>
+            <a (click)="openLogoutModal()" class="nav-item nav-link" style="cursor: pointer;">Logout</a>
         </div>
     </nav>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="modal fade show" [ngClass]="{'d-block': showLogoutModal}" tabindex="-1" role="dialog" *ngIf="showLogoutModal">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Logout</h5>
+                    <button type="button" class="close" (click)="closeLogoutModal()" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to logout?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="closeLogoutModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" (click)="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show" *ngIf="showLogoutModal"></div>
 
     <!-- subnav router outlet -->
     <router-outlet name="subnav"></router-outlet>

@@ -17,13 +17,18 @@ export class AuthGuard {
         const account = this.accountService.accountValue;
         
         if (!account) {
-            // Not logged in, show message and redirect to home
+            // Check if we're already on the login page to prevent loops
+            if (state.url.startsWith('/account/login')) {
+                return of(true);
+            }
+
+            // Not logged in, show message and redirect to login
             this.alertService.error('You are unauthorized. Please log in.', { 
                 keepAfterRouteChange: true,
                 autoClose: true,
                 autoCloseTimeout: 6000 // 6 seconds
             });
-            this.router.navigate(['/']);
+            this.router.navigate(['/account/login'], { queryParams: { returnUrl: state.url } });
             return of(false);
         }
 
@@ -51,7 +56,7 @@ export class AuthGuard {
                     autoClose: true,
                     autoCloseTimeout: 6000 // 6 seconds
                 });
-                this.router.navigate(['/']);
+                this.router.navigate(['/account/login'], { queryParams: { returnUrl: state.url } });
                 return of(false);
             })
         );

@@ -88,20 +88,19 @@ export class AccountService {
     }
 
     logout() {
-        this.http.post<any>(`${baseUrl}/revoke-token`, {}, { withCredentials: true })
+        return this.http.post<any>(`${baseUrl}/revoke-token`, {}, { withCredentials: true })
             .pipe(
                 finalize(() => {
                     this.clearAccountData();
                 })
-            )
-            .subscribe();
+            );
     }
 
     public clearAccountData() {
         localStorage.removeItem('account');
         this.stopRefreshTokenTimer();
         this.accountSubject.next(null);
-        this.router.navigate(['/account/login']);
+        // Remove the automatic navigation to prevent routing loops
     }
 
     refreshToken() {
