@@ -66,7 +66,7 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        console.log('Looking for refresh token:', token);
+        console.log('Looking for refresh token');
         const refreshToken = await db.RefreshToken.findOne({
             where: { token },
             include: [{
@@ -84,7 +84,7 @@ async function refreshToken({ token, ipAddress }) {
         }
 
         if (!refreshToken.isActive) {
-            console.error('Refresh token is not active:', refreshToken.token);
+            console.error('Refresh token is not active');
             throw {
                 name: 'InvalidTokenError',
                 message: 'Refresh token has expired or been revoked'
@@ -93,7 +93,7 @@ async function refreshToken({ token, ipAddress }) {
 
         const account = refreshToken.Account;
         if (!account) {
-            console.error('No account found for refresh token:', refreshToken.token);
+            console.error('No account found for refresh token');
             throw {
                 name: 'NotFoundError',
                 message: 'Account not found'
@@ -116,11 +116,14 @@ async function refreshToken({ token, ipAddress }) {
         const jwtToken = generateJwtToken(account);
 
         // return basic details and tokens
-        return {
+        const response = {
             ...basicDetails(account),
             jwtToken,
             refreshToken: newRefreshToken.token
         };
+
+        console.log('Successfully refreshed token');
+        return response;
     } catch (error) {
         console.error('Refresh token error:', error);
         throw error;

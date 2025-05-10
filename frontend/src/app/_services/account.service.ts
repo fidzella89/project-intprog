@@ -109,16 +109,36 @@ export class AccountService {
         }
 
         this.refreshingToken = true;
+
+        // Get the stored refresh token
+        const storedAccount = localStorage.getItem('account');
+        if (!storedAccount) {
+            this.refreshingToken = false;
+            return throwError(() => new Error('No stored account found'));
+        }
+
+        const account = JSON.parse(storedAccount);
         
-        return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
-            withCredentials: true
+        return this.http.post<any>(`${baseUrl}/refresh-token`, {
+            refreshToken: account.refreshToken // Send token in request body
+        }, { 
+            withCredentials: true,
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
         }).pipe(
             map(account => {
                 if (!account || !account.jwtToken) {
                     throw new Error('Invalid refresh token response');
                 }
+                
+                // Store the new account details
                 this.storeAccount(account);
+                
+                // Restart the refresh timer
                 this.startRefreshTokenTimer();
+                
                 return account;
             }),
             catchError(error => {

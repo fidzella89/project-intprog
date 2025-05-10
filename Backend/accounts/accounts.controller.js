@@ -68,12 +68,25 @@ function refreshToken(req, res, next) {
         }
 
         accountService.refreshToken({ token, ipAddress })
-            .then(({ refreshToken, ...account }) => {
+            .then(response => {
+                if (!response) {
+                    throw new Error('Invalid response from refresh token service');
+                }
+                const { refreshToken, ...account } = response;
                 setTokenCookie(res, refreshToken);
                 res.json(account);
             })
             .catch(error => {
                 console.error('Refresh token error:', error);
+                if (error.name === 'ValidationError') {
+                    return res.status(400).json({ message: error.message });
+                }
+                if (error.name === 'NotFoundError') {
+                    return res.status(404).json({ message: error.message });
+                }
+                if (error.name === 'InvalidTokenError') {
+                    return res.status(401).json({ message: error.message });
+                }
                 next(error);
             });
     } catch (error) {
