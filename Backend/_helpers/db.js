@@ -64,7 +64,7 @@ async function initialize() {
         });
         db.RefreshToken.belongsTo(db.Account, { foreignKey: 'accountId' });
 
-        // Department-Employee relationshipss
+        // Department-Employee relationships
         db.Department.hasMany(db.Employee, {
             foreignKey: 'departmentId',
             as: 'employees'
