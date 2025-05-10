@@ -118,35 +118,45 @@ export class AccountService {
         }
 
         const account = JSON.parse(storedAccount);
+        if (!account || !account.refreshToken) {
+            this.refreshingToken = false;
+            this.clearAccountData();
+            return throwError(() => new Error('No refresh token found'));
+        }
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, {
-            refreshToken: account.refreshToken // Send token in request body
+            refreshToken: account.refreshToken
         }, { 
             withCredentials: true,
             headers: {
+                'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
             }
         }).pipe(
-            map(account => {
-                if (!account || !account.jwtToken) {
+            map(response => {
+                if (!response || !response.jwtToken) {
                     throw new Error('Invalid refresh token response');
                 }
                 
                 // Store the new account details
-                this.storeAccount(account);
+                const newAccount = {
+                    ...response,
+                    refreshToken: account.refreshToken // Keep the refresh token
+                };
+                this.storeAccount(newAccount);
                 
                 // Restart the refresh timer
                 this.startRefreshTokenTimer();
                 
-                return account;
+                return newAccount;
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);
-                // Only clear account data if it's an authentication error
-                if (error.status === 401 || error.status === 403) {
+                if (error.status === 401 || error.status === 403 || error.status === 404) {
                     this.clearAccountData();
                     this.router.navigate(['/account/login']);
+                    return throwError(() => new Error('Session expired. Please log in again.'));
                 }
                 return throwError(() => error);
             }),
