@@ -67,8 +67,13 @@ export class AccountService implements IAccountService {
                         throw new Error('Invalid login response');
                     }
 
-                    if (!account.token) {
+                    if (!account.jwtToken) {
                         throw new Error('No JWT token in response');
+                    }
+                    
+                    // Handle both token and refreshToken properties in the response
+                    if (account.token && !account.refreshToken) {
+                        account.refreshToken = account.token;
                     }
 
                     // Update the account subject
@@ -127,33 +132,8 @@ export class AccountService implements IAccountService {
 
         this.refreshingToken = true;
         console.log('Starting token refresh request');
-
-        // Try to get the refresh token from various sources
-        // 1. Try from cookie
-        let refreshToken = this.getCookie('refreshToken');
         
-        // 2. If not in cookie, try to use a local backup if we have it
-        if (!refreshToken && this.accountValue.refreshToken) {
-            refreshToken = this.accountValue.refreshToken;
-            console.log('Using stored refresh token from account data');
-        }
-        
-        // Log detailed token information for debugging
-        console.log('Refresh token details:', {
-            'Cookies available': document.cookie ? 'Yes' : 'No',
-            'Cookie token found': refreshToken ? 'Yes' : 'No',
-            'Account has token': this.accountValue?.refreshToken ? 'Yes' : 'No',
-            'Token being sent': refreshToken?.substring(0, 10) + '...' || 'None'
-        });
-
-        // If we don't have a token, try to use the HTTP-only cookie approach only
-        if (!refreshToken) {
-            console.log('No explicit token to send, relying on HTTP-only cookie');
-        }
-
-        return this.http.post<any>(`${baseUrl}/refresh-token`, { 
-            token: refreshToken // Explicitly send token in request body
-        }, { 
+        return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
             headers: new HttpHeaders({
                 'Content-Type': 'application/json',
@@ -168,13 +148,13 @@ export class AccountService implements IAccountService {
                     throw new Error('Empty response from refresh token endpoint');
                 }
                 
-                if (!response.token) {
+                if (!response.jwtToken) {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
                 
-                // Save refresh token for future use
-                if (response.refreshToken) {
-                    console.log('Storing new refresh token for backup use');
+                // Handle both token and refreshToken properties in the response
+                if (response.token && !response.refreshToken) {
+                    response.refreshToken = response.token;
                 }
                 
                 // Update the account subject with the new data
@@ -280,14 +260,46 @@ export class AccountService implements IAccountService {
     private startRefreshTokenTimer() {
         try {
             // Parse the JWT token
-            const jwtToken = this.accountValue?.token;
+            const jwtToken = this.accountValue?.jwtToken;
             if (!jwtToken) {
                 console.log('No JWT token available, not starting refresh timer');
                 return;
             }
 
-            // Parse the token payload
-            const jwtPayload = JSON.parse(atob(jwtToken.split('.')[1]));
+            // Make sure the token has the correct format (header.payload.signature)
+            const tokenParts = jwtToken.split('.');
+            if (tokenParts.length !== 3) {
+                console.error('Invalid JWT token format - expected 3 parts separated by dots');
+                this.clearAccountData();
+                this.router.navigate(['/account/login']);
+                return;
+            }
+
+            // Safely base64 decode the token payload
+            let jwtPayload;
+            try {
+                // Make sure payload is properly padded for base64 decoding
+                const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+                const paddedPayload = base64Payload.padEnd(
+                    base64Payload.length + (4 - (base64Payload.length % 4)) % 4, 
+                    '='
+                );
+                
+                jwtPayload = JSON.parse(atob(paddedPayload));
+            } catch (e) {
+                console.error('Failed to decode JWT payload:', e);
+                this.clearAccountData();
+                this.router.navigate(['/account/login']);
+                return;
+            }
+
+            if (!jwtPayload || !jwtPayload.exp) {
+                console.error('Invalid JWT payload or missing expiration time');
+                this.clearAccountData();
+                this.router.navigate(['/account/login']);
+                return;
+            }
+
             const expires = new Date(jwtPayload.exp * 1000);
             const now = new Date();
             
@@ -342,16 +354,5 @@ export class AccountService implements IAccountService {
             clearTimeout(this.refreshTokenTimeout);
             this.refreshTokenTimeout = null;
         }
-    }
-
-    private getCookie(name: string): string | null {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.startsWith(name + '=')) {
-                return cookie.substring(name.length + 1);
-            }
-        }
-        return null;
     }
 }
