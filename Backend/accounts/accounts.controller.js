@@ -115,12 +115,24 @@ function refreshToken(req, res, next) {
         console.log('Headers:', JSON.stringify(req.headers, null, 2));
         console.log('Body:', JSON.stringify(req.body, null, 2));
         
-        // Get all possible token sources
+        // Extract tokens from multiple sources
         const cookieToken = Array.isArray(req.cookies?.refreshToken) 
             ? req.cookies.refreshToken[req.cookies.refreshToken.length - 1] 
             : req.cookies?.refreshToken;
         
+        // Extract from raw cookie header if cookies not parsed
+        let headerCookieToken;
+        if (req.headers.cookie && !cookieToken) {
+            const cookieHeader = req.headers.cookie;
+            const refreshTokenMatch = cookieHeader.match(/refreshToken=([^;]+)/);
+            if (refreshTokenMatch && refreshTokenMatch[1]) {
+                headerCookieToken = decodeURIComponent(refreshTokenMatch[1]);
+                console.log('Found token in raw cookie header:', headerCookieToken);
+            }
+        }
+        
         const token = cookieToken || 
+                     headerCookieToken ||
                      req.headers?.['x-refresh-token'] || 
                      req.body?.refreshToken;
         
@@ -130,6 +142,7 @@ function refreshToken(req, res, next) {
         console.log('Refresh Token Request:', {
             hasCookies: !!req.cookies,
             cookieToken: cookieToken,
+            headerCookieToken: headerCookieToken,
             headerToken: req.headers?.['x-refresh-token'],
             bodyToken: req.body?.refreshToken,
             finalToken: token,
@@ -150,7 +163,7 @@ function refreshToken(req, res, next) {
         // Clear any existing refresh tokens before processing
         res.clearCookie('refreshToken', {
             path: '/',
-            domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
+            domain: process.env.NODE_ENV === 'production' ? 'final-intprog-project-1.onrender.com' : undefined
         });
 
         accountService.refreshToken({ token, ipAddress })
@@ -168,9 +181,9 @@ function refreshToken(req, res, next) {
                     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 };
 
-                // In development, don't set domain to ensure cookies work on localhost
+                // In production, set domain correctly
                 if (process.env.NODE_ENV === 'production') {
-                    cookieOptions.domain = '.onrender.com';
+                    cookieOptions.domain = 'final-intprog-project-1.onrender.com';
                 }
 
                 // Log cookie setting
@@ -198,7 +211,7 @@ function refreshToken(req, res, next) {
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                     path: '/',
-                    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
+                    domain: process.env.NODE_ENV === 'production' ? 'final-intprog-project-1.onrender.com' : undefined
                 };
                 
                 res.clearCookie('refreshToken', cookieOptions);
@@ -462,9 +475,9 @@ function setTokenCookie(res, token) {
         path: '/'
     };
 
-    // In development, don't set domain to ensure cookies work on localhost
+    // In production, set domain without leading dot to avoid issues
     if (process.env.NODE_ENV === 'production') {
-        cookieOptions.domain = '.onrender.com';
+        cookieOptions.domain = 'final-intprog-project-1.onrender.com';
     }
 
     try {
@@ -475,10 +488,14 @@ function setTokenCookie(res, token) {
         // Clear any existing cookies first
         res.clearCookie('refreshToken', {
             path: '/',
-            domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
+            domain: process.env.NODE_ENV === 'production' ? 'final-intprog-project-1.onrender.com' : undefined
         });
         
         res.cookie('refreshToken', token, cookieOptions);
+        
+        // Also add the token as a header for clients that can't use cookies
+        res.setHeader('X-Refresh-Token', token);
+        
         console.log('Refresh token cookie set successfully');
     } catch (error) {
         console.error('Error setting refresh token cookie:', error);
