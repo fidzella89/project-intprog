@@ -161,6 +161,12 @@ export class AccountService implements IAccountService {
         // The backend expects: token = JWT token
         const jwtToken = this.accountValue.jwtToken;
         
+        if (!jwtToken) {
+            console.error('No JWT token available for refresh');
+            this.refreshingToken = false;
+            return throwError(() => new Error('No JWT token available'));
+        }
+        
         console.log('Using JWT for token parameter:', jwtToken ? 'token present' : 'no token');
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, { 
@@ -198,8 +204,8 @@ export class AccountService implements IAccountService {
             catchError(error => {
                 console.error('Token refresh failed:', error);
                 
-                // Clear account data and stop refresh timer
-                this.clearAccountData();
+                // Don't clear account data here - let the interceptor handle auth errors
+                // Only stop the refresh timer
                 this.stopRefreshTokenTimer();
                 
                 // Determine error message
@@ -210,10 +216,8 @@ export class AccountService implements IAccountService {
                     errorMessage = error.message;
                 }
                 
-                // Redirect to login only if it's an auth error
-                if (error.status === 401 || error.status === 403) {
-                    this.router.navigate(['/account/login']);
-                }
+                // Don't automatically redirect to login - let the interceptor handle this
+                // based on status codes and specific error conditions
                 
                 return throwError(() => errorMessage);
             }),
@@ -344,21 +348,31 @@ export class AccountService implements IAccountService {
             console.log('Token expires at:', expires.toISOString());
             console.log('Current time:', now.toISOString());
 
-            // Calculate timeout - refresh at 70% of token lifetime instead of fixed time
+            // Check if token is already expired
+            if (expires <= now) {
+                console.log('Token already expired, attempting to refresh immediately');
+                // Don't clear account data - attempt a refresh first
+                this.refreshToken().subscribe({
+                    next: () => console.log('Immediate token refresh successful'),
+                    error: (error) => {
+                        console.error('Immediate token refresh failed:', error);
+                        // Don't clear account data or redirect here
+                        // Let the interceptor handle auth errors appropriately
+                    }
+                });
+                return;
+            }
+
+            // Calculate timeout - refresh at 70% of token lifetime
             const tokenLifetime = expires.getTime() - now.getTime();
             
             // Ensure the timeout is at least the minimum refresh interval
+            // but not less than 10 seconds to prevent rapid refresh attempts
             const timeout = Math.max(
                 Math.floor(tokenLifetime * 0.7),
-                this.MIN_REFRESH_INTERVAL
+                this.MIN_REFRESH_INTERVAL,
+                10000 // Minimum 10 seconds
             );
-
-            if (timeout <= 0) {
-                console.log('Token already expired or about to expire');
-                this.clearAccountData();
-                this.router.navigate(['/account/login']);
-                return;
-            }
 
             // Check if the token was refreshed very recently, if so, don't schedule another refresh yet
             const timeSinceLastRefresh = Date.now() - this.lastTokenRefresh;
@@ -383,8 +397,8 @@ export class AccountService implements IAccountService {
                         },
                         error: (error) => {
                             console.error('Failed to refresh token:', error);
-                            this.clearAccountData();
-                            this.router.navigate(['/account/login']);
+                            // Don't clear account data or redirect here
+                            // Let the interceptor handle auth errors appropriately
                         }
                     });
                 } else {

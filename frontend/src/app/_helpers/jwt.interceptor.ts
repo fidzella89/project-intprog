@@ -1,17 +1,21 @@
 import { Injectable } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, filter, take, switchMap, finalize } from 'rxjs/operators';
+import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
+import { catchError, filter, take, switchMap, finalize, tap } from 'rxjs/operators';
 
 import { environment } from '@environments/environment';
 import { AccountService } from '@app/_services';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class JwtInterceptor implements HttpInterceptor {
     private isRefreshing = false;
     private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-    constructor(private accountService: AccountService) { }
+    constructor(
+        private accountService: AccountService,
+        private router: Router
+    ) { }
 
     intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         // add auth header with jwt if account is logged in and request is to the api url
@@ -20,25 +24,49 @@ export class JwtInterceptor implements HttpInterceptor {
         const isApiUrl = request.url.startsWith(environment.apiUrl);
         
         if (isLoggedIn && isApiUrl && !this.isRefreshTokenRequest(request)) {
-            request = this.addTokenHeader(request, account.jwtToken);
+            request = this.addTokenHeader(request, account.jwtToken || '');
         }
 
         return next.handle(request).pipe(
             catchError(error => {
-                if (error instanceof HttpErrorResponse && error.status === 401) {
-                    // Try to refresh token only if we're not already refreshing
-                    // and this is not a refresh token request
-                    if (!this.isRefreshing && !this.isRefreshTokenRequest(request)) {
+                // Don't handle errors for non-API URLs
+                if (!isApiUrl) {
+                    return throwError(() => error);
+                }
+
+                if (error instanceof HttpErrorResponse) {
+                    // Handle 401 Unauthorized errors
+                    if (error.status === 401) {
+                        // Don't try to refresh token if we're not logged in
+                        if (!isLoggedIn) {
+                            // Redirect to login page but don't clear data
+                            // This allows the login page to display any error messages
+                            this.router.navigate(['/account/login']);
+                            return throwError(() => error);
+                        }
+                        
+                        // Don't refresh if this is already a refresh token request
+                        if (this.isRefreshTokenRequest(request)) {
+                            // Clear account data and redirect
+                            this.accountService.clearAccountData();
+                            this.router.navigate(['/account/login']);
+                            return throwError(() => error);
+                        }
+                        
+                        // Try to refresh the token
                         return this.handle401Error(request, next);
-                    } else if (this.isRefreshTokenRequest(request)) {
-                        // If refresh token request fails, logout and redirect
-                        this.accountService.logout();
-                        return throwError(() => error);
+                    } 
+                    // Handle 403 Forbidden errors
+                    else if (error.status === 403) {
+                        // Only logout if we're already logged in
+                        if (isLoggedIn) {
+                            this.accountService.clearAccountData();
+                            this.router.navigate(['/account/login'], { 
+                                queryParams: { returnUrl: this.router.url }
+                            });
+                        }
+                        return throwError(() => new Error('Access forbidden. Please login again.'));
                     }
-                } else if (error instanceof HttpErrorResponse && error.status === 403) {
-                    // handle 403 forbidden errors
-                    this.accountService.logout();
-                    return throwError(() => new Error('Access forbidden. Please login again.'));
                 }
                 return throwError(() => error);
             })
@@ -68,12 +96,20 @@ export class JwtInterceptor implements HttpInterceptor {
                 switchMap((account: any) => {
                     this.isRefreshing = false;
                     this.refreshTokenSubject.next(account.jwtToken);
+                    // Clone the original request with the new token
                     return next.handle(this.addTokenHeader(request, account.jwtToken));
                 }),
                 catchError(error => {
                     this.isRefreshing = false;
-                    this.accountService.logout();
+                    // Only logout if refresh token fails with auth errors
+                    if (error.status === 401 || error.status === 403) {
+                        this.accountService.clearAccountData();
+                        this.router.navigate(['/account/login']);
+                    }
                     return throwError(() => error);
+                }),
+                finalize(() => {
+                    this.isRefreshing = false;
                 })
             );
         }
