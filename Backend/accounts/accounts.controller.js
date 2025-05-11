@@ -82,14 +82,30 @@ function refreshToken(req, res, next) {
         const token = req.cookies.refreshToken;
         const ipAddress = req.ip;
         
+        if (!token) {
+            return res.status(400).json({ message: 'Refresh token is required' });
+        }
+
         accountService.refreshToken({ token, ipAddress })
-            .then(({ refreshToken, ...account }) => {
-                setTokenCookie(res, refreshToken);
-                res.json(account);
+            .then(response => {
+                if (!response || !response.refreshToken) {
+                    throw new Error('Invalid token response');
+                }
+                
+                setTokenCookie(res, response.refreshToken);
+                
+                // Remove refresh token from response before sending
+                const { refreshToken, ...accountDetails } = response;
+                res.json(accountDetails);
             })
             .catch(error => {
                 // Clear the invalid refresh token
-                res.clearCookie('refreshToken');
+                res.clearCookie('refreshToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                    path: '/'
+                });
                 
                 // Handle specific error types
                 switch(error.name) {
@@ -99,9 +115,10 @@ function refreshToken(req, res, next) {
                     case 'InvalidTokenError':
                         return res.status(401).json({ message: error.message });
                     default:
+                        console.error('Token refresh error:', error);
                         return res.status(500).json({ 
                             message: 'An error occurred while refreshing the token',
-                            error: error.message 
+                            error: error.message || error.toString()
                         });
                 }
             });
