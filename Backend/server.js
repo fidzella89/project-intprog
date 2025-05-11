@@ -11,30 +11,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(cookieParser(process.env.COOKIE_SECRET || 'your-secret-key', {
-  decode: decodeURIComponent 
-}));
-
-// Add cookie debugging
-app.use((req, res, next) => {
-  if (req.headers.cookie) {
-    console.log('Raw cookie header:', req.headers.cookie);
-    
-    // Parse cookie manually if req.cookies is empty but header exists
-    if (!req.cookies || Object.keys(req.cookies).length === 0) {
-      const cookies = {};
-      req.headers.cookie.split(';').forEach(cookie => {
-        const parts = cookie.trim().split('=');
-        if (parts.length === 2) {
-          cookies[parts[0]] = decodeURIComponent(parts[1]);
-        }
-      });
-      req.cookies = cookies;
-      console.log('Manually parsed cookies:', cookies);
-    }
-  }
-  next();
-});
+app.use(cookieParser(process.env.COOKIE_SECRET || 'your-secret-key'));
 
 // CORS configuration
 const allowedOrigins = [

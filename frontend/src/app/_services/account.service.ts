@@ -61,27 +61,18 @@ export class AccountService implements IAccountService {
         return this.http.post<Account>(`${baseUrl}/authenticate`, { email, password }, { withCredentials: true })
             .pipe(
                 map(account => {
-                    console.log('Login response received');
-                    
-                    if (!account) {
-                        throw new Error('Invalid login response');
-                    }
-
-                    if (!account.jwtToken) {
-                        throw new Error('No JWT token in response');
+                    if (!account || !account.jwtToken) {
+                        throw new Error('Invalid login response - missing JWT token');
                     }
                     
-                    // Store refresh token if available (for development or fallback)
-                    if (account.refreshToken) {
-                        console.log('Storing refresh token from login response');
-                        localStorage.setItem('tempRefreshToken', account.refreshToken);
-                    }
-
-                    // Update the account subject
+                    // Store account details and jwt token in local storage to keep user logged in between page refreshes
                     this.accountSubject.next(account);
                     
-                    // Start the refresh token timer
+                    // Start timer to refresh token before it expires
                     this.startRefreshTokenTimer();
+                    
+                    // Ensure the refresh token cookie was set
+                    this.checkRefreshToken();
                     
                     return account;
                 }),
@@ -131,77 +122,39 @@ export class AccountService implements IAccountService {
             return throwError(() => new Error('No account data'));
         }
 
-        // Get any locally stored token as fallback
-        const storedToken = localStorage.getItem('tempRefreshToken');
-        if (storedToken) {
-            console.log('Found stored token to use for refresh');
-        }
-
         this.refreshingToken = true;
         console.log('Starting token refresh request');
 
-        // First try to check if cookies are working by calling debug endpoint
-        this.http.get<any>(`${baseUrl}/check-cookies`, { 
-            withCredentials: true 
-        }).subscribe({
-            next: (response) => {
-                console.log('Cookie check response:', response);
-            },
-            error: (err) => {
-                console.error('Cookie check failed:', err);
-            }
-        });
-
-        return this.http.post<any>(`${baseUrl}/refresh-token`, 
-            // Include token in body if available
-            storedToken ? { refreshToken: storedToken } : {}, 
-            { 
-                withCredentials: true,
-                headers: new HttpHeaders({
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
-                    // Also add as header if available
-                    ...(storedToken ? { 'X-Refresh-Token': storedToken } : {})
-                }),
-                observe: 'response'
-            }
-        ).pipe(
+        // Get the token from cookies if available
+        let token = this.getCookie('refreshToken');
+        
+        return this.http.post<any>(`${baseUrl}/refresh-token`, { token }, { 
+            withCredentials: true,
+            headers: new HttpHeaders({
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'X-Refresh-Token': token || '' // Send token in header as alternative
+            })
+        }).pipe(
             map(response => {
                 console.log('Token refresh response received');
                 
-                const body = response.body;
-                
-                if (!body) {
+                if (!response) {
                     throw new Error('Empty response from refresh token endpoint');
                 }
                 
-                if (!body.jwtToken) {
+                if (!response.jwtToken) {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
                 
-                // Check if the body has a refreshToken (for development)
-                if (body.refreshToken) {
-                    console.log('Refresh token received in body for development');
-                    // Manually save this refresh token for the next request
-                    localStorage.setItem('tempRefreshToken', body.refreshToken);
-                }
-                
-                // Check if a X-Refresh-Token header is present
-                const headerToken = response.headers.get('X-Refresh-Token');
-                if (headerToken) {
-                    console.log('Refresh token received in X-Refresh-Token header');
-                    // Manually save this refresh token for the next request
-                    localStorage.setItem('tempRefreshToken', headerToken);
-                }
-                
                 // Update the account subject with the new data
-                this.accountSubject.next(body);
+                this.accountSubject.next(response);
                 
                 // Restart the refresh timer with the new token
                 this.startRefreshTokenTimer();
                 
-                return body;
+                return response;
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);
@@ -293,9 +246,6 @@ export class AccountService implements IAccountService {
         this.stopRefreshTokenTimer();
         this.accountSubject.next(null);
         this.refreshingToken = false;
-        
-        // Clear any stored token
-        localStorage.removeItem('tempRefreshToken');
     }
 
     private startRefreshTokenTimer() {
@@ -363,5 +313,17 @@ export class AccountService implements IAccountService {
             clearTimeout(this.refreshTokenTimeout);
             this.refreshTokenTimeout = null;
         }
+    }
+
+    private getCookie(name: string): string | undefined {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+    }
+
+    private checkRefreshToken() {
+        // Check if the refresh token cookie was set
+        const token = this.getCookie('refreshToken');
+        console.log('Checking refresh token cookie:', token ? 'Found' : 'Not found');
     }
 }

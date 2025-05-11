@@ -19,22 +19,7 @@ router.get('/', authorize(Role.Admin), getAll);
 router.get('/:id', authorize(), getById);
 router.post('/', authorize(Role.Admin), createSchema, create);
 router.put('/:id', authorize(), updateSchema, update);
-router.delete('/:id', authorize(), _delete);
 
-// Add debug route for checking cookies
-router.get('/check-cookies', (req, res) => {
-    res.json({
-        cookies: req.cookies,
-        hasCookies: !!req.cookies,
-        hasRefreshToken: !!req.cookies?.refreshToken,
-        refreshTokenType: req.cookies?.refreshToken ? typeof req.cookies.refreshToken : 'undefined',
-        isArray: Array.isArray(req.cookies?.refreshToken),
-        headers: {
-            cookie: req.headers?.cookie,
-            authorization: req.headers?.authorization ? 'Present' : 'Not present'
-        }
-    });
-});
 
 module.exports = router;
 
@@ -47,59 +32,41 @@ function authenticateSchema(req, res, next) {
 }
 
 function authenticate(req, res, next) {
-    // Log the authentication request
-    console.log(`Authentication request for email: ${req.body.email}`);
-    
     const { email, password } = req.body;
     const ipAddress = req.ip;
+    
     accountService.authenticate({ email, password, ipAddress })
-        .then(({ refreshToken, ...account }) => {
-            // Log the successful authentication
-            console.log(`Generating JWT token for account ${account.id} with expiry ${account.jwtTokenExpiryTime || '15m'}`);
-            console.log(`Generating refresh token for account ${account.id}:
-            Token: ${refreshToken}
-            Expires: ${account.refreshTokenExpiry || 'unknown'}
-            IP: ${ipAddress}`);
-            
-            // Set refresh token in cookie
-            setTokenCookie(res, refreshToken);
-            
-            // Return basic details, JWT token, and in dev mode, also return the refresh token
-            const response = {
-                ...account,
-                refreshTokenCookie: !!refreshToken
-            };
-            
-            // Include refresh token in development for debugging purposes
-            if (process.env.NODE_ENV === 'development') {
-                response.refreshToken = refreshToken;
+        .then(({ refreshToken, jwtToken, ...account }) => {
+            if (!refreshToken || !jwtToken) {
+                throw new Error('Invalid authentication response');
             }
-            
-            // Send the response
-            res.json(response);
-        })
-        .catch(error => {
-            console.error('Authentication error:', error);
-            
-            // Handle specific error types
-            if (error.name === 'InvalidCredentialsError') {
-                return res.status(401).json({ 
-                    message: error.message || 'Invalid credentials',
-                    status: error.accountStatus
-                });
-            } else if (error.name === 'AccountLockedError') {
-                return res.status(401).json({ 
-                    message: error.message || 'Account is locked',
-                    status: 'Locked'
-                });
-            } else if (error.name === 'AccountInactiveError') {
-                return res.status(401).json({ 
-                    message: error.message || 'Account is inactive',
+
+            // Check account status before setting token
+            if (account.status === 'Inactive') {
+                return res.status(400).json({
+                    message: 'Account is inactive. Please contact administrator.',
                     status: 'Inactive'
                 });
             }
             
-            // Default error handler
+            // Set refresh token in cookie
+            setTokenCookie(res, refreshToken);
+            
+            // Return account details and JWT token
+            res.json({
+                ...account,
+                jwtToken
+            });
+        })
+        .catch(error => {
+            console.error('Authentication error:', error);
+            
+            if (error.name === 'ValidationError') {
+                return res.status(400).json({ message: error.message });
+            }
+            
+            // Log unexpected errors
+            console.error('Unexpected authentication error:', error);
             return res.status(500).json({ 
                 message: 'An unexpected error occurred during authentication',
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -109,31 +76,14 @@ function authenticate(req, res, next) {
 
 function refreshToken(req, res, next) {
     try {
-        // Log all request details for debugging
-        console.log('Refresh Token Endpoint Called');
-        console.log('Cookies:', JSON.stringify(req.cookies, null, 2));
-        console.log('Headers:', JSON.stringify(req.headers, null, 2));
-        console.log('Body:', JSON.stringify(req.body, null, 2));
-        
-        // Extract tokens from multiple sources
+        // Get all possible token sources
         const cookieToken = Array.isArray(req.cookies?.refreshToken) 
             ? req.cookies.refreshToken[req.cookies.refreshToken.length - 1] 
             : req.cookies?.refreshToken;
         
-        // Extract from raw cookie header if cookies not parsed
-        let headerCookieToken;
-        if (req.headers.cookie && !cookieToken) {
-            const cookieHeader = req.headers.cookie;
-            const refreshTokenMatch = cookieHeader.match(/refreshToken=([^;]+)/);
-            if (refreshTokenMatch && refreshTokenMatch[1]) {
-                headerCookieToken = decodeURIComponent(refreshTokenMatch[1]);
-                console.log('Found token in raw cookie header:', headerCookieToken);
-            }
-        }
-        
         const token = cookieToken || 
-                     headerCookieToken ||
                      req.headers?.['x-refresh-token'] || 
+                     req.body?.token ||
                      req.body?.refreshToken;
         
         const ipAddress = req.ip;
@@ -142,9 +92,8 @@ function refreshToken(req, res, next) {
         console.log('Refresh Token Request:', {
             hasCookies: !!req.cookies,
             cookieToken: cookieToken,
-            headerCookieToken: headerCookieToken,
             headerToken: req.headers?.['x-refresh-token'],
-            bodyToken: req.body?.refreshToken,
+            bodyToken: req.body?.token || req.body?.refreshToken,
             finalToken: token,
             cookieArray: Array.isArray(req.cookies?.refreshToken)
         });
@@ -163,7 +112,7 @@ function refreshToken(req, res, next) {
         // Clear any existing refresh tokens before processing
         res.clearCookie('refreshToken', {
             path: '/',
-            domain: process.env.NODE_ENV === 'production' ? 'final-intprog-project-1.onrender.com' : undefined
+            domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
         });
 
         accountService.refreshToken({ token, ipAddress })
@@ -178,13 +127,9 @@ function refreshToken(req, res, next) {
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                     path: '/',
+                    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
                     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 };
-
-                // In production, set domain correctly
-                if (process.env.NODE_ENV === 'production') {
-                    cookieOptions.domain = 'final-intprog-project-1.onrender.com';
-                }
 
                 // Log cookie setting
                 console.log('Setting new refresh token cookie with options:', {
@@ -194,14 +139,10 @@ function refreshToken(req, res, next) {
 
                 res.cookie('refreshToken', refreshToken, cookieOptions);
                 
-                // Also add the token as a header for clients that can't use cookies
-                res.setHeader('X-Refresh-Token', refreshToken);
-                
                 // Return the JWT token and account details
                 res.json({
                     ...account,
-                    jwtToken,
-                    refreshToken: process.env.NODE_ENV === 'development' ? refreshToken : undefined // Include refreshToken in dev for debugging
+                    jwtToken
                 });
             })
             .catch(error => {
@@ -211,7 +152,7 @@ function refreshToken(req, res, next) {
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                     path: '/',
-                    domain: process.env.NODE_ENV === 'production' ? 'final-intprog-project-1.onrender.com' : undefined
+                    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
                 };
                 
                 res.clearCookie('refreshToken', cookieOptions);
@@ -475,27 +416,8 @@ function setTokenCookie(res, token) {
         path: '/'
     };
 
-    // In production, set domain without leading dot to avoid issues
-    if (process.env.NODE_ENV === 'production') {
-        cookieOptions.domain = 'final-intprog-project-1.onrender.com';
-    }
-
     try {
-        // Log the complete cookie options
-        console.log('Setting refresh token cookie with options:', cookieOptions);
-        console.log('Token length:', token.length);
-        
-        // Clear any existing cookies first
-        res.clearCookie('refreshToken', {
-            path: '/',
-            domain: process.env.NODE_ENV === 'production' ? 'final-intprog-project-1.onrender.com' : undefined
-        });
-        
         res.cookie('refreshToken', token, cookieOptions);
-        
-        // Also add the token as a header for clients that can't use cookies
-        res.setHeader('X-Refresh-Token', token);
-        
         console.log('Refresh token cookie set successfully');
     } catch (error) {
         console.error('Error setting refresh token cookie:', error);
