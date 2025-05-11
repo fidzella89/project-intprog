@@ -69,7 +69,7 @@ async function authenticate({ email, password, ipAddress }) {
     return {
         ...basicDetails(account),
         jwtToken,
-        refreshToken: refreshToken.token
+        token: refreshToken.token
     };
     } catch (error) {
         console.error('Authentication error:', error);
@@ -163,7 +163,7 @@ async function refreshToken({ token, ipAddress }) {
         return {
         ...basicDetails(account),
         jwtToken,
-        refreshToken: newRefreshToken.token
+        token: newRefreshToken.token
     };
     } catch (error) {
         console.error('Refresh token error:', error);

@@ -71,6 +71,11 @@ export class AccountService implements IAccountService {
                         throw new Error('No JWT token in response');
                     }
 
+                    // Log token information for debugging
+                    console.log('Authentication successful. JWT and refresh token received:', 
+                        !!account.jwtToken, 
+                        !!account.token);
+
                     // Update the account subject
                     this.accountSubject.next(account);
                     
@@ -128,8 +133,8 @@ export class AccountService implements IAccountService {
         this.refreshingToken = true;
         console.log('Starting token refresh request');
         
-        // Get the token from accountValue if available
-        const tokenValue = this.accountValue.token || this.accountValue.refreshToken;
+        // Get the token from accountValue
+        const tokenValue = this.accountValue.token;
         console.log('Using token for refresh:', tokenValue ? 'token present' : 'no token');
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, { token: tokenValue }, { 
@@ -150,6 +155,11 @@ export class AccountService implements IAccountService {
                 if (!response.jwtToken) {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
+                
+                // Log token information for debugging
+                console.log('Refresh successful. JWT and refresh token received:', 
+                    !!response.jwtToken, 
+                    !!response.token);
                 
                 // Update the account subject with the new data
                 this.accountSubject.next(response);
