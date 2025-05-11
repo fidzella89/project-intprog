@@ -95,7 +95,7 @@ function refreshToken(req, res, next) {
                 setTokenCookie(res, response.refreshToken);
                 
                 // Remove refresh token from response before sending
-                const { refreshToken, ...accountDetails } = response;
+                const { refreshToken: newRefreshToken, ...accountDetails } = response;
                 res.json(accountDetails);
             })
             .catch(error => {
@@ -108,21 +108,30 @@ function refreshToken(req, res, next) {
                 });
                 
                 // Handle specific error types
-                switch(error.name) {
-                    case 'ValidationError':
-                    case 'NotFoundError':
-                        return res.status(400).json({ message: error.message });
-                    case 'InvalidTokenError':
-                        return res.status(401).json({ message: error.message });
-                    default:
-                        console.error('Token refresh error:', error);
-                        return res.status(500).json({ 
-                            message: 'An error occurred while refreshing the token',
-                            error: error.message || error.toString()
-                        });
+                if (error.name) {
+                    switch(error.name) {
+                        case 'ValidationError':
+                        case 'NotFoundError':
+                            return res.status(400).json({ message: error.message });
+                        case 'InvalidTokenError':
+                            return res.status(401).json({ message: error.message });
+                        default:
+                            console.error('Token refresh error:', error);
+                            return res.status(500).json({ 
+                                message: 'An error occurred while refreshing the token',
+                                error: error.message || error.toString()
+                            });
+                    }
                 }
+                
+                console.error('Token refresh error:', error);
+                return res.status(500).json({ 
+                    message: 'An error occurred while refreshing the token',
+                    error: error.message || error.toString()
+                });
             });
     } catch (error) {
+        console.error('Unexpected error in refresh token endpoint:', error);
         next(error);
     }
 }
