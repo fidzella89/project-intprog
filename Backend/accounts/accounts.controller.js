@@ -76,13 +76,30 @@ function authenticate(req, res, next) {
 
 function refreshToken(req, res, next) {
     try {
-        const token = req.cookies.refreshToken;
+        // Check for token in multiple places
+        const token = req.cookies?.refreshToken || 
+                     req.headers?.['x-refresh-token'] || 
+                     req.body?.refreshToken;
+        
         const ipAddress = req.ip;
+        
+        // Log debugging information
+        console.log('Refresh Token Request:', {
+            hasCookies: !!req.cookies,
+            cookieToken: req.cookies?.refreshToken,
+            headerToken: req.headers?.['x-refresh-token'],
+            bodyToken: req.body?.refreshToken,
+            finalToken: token
+        });
         
         if (!token) {
             return res.status(401).json({ 
                 message: 'Refresh token is required',
-                code: 'TOKEN_REQUIRED'
+                code: 'TOKEN_REQUIRED',
+                debug: process.env.NODE_ENV === 'development' ? {
+                    cookies: req.cookies,
+                    headers: req.headers
+                } : undefined
             });
         }
 
@@ -92,8 +109,17 @@ function refreshToken(req, res, next) {
                     throw new Error('Invalid token response from service');
                 }
 
-                // Set the new refresh token cookie
-                setTokenCookie(res, refreshToken);
+                // Set the new refresh token cookie with specific options
+                const cookieOptions = {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                    path: '/',
+                    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
+                    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                };
+
+                res.cookie('refreshToken', refreshToken, cookieOptions);
                 
                 // Return the JWT token and account details
                 res.json({
@@ -102,13 +128,16 @@ function refreshToken(req, res, next) {
                 });
             })
             .catch(error => {
-                // Clear the invalid refresh token
-                res.clearCookie('refreshToken', {
+                // Clear the invalid refresh token with same options as setting
+                const cookieOptions = {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                    path: '/'
-                });
+                    path: '/',
+                    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
+                };
+                
+                res.clearCookie('refreshToken', cookieOptions);
                 
                 // Log the error for debugging
                 console.error('Refresh token error:', error);
@@ -138,7 +167,8 @@ function refreshToken(req, res, next) {
                     default:
                         return res.status(500).json({ 
                             message: error.message || 'An error occurred while refreshing the token',
-                            code: 'INTERNAL_ERROR'
+                            code: 'INTERNAL_ERROR',
+                            debug: process.env.NODE_ENV === 'development' ? error : undefined
                         });
                 }
             });
@@ -146,7 +176,11 @@ function refreshToken(req, res, next) {
         console.error('Unexpected error in refresh token endpoint:', err);
         return res.status(500).json({ 
             message: 'An error occurred while processing your request',
-            code: 'INTERNAL_ERROR'
+            code: 'INTERNAL_ERROR',
+            debug: process.env.NODE_ENV === 'development' ? {
+                error: err.message,
+                stack: err.stack
+            } : undefined
         });
     }
 }

@@ -11,7 +11,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET || 'your-secret-key'));
 
 // CORS configuration
 const allowedOrigins = [
@@ -25,7 +25,7 @@ const corsOptions = {
         // Allow requests with no origin (like mobile apps, curl, postman)
         if (!origin) return callback(null, true);
         
-        if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
@@ -33,13 +33,38 @@ const corsOptions = {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
-    exposedHeaders: ['Content-Length', 'X-Refresh-Token'],
-    maxAge: 86400
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept', 'Cookie'],
+    exposedHeaders: ['Set-Cookie', 'Content-Length', 'X-Refresh-Token'],
+    maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 };
 
 // Apply CORS configuration
 app.use(cors(corsOptions));
+
+// Add cookie security middleware
+app.use((req, res, next) => {
+    res.cookie = res.cookie.bind(res);
+    const oldCookie = res.cookie;
+    
+    res.cookie = function (name, value, options = {}) {
+        const secure = process.env.NODE_ENV === 'production';
+        const sameSite = secure ? 'none' : 'lax';
+        
+        const defaultOptions = {
+            httpOnly: true,
+            secure: secure,
+            sameSite: sameSite,
+            path: '/',
+            domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
+        };
+        
+        return oldCookie.call(this, name, value, { ...defaultOptions, ...options });
+    };
+    
+    next();
+});
 
 // api routes
 app.use('/accounts', require('./accounts/accounts.controller'));
