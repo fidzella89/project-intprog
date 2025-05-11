@@ -24,37 +24,57 @@ module.exports = {
 };
 
 async function authenticate({ email, password, ipAddress }) {
-    const account = await db.Account.scope('withHash').findOne({ where: { email } });
+    try {
+        const account = await db.Account.scope('withHash').findOne({ 
+            where: { email },
+            include: [{
+                model: db.RefreshToken,
+                where: { revoked: null },
+                required: false
+            }]
+        });
 
-    if (!account) {
-        throw 'Email does not exist';
+        if (!account) {
+            throw { name: 'ValidationError', message: 'Email does not exist' };
+        }
+
+        if (!account.isVerified) {
+            throw { name: 'ValidationError', message: 'Email is not verified' };
+        }
+
+        if (account.status === 'Inactive') {
+            throw { name: 'ValidationError', message: 'Account is inactive. Please contact administrator.' };
+        }
+
+        if (!(await bcrypt.compare(password, account.passwordHash))) {
+            throw { name: 'ValidationError', message: 'Password is incorrect' };
+        }
+
+        // Revoke any existing active refresh tokens
+        if (account.RefreshTokens && account.RefreshTokens.length) {
+            await db.RefreshToken.update(
+                { revoked: Date.now(), revokedByIp: ipAddress },
+                { where: { accountId: account.id, revoked: null } }
+            );
+        }
+
+        // Generate new tokens
+        const jwtToken = generateJwtToken(account);
+        const refreshToken = generateRefreshToken(account, ipAddress);
+
+        // Save refresh token
+        await refreshToken.save();
+
+        // Return basic details and tokens
+        return {
+            ...basicDetails(account),
+            jwtToken,
+            refreshToken: refreshToken.token
+        };
+    } catch (error) {
+        console.error('Authentication error:', error);
+        throw error;
     }
-
-    if (!account.isVerified) {
-        throw 'Email is not verified';
-    }
-
-    if (account.status === 'Inactive') {
-        throw 'Account is inactive. Please contact administrator.';
-    }
-
-    if (!(await bcrypt.compare(password, account.passwordHash))) {
-        throw 'Password is incorrect';
-    }
-
-    // authentication successful so generate jwt and refresh tokens
-    const jwtToken = generateJwtToken(account);
-    const refreshToken = generateRefreshToken(account, ipAddress);
-
-    // save refresh token
-    await refreshToken.save();
-
-    // return basic details and tokens
-    return {
-        ...basicDetails(account),
-        jwtToken,
-        refreshToken: refreshToken.token
-    };
 }
 
 async function refreshToken({ token, ipAddress }) {
@@ -71,20 +91,29 @@ async function refreshToken({ token, ipAddress }) {
             where: { token },
             include: [{
                 model: db.Account,
-                attributes: { exclude: ['passwordHash'] }
+                attributes: { 
+                    exclude: ['passwordHash'],
+                    include: ['id', 'email', 'role', 'status'] 
+                }
             }]
         });
 
-        if (!refreshToken || !refreshToken.Account) {
+        if (!refreshToken) {
             throw {
                 name: 'NotFoundError',
                 message: 'Invalid refresh token'
             };
         }
 
+        if (!refreshToken.Account) {
+            throw {
+                name: 'NotFoundError',
+                message: 'Associated account not found'
+            };
+        }
+
         // Verify token hasn't expired
         if (refreshToken.expires < new Date()) {
-            // Remove expired token
             await refreshToken.destroy();
             throw {
                 name: 'InvalidTokenError',
@@ -110,53 +139,35 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        try {
-            // Generate new tokens
-            const newRefreshToken = generateRefreshToken(account, ipAddress);
-            const jwtToken = generateJwtToken(account);
+        // Generate new tokens within transaction
+        const newRefreshToken = generateRefreshToken(account, ipAddress);
+        const jwtToken = generateJwtToken(account);
 
-            if (!newRefreshToken || !jwtToken) {
-                throw new Error('Failed to generate new tokens');
-            }
-
-            // Save in transaction
-            await db.sequelize.transaction(async (t) => {
-                // Revoke current token
-                refreshToken.revoked = Date.now();
-                refreshToken.revokedByIp = ipAddress;
-                refreshToken.replacedByToken = newRefreshToken.token;
-                await refreshToken.save({ transaction: t });
-
-                // Save new token
-                await newRefreshToken.save({ transaction: t });
-            });
-
-            // Return response with both tokens
-            return {
-                ...basicDetails(account),
-                jwtToken,
-                refreshToken: newRefreshToken.token
-            };
-        } catch (error) {
-            console.error('Error during token refresh:', error);
-            throw {
-                name: 'TokenGenerationError',
-                message: 'Failed to refresh tokens'
-            };
+        if (!newRefreshToken || !jwtToken) {
+            throw new Error('Failed to generate new tokens');
         }
-    } catch (error) {
-        // Log the error for debugging
-        console.error('Refresh token error:', error);
-        
-        // Re-throw the error with proper structure
-        if (error.name && error.message) {
-            throw error;
-        }
-        
-        throw {
-            name: 'InternalError',
-            message: 'An error occurred while refreshing the token'
+
+        // Save in transaction
+        await db.sequelize.transaction(async (t) => {
+            // Revoke current token
+            refreshToken.revoked = Date.now();
+            refreshToken.revokedByIp = ipAddress;
+            refreshToken.replacedByToken = newRefreshToken.token;
+            await refreshToken.save({ transaction: t });
+
+            // Save new token
+            await newRefreshToken.save({ transaction: t });
+        });
+
+        // Return response with both tokens
+        return {
+            ...basicDetails(account),
+            jwtToken,
+            refreshToken: newRefreshToken.token
         };
+    } catch (error) {
+        console.error('Refresh token error:', error);
+        throw error;
     }
 }
 

@@ -34,8 +34,13 @@ function authenticateSchema(req, res, next) {
 function authenticate(req, res, next) {
     const { email, password } = req.body;
     const ipAddress = req.ip;
+    
     accountService.authenticate({ email, password, ipAddress })
-        .then(({ refreshToken, ...account }) => {
+        .then(({ refreshToken, jwtToken, ...account }) => {
+            if (!refreshToken || !jwtToken) {
+                throw new Error('Invalid authentication response');
+            }
+
             // Check account status before setting token
             if (account.status === 'Inactive') {
                 return res.status(400).json({
@@ -44,36 +49,28 @@ function authenticate(req, res, next) {
                 });
             }
             
+            // Set refresh token in cookie
             setTokenCookie(res, refreshToken);
-            res.json(account);
+            
+            // Return account details and JWT token
+            res.json({
+                ...account,
+                jwtToken
+            });
         })
         .catch(error => {
             console.error('Authentication error:', error);
             
-            if (error === 'Email does not exist') {
-                return res.status(400).json({ message: error });
-            }
-            if (error === 'Account not verified. Please check your email for verification instructions.') {
-                return res.status(400).json({ 
-                    message: error,
-                    verificationRequired: true,
-                    email: email
-                });
-            }
-            if (error === 'Password is incorrect') {
-                return res.status(400).json({ message: error });
-            }
-            if (error === 'Account is inactive. Please contact administrator.') {
-                return res.status(400).json({ 
-                    message: error,
-                    status: 'Inactive'
-                });
+            if (error.name === 'ValidationError') {
+                return res.status(400).json({ message: error.message });
             }
             
             // Log unexpected errors
             console.error('Unexpected authentication error:', error);
-            // Return a generic error message for unexpected errors
-            return res.status(500).json({ message: 'An unexpected error occurred during authentication' });
+            return res.status(500).json({ 
+                message: 'An unexpected error occurred during authentication',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
         });
 }
 
@@ -83,25 +80,35 @@ function refreshToken(req, res, next) {
         const ipAddress = req.ip;
         
         if (!token) {
-            return res.status(401).json({ message: 'Refresh token is required' });
+            return res.status(401).json({ 
+                message: 'Refresh token is required',
+                code: 'TOKEN_REQUIRED'
+            });
         }
 
         accountService.refreshToken({ token, ipAddress })
-            .then(response => {
-                if (!response || !response.jwtToken || !response.refreshToken) {
+            .then(({ jwtToken, refreshToken, ...account }) => {
+                if (!jwtToken || !refreshToken) {
                     throw new Error('Invalid token response from service');
                 }
 
                 // Set the new refresh token cookie
-                setTokenCookie(res, response.refreshToken);
+                setTokenCookie(res, refreshToken);
                 
-                // Return the account details without the refresh token
-                const { refreshToken: _, ...accountDetails } = response;
-                res.json(accountDetails);
+                // Return the JWT token and account details
+                res.json({
+                    ...account,
+                    jwtToken
+                });
             })
             .catch(error => {
                 // Clear the invalid refresh token
-                res.clearCookie('refreshToken');
+                res.clearCookie('refreshToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                    path: '/'
+                });
                 
                 // Log the error for debugging
                 console.error('Refresh token error:', error);
@@ -109,22 +116,38 @@ function refreshToken(req, res, next) {
                 // Handle specific error types
                 switch(error.name) {
                     case 'ValidationError':
-                        return res.status(400).json({ message: error.message });
+                        return res.status(400).json({ 
+                            message: error.message,
+                            code: 'VALIDATION_ERROR'
+                        });
                     case 'NotFoundError':
-                        return res.status(404).json({ message: error.message });
+                        return res.status(404).json({ 
+                            message: error.message,
+                            code: 'TOKEN_NOT_FOUND'
+                        });
                     case 'InvalidTokenError':
-                        return res.status(401).json({ message: error.message });
+                        return res.status(401).json({ 
+                            message: error.message,
+                            code: 'TOKEN_INVALID'
+                        });
                     case 'TokenGenerationError':
-                        return res.status(500).json({ message: error.message });
+                        return res.status(500).json({ 
+                            message: error.message,
+                            code: 'TOKEN_GENERATION_ERROR'
+                        });
                     default:
                         return res.status(500).json({ 
-                            message: error.message || 'An error occurred while refreshing the token'
+                            message: error.message || 'An error occurred while refreshing the token',
+                            code: 'INTERNAL_ERROR'
                         });
                 }
             });
     } catch (err) {
         console.error('Unexpected error in refresh token endpoint:', err);
-        return res.status(500).json({ message: 'An error occurred while processing your request' });
+        return res.status(500).json({ 
+            message: 'An error occurred while processing your request',
+            code: 'INTERNAL_ERROR'
+        });
     }
 }
 
@@ -327,8 +350,6 @@ function setTokenCookie(res, token) {
         throw new Error('Invalid token provided');
     }
     
-    console.log('Setting refresh token cookie with token:', token);
-    
     // create cookie with refresh token that expires in 7 days
     const cookieOptions = {
         httpOnly: true,
@@ -338,6 +359,11 @@ function setTokenCookie(res, token) {
         path: '/'
     };
 
-    res.cookie('refreshToken', token, cookieOptions);
-    console.log('Refresh token cookie set successfully');
+    try {
+        res.cookie('refreshToken', token, cookieOptions);
+        console.log('Refresh token cookie set successfully');
+    } catch (error) {
+        console.error('Error setting refresh token cookie:', error);
+        throw error;
+    }
 }
