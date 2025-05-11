@@ -37,12 +37,19 @@ export class JwtInterceptor implements HttpInterceptor {
                 if (error instanceof HttpErrorResponse) {
                     // Handle 401 Unauthorized errors
                     if (error.status === 401) {
+                        console.error('401 Unauthorized Error Details:', {
+                            url: request.url,
+                            error: error.error,
+                            message: error.message
+                        });
+                        
                         // Don't try to refresh token if we're not logged in
                         if (!isLoggedIn) {
                             // Redirect to login page but don't clear data
                             this.router.navigate(['/account/login']);
-                            // Pass through the exact error message
-                            return throwError(() => error.error?.message || error.message || error);
+                            // Extract the most specific error message
+                            const errorMsg = this.extractErrorMessage(error);
+                            return throwError(() => errorMsg);
                         }
                         
                         // Don't refresh if this is already a refresh token request
@@ -50,8 +57,9 @@ export class JwtInterceptor implements HttpInterceptor {
                             // Clear account data and redirect
                             this.accountService.clearAccountData();
                             this.router.navigate(['/account/login']);
-                            // Pass through the exact error message
-                            return throwError(() => error.error?.message || error.message || error);
+                            // Extract the most specific error message
+                            const errorMsg = this.extractErrorMessage(error);
+                            return throwError(() => errorMsg);
                         }
                         
                         // Try to refresh the token
@@ -59,6 +67,12 @@ export class JwtInterceptor implements HttpInterceptor {
                     } 
                     // Handle 403 Forbidden errors
                     else if (error.status === 403) {
+                        console.error('403 Forbidden Error Details:', {
+                            url: request.url,
+                            error: error.error,
+                            message: error.message
+                        });
+                        
                         // Only logout if we're already logged in
                         if (isLoggedIn) {
                             this.accountService.clearAccountData();
@@ -66,21 +80,33 @@ export class JwtInterceptor implements HttpInterceptor {
                                 queryParams: { returnUrl: this.router.url }
                             });
                         }
-                        // Pass through the exact error message
-                        return throwError(() => error.error?.message || error.message || error);
+                        // Extract the most specific error message
+                        const errorMsg = this.extractErrorMessage(error);
+                        return throwError(() => errorMsg);
                     }
                     // Handle other common errors with specific messages
-                    else if (error.status === 404) {
-                        return throwError(() => error.error?.message || error.message || error);
-                    }
-                    else if (error.status === 500) {
-                        return throwError(() => error.error?.message || error.message || error);
-                    }
-                    else if (error.status === 0) {
-                        return throwError(() => error.error?.message || error.message || error);
+                    else if (error.status === 404 || error.status === 500 || error.status === 0) {
+                        console.error(`${error.status} Error Details:`, {
+                            url: request.url,
+                            error: error.error,
+                            message: error.message
+                        });
+                        
+                        // Extract the most specific error message
+                        const errorMsg = this.extractErrorMessage(error);
+                        return throwError(() => errorMsg);
                     }
                 }
-                return throwError(() => error.error?.message || error.message || error);
+                // Log any other errors
+                console.error('Unhandled Error Details:', {
+                    url: request.url,
+                    error: error.error,
+                    message: error.message
+                });
+                
+                // Extract the most specific error message
+                const errorMsg = this.extractErrorMessage(error);
+                return throwError(() => errorMsg);
             })
         );
     }
@@ -113,13 +139,20 @@ export class JwtInterceptor implements HttpInterceptor {
                 }),
                 catchError(error => {
                     this.isRefreshing = false;
+                    console.error('Token refresh error details:', {
+                        status: error.status,
+                        error: error.error,
+                        message: error.message
+                    });
+                    
                     // Only logout if refresh token fails with auth errors
                     if (error.status === 401 || error.status === 403) {
                         this.accountService.clearAccountData();
                         this.router.navigate(['/account/login']);
                     }
-                    // Pass through the exact error message
-                    return throwError(() => error.error?.message || error.message || error);
+                    // Extract the most specific error message
+                    const errorMsg = this.extractErrorMessage(error);
+                    return throwError(() => errorMsg);
                 }),
                 finalize(() => {
                     this.isRefreshing = false;
@@ -132,5 +165,37 @@ export class JwtInterceptor implements HttpInterceptor {
             take(1),
             switchMap(token => next.handle(this.addTokenHeader(request, token)))
         );
+    }
+
+    private extractErrorMessage(error: HttpErrorResponse): string {
+        // Priority 1: Use error.error.message if available (most specific server error)
+        if (error.error && error.error.message) {
+            console.log('JWT Interceptor using error.error.message:', error.error.message);
+            return error.error.message;
+        }
+        // Priority 2: Check for nested error message
+        else if (error.error && error.error.error && error.error.error.message) {
+            console.log('JWT Interceptor using error.error.error.message:', error.error.error.message);
+            return error.error.error.message;
+        }
+        // Priority 3: If error.error is a string, use it directly
+        else if (error.error && typeof error.error === 'string') {
+            console.log('JWT Interceptor using error.error as string:', error.error);
+            return error.error;
+        }
+        // Priority 4: Use error.message if available and not generic
+        else if (error.message && error.message !== 'Http failure response') {
+            console.log('JWT Interceptor using error.message:', error.message);
+            return error.message;
+        }
+        // Priority 5: Use statusText if available
+        else if (error.statusText) {
+            console.log('JWT Interceptor using statusText:', error.statusText);
+            return error.statusText;
+        }
+        
+        // Fallback
+        console.log('JWT Interceptor using fallback error message');
+        return 'An error occurred';
     }
 }

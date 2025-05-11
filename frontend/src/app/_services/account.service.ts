@@ -84,27 +84,38 @@ export class AccountService implements IAccountService {
                     return account;
                 }),
                 catchError(error => {
-                    console.error('Login error:', error);
+                    // Log the complete error structure for debugging
+                    console.error('Login error object:', error);
+                    console.error('Error response body:', error.error);
                     this.clearAccountData();
                     
                     // Pass through the exact error message from the server
                     if (error.error) {
-                        // If the server returns a direct error message, use it
+                        // If the error object has a message property directly
                         if (error.error.message) {
+                            console.log('Using error.error.message:', error.error.message);
                             return throwError(() => error.error.message);
+                        }
+                        // If the server returns a descriptive message in a nested error property
+                        else if (error.error.error && error.error.error.message) {
+                            console.log('Using error.error.error.message:', error.error.error.message);
+                            return throwError(() => error.error.error.message);
                         }
                         // If error.error is a string, use it directly
                         else if (typeof error.error === 'string') {
+                            console.log('Using error.error as string:', error.error);
                             return throwError(() => error.error);
                         }
                     }
                     
                     // If there is an error message on the error object, use it
-                    if (error.message) {
+                    if (error.message && error.message !== 'Http failure response') {
+                        console.log('Using error.message:', error.message);
                         return throwError(() => error.message);
                     }
                     
                     // Fallback generic message only if absolutely nothing else
+                    console.log('Using fallback error message');
                     return throwError(() => 'Login failed');
                 })
             );
