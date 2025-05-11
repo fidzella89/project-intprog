@@ -35,7 +35,11 @@ async function authenticate({ email, password, ipAddress }) {
         });
 
     if (!account) {
-            throw { name: 'ValidationError', message: 'Email does not exist' };
+            throw { 
+                name: 'InvalidCredentialsError', 
+                message: 'Email does not exist',
+                errorType: 'email'
+            };
     }
 
     if (!account.isVerified) {
@@ -55,7 +59,11 @@ async function authenticate({ email, password, ipAddress }) {
     }
 
     if (!(await bcrypt.compare(password, account.passwordHash))) {
-            throw { name: 'ValidationError', message: 'Password is incorrect' };
+            throw { 
+                name: 'InvalidCredentialsError', 
+                message: 'Password is incorrect',
+                errorType: 'password'
+            };
     }
 
         // Revoke any existing active refresh tokens

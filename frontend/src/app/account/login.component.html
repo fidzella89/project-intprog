@@ -1,21 +1,42 @@
 <h3 class="card-header">Login</h3>
 <div class="card-body">
+    <!-- Custom alert message with improved styling -->
+    <div *ngIf="errorMessage" class="alert alert-custom mb-4" [ngClass]="{'alert-danger': errorType === 'error', 'alert-warning': errorType === 'warning', 'alert-info': errorType === 'info'}">
+        <div class="d-flex align-items-center">
+            <div class="alert-icon mr-3">
+                <i class="fas" [ngClass]="{'fa-exclamation-circle': errorType === 'error', 'fa-exclamation-triangle': errorType === 'warning', 'fa-info-circle': errorType === 'info'}"></i>
+            </div>
+            <div class="alert-content">
+                <div [innerHTML]="errorMessage"></div>
+            </div>
+            <button type="button" class="close ml-auto" (click)="clearError()">
+                <span>&times;</span>
+            </button>
+        </div>
+    </div>
+
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-group">
             <label>Email</label>
-            <input type="text" formControlName="email" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.email.errors }" 
+            <input type="text" formControlName="email" class="form-control" [ngClass]="{ 'is-invalid': (submitted && f.email.errors) || (emailError) }" 
                    [attr.disabled]="loading ? '' : null" />
             <div *ngIf="submitted && f.email.errors" class="invalid-feedback">
                 <div *ngIf="f.email.errors.required">Email is required</div>
                 <div *ngIf="f.email.errors.email">Email is invalid</div>
             </div>
+            <div *ngIf="emailError" class="invalid-feedback">
+                {{ emailError }}
+            </div>
         </div>
         <div class="form-group">
             <label>Password</label>
-            <input type="password" formControlName="password" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.password.errors }" 
+            <input type="password" formControlName="password" class="form-control" [ngClass]="{ 'is-invalid': (submitted && f.password.errors) || (passwordError) }" 
                    [attr.disabled]="loading ? '' : null" />
             <div *ngIf="submitted && f.password.errors" class="invalid-feedback">
                 <div *ngIf="f.password.errors.required">Password is required</div>
+            </div>
+            <div *ngIf="passwordError" class="invalid-feedback">
+                {{ passwordError }}
             </div>
         </div>
         <div class="form-row">
@@ -34,3 +55,58 @@
         </div>
     </form>
 </div>
+
+<!-- Add custom styles for the alert -->
+<style>
+    .alert-custom {
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 5px solid;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .alert-custom.alert-danger {
+        border-left-color: #dc3545;
+        background-color: #fff8f8;
+    }
+    
+    .alert-custom.alert-warning {
+        border-left-color: #ffc107;
+        background-color: #fffdf8;
+    }
+    
+    .alert-custom.alert-info {
+        border-left-color: #17a2b8;
+        background-color: #f8fdff;
+    }
+    
+    .alert-icon {
+        font-size: 1.5rem;
+    }
+    
+    .alert-danger .alert-icon {
+        color: #dc3545;
+    }
+    
+    .alert-warning .alert-icon {
+        color: #ffc107;
+    }
+    
+    .alert-info .alert-icon {
+        color: #17a2b8;
+    }
+    
+    .alert-content {
+        flex: 1;
+    }
+    
+    .close {
+        background: transparent;
+        border: none;
+        font-size: 1.25rem;
+        padding: 0;
+        margin-left: 10px;
+        cursor: pointer;
+    }
+</style>

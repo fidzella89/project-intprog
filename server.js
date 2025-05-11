@@ -103,6 +103,12 @@ app.use((err, req, res, next) => {
             errorMessage = err.message || 'Invalid token';
             break;
             
+        case err.name === 'InvalidCredentialsError':
+            // Invalid credentials error
+            statusCode = 401;
+            errorMessage = err.message || 'Invalid credentials';
+            break;
+            
         case err.name === 'InactiveAccountError':
             // Inactive account error
             statusCode = 403;

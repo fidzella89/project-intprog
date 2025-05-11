@@ -66,6 +66,13 @@ function authenticate(req, res, next) {
                 return res.status(400).json({ message: error.message });
             }
             
+            if (error.name === 'InvalidCredentialsError') {
+                return res.status(401).json({ 
+                    message: error.message,
+                    errorType: error.errorType
+                });
+            }
+            
             if (error.name === 'InactiveAccountError') {
                 return res.status(403).json({ 
                     message: error.message,

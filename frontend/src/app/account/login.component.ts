@@ -11,6 +11,12 @@ export class LoginComponent implements OnInit {
     loading = false;
     submitted = false;
     returnUrl: string = '/';
+    
+    // New properties for custom error handling
+    errorMessage: string | null = null;
+    errorType: 'error' | 'warning' | 'info' = 'error';
+    emailError: string | null = null;
+    passwordError: string | null = null;
 
     constructor(
         private formBuilder: UntypedFormBuilder,
@@ -41,8 +47,9 @@ export class LoginComponent implements OnInit {
     onSubmit() {
         this.submitted = true;
 
-        // reset alerts on submit
+        // reset alerts and errors on submit
         this.alertService.clear();
+        this.clearErrors();
 
         // stop here if form is invalid
         if (this.form.invalid) {
@@ -72,20 +79,62 @@ export class LoginComponent implements OnInit {
                 error: error => {
                     console.error('Login error:', error);
                     
+                    // Clear previous errors
+                    this.clearErrors();
+                    
+                    // Handle specific error types
+                    if (error.toLowerCase().includes('email does not exist')) {
+                        this.emailError = 'Email does not exist';
+                        this.showError('The email address you entered does not exist in our system. Please check your email or register for a new account.', 'error');
+                    }
+                    else if (error.toLowerCase().includes('email is incorrect')) {
+                        this.emailError = 'Email is incorrect';
+                        this.showError('The email address you entered is not registered in our system.', 'error');
+                    } 
+                    else if (error.toLowerCase().includes('password is incorrect')) {
+                        this.passwordError = 'Password is incorrect';
+                        this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
+                    }
+                    // Special handling for when both email and password might be wrong
+                    else if (error.toLowerCase().includes('invalid credentials') || error.toLowerCase().includes('unauthorized')) {
+                        this.emailError = 'Email may be incorrect';
+                        this.passwordError = 'Password may be incorrect';
+                        this.showError('The email or password you entered is incorrect. Please check your credentials and try again.', 'error');
+                    }
                     // Special handling for unverified account errors
-                    if (error.includes('not verified')) {
+                    else if (error.includes('not verified')) {
                         // Display error with HTML link to register page
-                        this.alertService.error(`${error} <a href="/account/register" class="alert-link">Register again</a>`, { 
-                            autoClose: false, 
-                            keepAfterRouteChange: false 
-                        });
-                    } else {
+                        this.showError(`${error} <a href="/account/register" class="alert-link">Register again</a>`, 'warning');
+                    } 
+                    // Special handling for inactive account
+                    else if (error.includes('inactive')) {
+                        this.showError(error, 'warning');
+                    }
+                    else {
                         // Standard error handling
-                        this.alertService.error(error);
+                        this.showError(error, 'error');
                     }
                     
                     this.loading = false;
                 }
             });
+    }
+    
+    // Helper method to show error message
+    showError(message: string, type: 'error' | 'warning' | 'info' = 'error') {
+        this.errorMessage = message;
+        this.errorType = type;
+    }
+    
+    // Helper method to clear all errors
+    clearErrors() {
+        this.errorMessage = null;
+        this.emailError = null;
+        this.passwordError = null;
+    }
+    
+    // Method to clear the error banner
+    clearError() {
+        this.errorMessage = null;
     }
 }

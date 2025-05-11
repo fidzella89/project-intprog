@@ -88,6 +88,17 @@ export class AccountService implements IAccountService {
                     this.clearAccountData();
                     
                     if (error.error) {
+                        // Handle specific error types based on the errorType field
+                        if (error.error.errorType === 'email') {
+                            if (error.error.message?.includes('does not exist')) {
+                                return throwError(() => 'Email does not exist');
+                            }
+                            return throwError(() => 'Email is incorrect');
+                        }
+                        if (error.error.errorType === 'password') {
+                            return throwError(() => 'Password is incorrect');
+                        }
+                        
                         // Special handling for inactive accounts
                         if (error.error.status === 'Inactive' || 
                             (error.status === 403 && error.error.message?.includes('inactive'))) {
