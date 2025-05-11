@@ -87,6 +87,7 @@ export class AccountService implements IAccountService {
                     console.error('Login error:', error);
                     this.clearAccountData();
                     
+                    // Detailed error handling
                     if (error.error) {
                         // Handle specific error types based on the errorType field
                         if (error.error.errorType === 'email') {
@@ -109,16 +110,33 @@ export class AccountService implements IAccountService {
                             (error.status === 403 && error.error.message?.includes('not verified'))) {
                             return throwError(() => 'Email is not verified. Please check your email for the verification link or register again to receive a new verification link.');
                         }
+                        // Use the specific error message from the server if available
                         if (error.error.message) {
                             return throwError(() => error.error.message);
                         }
                     }
                     
-                    if (error.message) {
-                        return throwError(() => error.message);
+                    // Handle common network and HTTP errors with more specific messages
+                    if (error.status === 0) {
+                        return throwError(() => 'Cannot connect to server. Please check your internet connection and try again.');
+                    }
+                    if (error.status === 500) {
+                        return throwError(() => 'Server error occurred. Please try again later or contact support.');
+                    }
+                    if (error.status === 401 || error.status === 403) {
+                        return throwError(() => 'Invalid credentials. Please check your email and password.');
+                    }
+                    if (error.status === 429) {
+                        return throwError(() => 'Too many login attempts. Please try again later.');
                     }
                     
-                    return throwError(() => 'An error occurred during login. Please try again.');
+                    // If we have a specific error message, use it
+                    if (error.message && error.message !== 'Http failure response') {
+                        return throwError(() => `Authentication error: ${error.message}`);
+                    }
+                    
+                    // Generic fallback with more information
+                    return throwError(() => 'Login failed. Please check your credentials and try again. If the problem persists, contact support.');
                 })
             );
     }

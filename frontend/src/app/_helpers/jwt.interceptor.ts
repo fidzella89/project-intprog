@@ -42,7 +42,9 @@ export class JwtInterceptor implements HttpInterceptor {
                             // Redirect to login page but don't clear data
                             // This allows the login page to display any error messages
                             this.router.navigate(['/account/login']);
-                            return throwError(() => error);
+                            // Create a more specific error message
+                            const errorMsg = error.error?.message || 'Authentication required. Please log in.';
+                            return throwError(() => new Error(errorMsg));
                         }
                         
                         // Don't refresh if this is already a refresh token request
@@ -50,7 +52,7 @@ export class JwtInterceptor implements HttpInterceptor {
                             // Clear account data and redirect
                             this.accountService.clearAccountData();
                             this.router.navigate(['/account/login']);
-                            return throwError(() => error);
+                            return throwError(() => new Error('Your session has expired. Please log in again.'));
                         }
                         
                         // Try to refresh the token
@@ -65,7 +67,18 @@ export class JwtInterceptor implements HttpInterceptor {
                                 queryParams: { returnUrl: this.router.url }
                             });
                         }
-                        return throwError(() => new Error('Access forbidden. Please login again.'));
+                        const errorMsg = error.error?.message || 'Access forbidden. You do not have permission to access this resource.';
+                        return throwError(() => new Error(errorMsg));
+                    }
+                    // Handle other common errors with specific messages
+                    else if (error.status === 404) {
+                        return throwError(() => new Error('Resource not found. The requested data could not be located.'));
+                    }
+                    else if (error.status === 500) {
+                        return throwError(() => new Error('Server error. Please try again later or contact support.'));
+                    }
+                    else if (error.status === 0) {
+                        return throwError(() => new Error('Network error. Please check your connection and try again.'));
                     }
                 }
                 return throwError(() => error);
