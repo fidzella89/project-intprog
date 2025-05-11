@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { first } from 'rxjs/operators';
-import { RequestService, AlertService, AccountService } from '@app/_services';
-import { Role } from '@app/_models';
+import { RequestService, AlertService, AccountService, EmployeeService } from '@app/_services';
+import { Role, Employee } from '@app/_models';
 declare var bootstrap: any;
 
 @Component({ templateUrl: 'list.component.html' })
@@ -17,11 +17,13 @@ export class ListComponent implements OnInit {
     itemsPerRow = 2; // Number of items to show initially
     employeeId: string | null = null;
     notFound = false;
+    employee: Employee | null = null; // Added employee property
 
     constructor(
         private requestService: RequestService,
         private alertService: AlertService,
         private accountService: AccountService,
+        private employeeService: EmployeeService, // Added EmployeeService
         private route: ActivatedRoute
     ) {
         this.isAdmin = this.accountService.accountValue?.role === Role.Admin;
@@ -30,9 +32,11 @@ export class ListComponent implements OnInit {
         this.route.queryParams.subscribe(params => {
             this.employeeId = params['employeeId'];
             if (this.employeeId) {
+                this.loadEmployee(); // Load employee details first
                 this.loadRequests();
             } else {
                 this.notFound = false;
+                this.employee = null; // Reset employee when no employeeId is provided
                 this.loadRequests();
             }
         });
@@ -41,6 +45,33 @@ export class ListComponent implements OnInit {
     ngOnInit() {
         this.loadRequests();
         this.deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    }
+
+    // Load employee details
+    private loadEmployee() {
+        if (!this.employeeId) return;
+        
+        this.employeeService.getById(this.employeeId)
+            .pipe(first())
+            .subscribe({
+                next: (employee) => {
+                    this.employee = employee;
+                },
+                error: error => {
+                    this.alertService.error(error);
+                }
+            });
+    }
+
+    // Get formatted employee full name with capitalized first letters
+    getEmployeeFullName(): string {
+        if (!this.employee?.account?.firstName || !this.employee?.account?.lastName) return '';
+        
+        const firstName = this.employee.account.firstName.charAt(0).toUpperCase() + 
+                         this.employee.account.firstName.slice(1).toLowerCase();
+        const lastName = this.employee.account.lastName.charAt(0).toUpperCase() + 
+                        this.employee.account.lastName.slice(1).toLowerCase();
+        return `${firstName} ${lastName}`;
     }
 
     private loadRequests() {
@@ -107,14 +138,14 @@ export class ListComponent implements OnInit {
         
         return items
             .slice(0, visibleCount)
-            .map(item => `${item.name} (${item.quantity})`);
+            .map((item: any) => `${item.name} (${item.quantity})`);
     }
 
     // Get items as single line for tooltip
     getItemsTooltip(request: any): string {
         if (!request.items || request.items.length === 0) return '';
         return request.items
-            .map(item => `${item.name} (${item.quantity})`)
+            .map((item: any) => `${item.name} (${item.quantity})`)
             .join(', ');
     }
 

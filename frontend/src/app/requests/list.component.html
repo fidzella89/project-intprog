@@ -3,7 +3,10 @@
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="mb-0">
                 <ng-container *ngIf="!employeeId">All Requests</ng-container>
-                <ng-container *ngIf="employeeId">Employee Requests</ng-container>
+                <ng-container *ngIf="employeeId && !employee">Employee Requests</ng-container>
+                <ng-container *ngIf="employeeId && employee">
+                    Requests for Employee {{employee.employeeId}} - {{getEmployeeFullName()}}
+                </ng-container>
             </h2>
             <div *ngIf="employeeId">
                 <a routerLink="/requests" class="btn btn-secondary">View All Requests</a>
