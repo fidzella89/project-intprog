@@ -8,8 +8,29 @@ import { Account, Role, RegistrationResponse } from '@app/_models';
 
 const baseUrl = `${environment.apiUrl}/accounts`;
 
+export interface IAccountService {
+    account: Observable<Account | null>;
+    accountValue: Account | null;
+    userValue: Account | null;
+    isAdmin: boolean;
+    clearAccountData(): void;
+    login(email: string, password: string): Observable<Account>;
+    logout(): Observable<any>;
+    refreshToken(): Observable<any>;
+    register(account: Account): Observable<HttpResponse<RegistrationResponse>>;
+    verifyEmail(token: string): Observable<any>;
+    forgotPassword(email: string): Observable<any>;
+    validateResetToken(token: string): Observable<any>;
+    resetPassword(token: string, password: string, confirmPassword: string): Observable<any>;
+    getAll(): Observable<Account[]>;
+    getById(id: string): Observable<Account>;
+    create(params: any): Observable<any>;
+    update(id: string, params: any): Observable<any>;
+    delete(id: string): Observable<any>;
+}
+
 @Injectable({ providedIn: 'root' })
-export class AccountService {
+export class AccountService implements IAccountService {
     private accountSubject: BehaviorSubject<Account | null>;
     public account: Observable<Account | null>;
     private refreshTokenTimeout: any;
@@ -182,6 +203,12 @@ export class AccountService {
                 }
                 return x;
             }));
+    }
+
+    public clearAccountData(): void {
+        this.stopRefreshTokenTimer();
+        this.accountSubject.next(null);
+        this.refreshingToken = false;
     }
 
     private startRefreshTokenTimer() {

@@ -1,0 +1,1 @@
+{"ast":null,"code":"export class Account {\n  constructor(init) {\n    Object.assign(this, init);\n  }\n}","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}
