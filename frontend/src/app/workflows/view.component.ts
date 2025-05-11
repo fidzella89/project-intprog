@@ -44,12 +44,16 @@ export class ViewWorkflowComponent implements OnInit {
                     this.workflow = workflow;
                     if (workflow.employee && workflow.employee.account) {
                         this.employee = workflow.employee;
-                        this.displayEmployeeId = `EMP${workflow.employee.employeeId}`;
+                        // Don't add EMP prefix if it already exists
+                        const empId = workflow.employee.employeeId || '';
+                        this.displayEmployeeId = empId.startsWith('EMP') 
+                            ? empId 
+                            : 'No Employee Id Passed';
                         
                         // Check if current user is the owner of the workflow
                         const currentUserId = this.accountService.accountValue?.id;
                         this.isOwner = this.isAdmin || 
-                            (currentUserId && workflow.employee.id === Number(currentUserId));
+                            (currentUserId && workflow.employee.id && workflow.employee.id === Number(currentUserId));
                     }
                     this.loading = false;
                 },
@@ -73,23 +77,28 @@ export class ViewWorkflowComponent implements OnInit {
     deleteWorkflow() {
         if (confirm('Are you sure you want to delete this workflow?')) {
             this.loading = true;
-            this.workflowService.delete(this.workflow.id)
-                .pipe(first())
-                .subscribe({
-                    next: () => {
-                        this.alertService.success('Workflow deleted successfully');
-                        const empId = this.employeeId || '';
-                        this.router.navigate(['../'], { 
-                            relativeTo: this.route,
-                            queryParams: { employeeId: empId },
-                            queryParamsHandling: 'merge'
-                        });
-                    },
-                    error: error => {
-                        this.alertService.error(error);
-                        this.loading = false;
-                    }
-                });
+            if (this.workflow.id) {
+                this.workflowService.delete(this.workflow.id)
+                    .pipe(first())
+                    .subscribe({
+                        next: () => {
+                            this.alertService.success('Workflow deleted successfully');
+                            const empId = this.employeeId || '';
+                            this.router.navigate(['../'], { 
+                                relativeTo: this.route,
+                                queryParams: { employeeId: empId },
+                                queryParamsHandling: 'merge'
+                            });
+                        },
+                        error: error => {
+                            this.alertService.error(error);
+                            this.loading = false;
+                        }
+                    });
+            } else {
+                this.alertService.error('Workflow ID not found');
+                this.loading = false;
+            }
         }
     }
 
