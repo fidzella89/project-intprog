@@ -247,6 +247,35 @@ export class AccountService implements IAccountService {
         this.refreshingToken = false;
     }
 
+    /**
+     * Safely parses a JWT token
+     */
+    private parseJwt(token: string): any {
+        try {
+            // Check if the token has three parts (header.payload.signature)
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                console.warn('Invalid JWT format, expected 3 parts but got', parts.length);
+                return null;
+            }
+
+            // Base64Url decode the payload
+            const base64Url = parts[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split('')
+                    .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join('')
+            );
+
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            console.error('Error parsing JWT:', e);
+            return null;
+        }
+    }
+
     private startRefreshTokenTimer() {
         try {
             // Parse the JWT token
@@ -256,8 +285,19 @@ export class AccountService implements IAccountService {
                 return;
             }
 
-            // Parse the token payload
-            const jwtPayload = JSON.parse(atob(jwtToken.split('.')[1]));
+            // Parse the token payload using the safe method
+            const jwtPayload = this.parseJwt(jwtToken);
+            if (!jwtPayload) {
+                console.error('Could not parse JWT token payload');
+                return;
+            }
+
+            // Verify the expiration is present and valid
+            if (!jwtPayload.exp) {
+                console.error('JWT token missing expiration claim');
+                return;
+            }
+
             const expires = new Date(jwtPayload.exp * 1000);
             const now = new Date();
             
@@ -299,11 +339,9 @@ export class AccountService implements IAccountService {
                     console.log('Token refresh already in progress');
                 }
             }, Math.max(0, timeout));
-
         } catch (error) {
             console.error('Error starting refresh token timer:', error);
-            this.clearAccountData();
-            this.router.navigate(['/account/login']);
+            // Do not clear account data or redirect - allow user to continue using the app
         }
     }
 
