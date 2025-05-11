@@ -66,15 +66,14 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        console.log('Looking for refresh token:', token);
-        const refreshToken = await db.RefreshToken.findOne({
-            where: { token },
-            include: [{
-                model: db.Account,
-                attributes: { exclude: ['passwordHash'] }
-            }]
-        });
-
+        // Diagnostic: check for all active tokens
+        await checkActiveTokens();
+        
+        console.log('Looking for refresh token in database:', token);
+        
+        // First find the token directly
+        const refreshToken = await db.RefreshToken.findOne({ where: { token } });
+        
         if (!refreshToken) {
             console.error('Refresh token not found in database');
             throw {
@@ -82,7 +81,9 @@ async function refreshToken({ token, ipAddress }) {
                 message: 'Invalid refresh token'
             };
         }
-
+        
+        console.log('Found refresh token, checking if active');
+        
         if (!refreshToken.isActive) {
             console.error('Refresh token is not active');
             throw {
@@ -90,10 +91,12 @@ async function refreshToken({ token, ipAddress }) {
                 message: 'Refresh token has expired or been revoked'
             };
         }
-
-        const account = refreshToken.Account;
+        
+        // Find the account directly instead of using the association
+        const account = await db.Account.findByPk(refreshToken.accountId);
+        
         if (!account) {
-            console.error('No account found for refresh token');
+            console.error('No account found for refresh token accountId:', refreshToken.accountId);
             throw {
                 name: 'NotFoundError',
                 message: 'Account not found'
@@ -102,9 +105,8 @@ async function refreshToken({ token, ipAddress }) {
 
         console.log(`Found account for refresh token: ${account.id} (${account.email})`);
 
-        // replace old refresh token with a new one and save
+        // Generate a new refresh token
         const newRefreshToken = generateRefreshToken(account, ipAddress);
-        
         console.log('Generated new refresh token:', newRefreshToken.token);
         
         // Save both tokens in a transaction
@@ -122,17 +124,23 @@ async function refreshToken({ token, ipAddress }) {
             };
         });
 
-        // generate new jwt
+        // Generate new JWT token
         const jwtToken = generateJwtToken(account);
 
-        // return basic details and tokens
+        // Create response object with account details and tokens
         const response = {
             ...basicDetails(account),
             jwtToken,
             refreshToken: newRefreshToken.token
         };
 
-        console.log('Successfully refreshed token, response includes refreshToken:', !!response.refreshToken);
+        // Double check that refreshToken is included in the response
+        if (!response.refreshToken) {
+            console.error('ERROR: refreshToken is not included in the response');
+        } else {
+            console.log('Successfully refreshed token, response includes refreshToken');
+        }
+        
         return response;
     } catch (error) {
         console.error('Refresh token error:', error);
@@ -330,10 +338,19 @@ function generateJwtToken(account) {
 }
 
 function generateRefreshToken(account, ipAddress) {
-    // create a refresh token that expires in 7 days
+    // Ensure we have a valid account object
+    if (!account || !account.id) {
+        console.error('Invalid account provided to generateRefreshToken');
+        throw new Error('Invalid account');
+    }
+    
+    // Create a refresh token that expires in 7 days
+    const token = randomTokenString();
+    console.log(`Creating refresh token for account ${account.id}, token: ${token}`);
+    
     return new db.RefreshToken({
         accountId: account.id,
-        token: randomTokenString(),
+        token: token,
         expires: new Date(Date.now() + 7*24*60*60*1000),
         createdByIp: ipAddress
     });
@@ -402,4 +419,27 @@ async function sendPasswordResetEmail(account, origin) {
         html: `<h4>Reset Password Email</h4>
                ${message}`
     });
+}
+
+// Add this new diagnostic function
+async function checkActiveTokens() {
+    try {
+        const allTokens = await db.RefreshToken.findAll({
+            where: {
+                revoked: null
+            },
+            limit: 10
+        });
+        
+        console.log(`Found ${allTokens.length} active refresh tokens`);
+        
+        if (allTokens.length > 0) {
+            // Show details of the first few tokens
+            allTokens.slice(0, 3).forEach(token => {
+                console.log(`Token ID: ${token.id}, Account ID: ${token.accountId}, Expires: ${token.expires}`);
+            });
+        }
+    } catch (error) {
+        console.error('Error checking active tokens:', error);
+    }
 }

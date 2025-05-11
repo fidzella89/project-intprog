@@ -88,29 +88,39 @@ function refreshToken(req, res, next) {
             return res.status(400).json({ message: 'Refresh token is required' });
         }
 
+        console.log('Controller: Attempting to refresh token with token:', token);
+        
         accountService.refreshToken({ token, ipAddress })
             .then(response => {
-                // Add extra logging to diagnose the issue
-                console.log('Refresh token service response:', JSON.stringify(response));
+                // Log full response for debugging
+                console.log('Refresh token service response structure:', 
+                    Object.keys(response).join(', '));
                 
                 if (!response) {
                     console.error('No response from refreshToken service');
                     return res.status(500).json({ message: 'Invalid refresh token response' });
                 }
                 
-                // Check if refreshToken exists in the response
+                // Directly check if the property exists without destructuring
                 if (!response.refreshToken) {
                     console.error('No refreshToken in response object');
                     return res.status(500).json({ message: 'Invalid token response structure' });
                 }
                 
-                // Set the token cookie and send the account details
-                setTokenCookie(res, response.refreshToken);
+                const refreshTokenValue = response.refreshToken;
                 
-                // Create a new response object without the refresh token
-                const accountDetails = { ...response };
-                delete accountDetails.refreshToken;
+                // Create a new object without the refreshToken property
+                const accountDetails = {};
+                Object.keys(response).forEach(key => {
+                    if (key !== 'refreshToken') {
+                        accountDetails[key] = response[key];
+                    }
+                });
                 
+                // Set the cookie with the token
+                setTokenCookie(res, refreshTokenValue);
+                
+                // Send the account details as the response
                 res.json(accountDetails);
             })
             .catch(error => {
@@ -326,6 +336,13 @@ function _delete(req, res, next) {
 
 // helper functions
 function setTokenCookie(res, token) {
+    if (!token) {
+        console.error('Attempted to set cookie with empty token');
+        return;
+    }
+    
+    console.log('Setting refresh token cookie with token:', token);
+    
     // create cookie with refresh token that expires in 7 days
     const cookieOptions = {
         httpOnly: true,
@@ -337,8 +354,10 @@ function setTokenCookie(res, token) {
 
     // In production, set the domain to match your Render domain
     if (process.env.NODE_ENV === 'production') {
-        cookieOptions.domain = '.onrender.com';  // Allow subdomains
+        // Allow cookies on all subdomains
+        cookieOptions.domain = '.onrender.com';
     }
 
     res.cookie('refreshToken', token, cookieOptions);
+    console.log('Refresh token cookie set successfully');
 }

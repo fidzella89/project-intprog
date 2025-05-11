@@ -118,7 +118,15 @@ export class AccountService implements IAccountService {
     }
 
     refreshToken() {
+        // If we're already refreshing, just return the current account observable
         if (this.refreshingToken) {
+            console.log('Token refresh already in progress, skipping');
+            return this.account;
+        }
+
+        // If there's no account, don't attempt to refresh
+        if (!this.accountValue) {
+            console.log('No account data to refresh token for');
             return this.account;
         }
 
@@ -135,7 +143,13 @@ export class AccountService implements IAccountService {
         }).pipe(
             map(response => {
                 console.log('Refresh token response:', response);
-                if (!response || !response.jwtToken) {
+                
+                // Validate the response has the expected structure
+                if (!response) {
+                    throw new Error('Empty response from refresh token endpoint');
+                }
+                
+                if (!response.jwtToken) {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
                 
