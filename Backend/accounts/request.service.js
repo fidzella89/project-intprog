@@ -155,28 +155,46 @@ async function create(params, retryCount = 0) {
     console.log('Request type:', params.type); // Debug log
     console.log('Items:', items); // Debug log
 
-    // Generate request number
-    const requestNumber = await generateRequestNumber();
-    
-    // Check if request number already exists
-    const existingRequest = await db.Request.findOne({
-        where: { requestNumber }
-    });
-    
-    if (existingRequest) {
-        if (retryCount >= MAX_RETRIES) {
-            throw new Error('Failed to generate unique request number after maximum retries');
-        }
-        // If exists, try to generate a new one with incremented retry count
-        return create({ ...params, items, isAdmin }, retryCount + 1);
-    }
-    
-    params.requestNumber = requestNumber;
-    params.status = isAdmin ? 'Approved' : 'Pending';
-    
-    console.log('Final request params:', params); // Debug log
-    
     try {
+        // Validate required fields
+        if (!params.employeeId) {
+            throw {
+                name: 'ValidationError',
+                message: 'Employee ID is required'
+            };
+        }
+
+        if (!params.type) {
+            throw {
+                name: 'ValidationError',
+                message: 'Request type is required'
+            };
+        }
+
+        // Generate request number
+        const requestNumber = await generateRequestNumber();
+        
+        // Check if request number already exists
+        const existingRequest = await db.Request.findOne({
+            where: { requestNumber }
+        });
+        
+        if (existingRequest) {
+            if (retryCount >= MAX_RETRIES) {
+                throw {
+                    name: 'ValidationError',
+                    message: 'Failed to generate unique request number after maximum retries'
+                };
+            }
+            // If exists, try to generate a new one with incremented retry count
+            return create({ ...params, items, isAdmin }, retryCount + 1);
+        }
+        
+        params.requestNumber = requestNumber;
+        params.status = isAdmin ? 'Approved' : 'Pending';
+        
+        console.log('Final request params:', params); // Debug log
+        
         // Create request and items in a transaction
         const result = await db.Request.sequelize.transaction(async (t) => {
             // Create the request
@@ -203,7 +221,31 @@ async function create(params, retryCount = 0) {
         return getById(result.id);
     } catch (error) {
         console.error('Error creating request:', error);
-        throw new Error('Failed to create request. Please try again later.');
+        
+        // Return specific error messages based on error type
+        if (error.name === 'ValidationError') {
+            throw error;
+        } else if (error.name === 'SequelizeValidationError') {
+            throw {
+                name: 'ValidationError',
+                message: error.errors[0]?.message || 'Request validation failed'
+            };
+        } else if (error.name === 'SequelizeForeignKeyConstraintError') {
+            throw {
+                name: 'ValidationError',
+                message: 'Invalid reference to an employee or other entity'
+            };
+        } else if (error.name === 'SequelizeUniqueConstraintError') {
+            throw {
+                name: 'ValidationError',
+                message: 'A duplicate entry was detected'
+            };
+        } else {
+            throw {
+                name: 'InternalError',
+                message: 'Failed to create request. Please try again later.'
+            };
+        }
     }
 }
 

@@ -17,9 +17,37 @@ export class ErrorInterceptor implements HttpInterceptor {
                     this.accountService.logout();
                 }
 
-                const error = (err && err.error && err.error.message) || err.statusText;
-                console.error(err);
-                return throwError(error);
+                // Extract the most meaningful error message
+                let errorMessage = 'An unexpected error occurred';
+                
+                if (err.error) {
+                    // If there's a specific error message in the response, use it
+                    if (err.error.message) {
+                        errorMessage = err.error.message;
+                    } 
+                    // If error.error is a string, use it directly
+                    else if (typeof err.error === 'string') {
+                        errorMessage = err.error;
+                    }
+                } 
+                // If there's a status text, use it
+                else if (err.statusText) {
+                    errorMessage = err.statusText;
+                }
+                
+                // Handle specific HTTP status codes
+                if (err.status === 404) {
+                    errorMessage = errorMessage || 'Resource not found';
+                } else if (err.status === 400) {
+                    errorMessage = errorMessage || 'Bad request';
+                } else if (err.status === 401) {
+                    errorMessage = errorMessage || 'Unauthorized access';
+                } else if (err.status === 403) {
+                    errorMessage = errorMessage || 'Access forbidden';
+                }
+
+                console.error('HTTP Error:', err);
+                return throwError(() => errorMessage);
             })
         );
     }

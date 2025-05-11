@@ -70,11 +70,49 @@ app.use((err, req, res, next) => {
         return res.status(401).json({ message: 'Invalid Token' });
     }
 
-    // Default error
-    console.error(err.stack);
-    res.status(500).json({
-        message: 'Something broke!',
-        error: process.env.NODE_ENV === 'development' ? err.message : {}
+    // Log the error for debugging
+    console.error('Error details:', err);
+
+    // Determine appropriate error message based on error type
+    let statusCode = 500;
+    let errorMessage = 'An unexpected error occurred. Please try again later.';
+
+    switch (true) {
+        case typeof err === 'string':
+            // Custom application error
+            const is404 = err.toLowerCase().endsWith('not found');
+            statusCode = is404 ? 404 : 400;
+            errorMessage = err;
+            break;
+
+        case err.name === 'ValidationError':
+            // Validation error
+            statusCode = 400;
+            errorMessage = err.message;
+            break;
+
+        case err.name === 'NotFoundError':
+            // Not found error
+            statusCode = 404;
+            errorMessage = err.message || 'Resource not found';
+            break;
+
+        case err.name === 'InvalidTokenError':
+            // Invalid token error
+            statusCode = 401;
+            errorMessage = err.message || 'Invalid token';
+            break;
+            
+        case err.status === 'Inactive':
+            // Inactive account error
+            statusCode = 403;
+            errorMessage = 'Account is Inactive. Contact the administrator.';
+            break;
+    }
+
+    res.status(statusCode).json({
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? err : {}
     });
 });
 

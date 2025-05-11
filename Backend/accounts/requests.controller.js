@@ -76,14 +76,33 @@ function create(req, res, next) {
     requestService.create(req.body)
         .then(request => res.json(request))
         .catch(error => {
-            // Add more detailed error response
+            console.error('Error in create request controller:', error);
+            
+            // Handle specific error types with appropriate status codes
             if (error.name === 'ValidationError') {
                 return res.status(400).json({
-                    message: 'Validation error',
-                    details: error.errors
+                    message: error.message || 'Validation error',
+                    code: 'VALIDATION_ERROR'
                 });
+            } else if (error.name === 'NotFoundError') {
+                return res.status(404).json({
+                    message: error.message || 'Resource not found',
+                    code: 'NOT_FOUND'
+                });
+            } else if (error.name === 'UnauthorizedError') {
+                return res.status(401).json({
+                    message: error.message || 'Unauthorized access',
+                    code: 'UNAUTHORIZED'
+                });
+            } else if (error.name === 'ForbiddenError') {
+                return res.status(403).json({
+                    message: error.message || 'Forbidden action',
+                    code: 'FORBIDDEN'
+                });
+            } else {
+                // For unexpected errors, pass to the global error handler
+                next(error);
             }
-            next(error);
         });
 }
 
