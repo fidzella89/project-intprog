@@ -78,62 +78,43 @@ function authenticate(req, res, next) {
 }
 
 function refreshToken(req, res, next) {
-    const token = req.cookies.refreshToken;
-    const ipAddress = req.ip;
-    
-    if (!token) {
-        return res.status(400).json({ message: 'Refresh token is required' });
-    }
+    try {
+        const token = req.cookies.refreshToken;
+        const ipAddress = req.ip;
+        
+        if (!token) {
+            return res.status(401).json({ message: 'Refresh token is required' });
+        }
 
-    accountService.refreshToken({ token, ipAddress })
-        .then(response => {
-            if (!response) {
-                throw new Error('No response from refresh token service');
-            }
-            
-            // Set the new refresh token cookie if it exists
-            if (response.refreshToken) {
+        accountService.refreshToken({ token, ipAddress })
+            .then(response => {
+                // Set the new refresh token cookie
                 setTokenCookie(res, response.refreshToken);
-            }
-            
-            // Return the account details without the refresh token
-            const { refreshToken: _, ...accountDetails } = response;
-            res.json(accountDetails);
-        })
-        .catch(error => {
-            // Clear the invalid refresh token
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            
-            // Log the error for debugging
-            console.error('Refresh token error:', error);
-            
-            // Handle specific error types
-            if (error.name) {
-                switch(error.name) {
-                    case 'ValidationError':
-                    case 'NotFoundError':
-                        return res.status(400).json({ message: error.message });
-                    case 'InvalidTokenError':
-                        return res.status(401).json({ message: error.message });
-                    default:
-                        return res.status(500).json({ 
-                            message: 'An error occurred while refreshing the token',
-                            error: error.message || error.toString()
-                        });
+                
+                // Return the account details without the refresh token
+                const { refreshToken: _, ...accountDetails } = response;
+                res.json(accountDetails);
+            })
+            .catch(error => {
+                // Clear the invalid refresh token
+                res.clearCookie('refreshToken');
+                
+                // Handle specific error types
+                if (error.name === 'ValidationError' || error.name === 'NotFoundError') {
+                    return res.status(400).json({ message: error.message });
                 }
-            }
-            
-            // Handle generic errors
-            return res.status(500).json({ 
-                message: 'An error occurred while refreshing the token',
-                error: error.message || error.toString()
+                if (error.name === 'InvalidTokenError') {
+                    return res.status(401).json({ message: error.message });
+                }
+                
+                // Log unexpected errors
+                console.error('Unexpected error in refresh token endpoint:', error);
+                return res.status(500).json({ message: 'An error occurred while refreshing the token' });
             });
-        });
+    } catch (err) {
+        console.error('Unexpected error in refresh token endpoint:', err);
+        return res.status(500).json({ message: 'An error occurred while processing your request' });
+    }
 }
 
 function revokeTokenSchema(req, res, next) {

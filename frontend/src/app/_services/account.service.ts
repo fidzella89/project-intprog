@@ -122,7 +122,7 @@ export class AccountService implements IAccountService {
         // If there's no account, don't attempt to refresh
         if (!this.accountValue) {
             console.log('No account data to refresh token for');
-            return this.account;
+            return throwError(() => new Error('No account data'));
         }
 
         this.refreshingToken = true;
@@ -130,14 +130,14 @@ export class AccountService implements IAccountService {
 
         return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
-            headers: {
+            headers: new HttpHeaders({
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
-            }
+            })
         }).pipe(
             map(response => {
-                console.log('Token refresh response received:', response ? 'valid' : 'invalid');
+                console.log('Token refresh response received');
                 
                 if (!response) {
                     throw new Error('Empty response from refresh token endpoint');
@@ -157,10 +157,25 @@ export class AccountService implements IAccountService {
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);
-                // On refresh failure, clear the account state and redirect to login
+                
+                // Clear account data and stop refresh timer
                 this.clearAccountData();
-                this.router.navigate(['/account/login']);
-                return throwError(() => new Error(error.error?.message || 'Failed to refresh token'));
+                this.stopRefreshTokenTimer();
+                
+                // Determine error message
+                let errorMessage = 'Failed to refresh token';
+                if (error.error?.message) {
+                    errorMessage = error.error.message;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                // Redirect to login only if it's an auth error
+                if (error.status === 401 || error.status === 403) {
+                    this.router.navigate(['/account/login']);
+                }
+                
+                return throwError(() => errorMessage);
             }),
             finalize(() => {
                 console.log('Token refresh request completed');
