@@ -34,21 +34,21 @@ async function authenticate({ email, password, ipAddress }) {
             }]
         });
 
-        if (!account) {
+    if (!account) {
             throw { name: 'ValidationError', message: 'Email does not exist' };
-        }
+    }
 
-        if (!account.isVerified) {
+    if (!account.isVerified) {
             throw { name: 'ValidationError', message: 'Email is not verified' };
-        }
+    }
 
-        if (account.status === 'Inactive') {
+    if (account.status === 'Inactive') {
             throw { name: 'ValidationError', message: 'Account is inactive. Please contact administrator.' };
-        }
+    }
 
-        if (!(await bcrypt.compare(password, account.passwordHash))) {
+    if (!(await bcrypt.compare(password, account.passwordHash))) {
             throw { name: 'ValidationError', message: 'Password is incorrect' };
-        }
+    }
 
         // Revoke any existing active refresh tokens
         if (account.RefreshTokens && account.RefreshTokens.length) {
@@ -58,51 +58,19 @@ async function authenticate({ email, password, ipAddress }) {
             );
         }
 
-        // Generate new tokens with better error handling
-        console.log(`Generating tokens for account ID: ${account.id}`);
-        let jwtToken;
-        try {
-            jwtToken = generateJwtToken(account);
-            console.log('JWT token generated successfully');
-        } catch (jwtError) {
-            console.error('JWT token generation failed:', jwtError);
-            throw { name: 'TokenGenerationError', message: 'Failed to generate JWT token', detail: jwtError.message };
-        }
+        // Generate new tokens
+    const jwtToken = generateJwtToken(account);
+    const refreshToken = generateRefreshToken(account, ipAddress);
 
-        let refreshToken;
-        try {
-            refreshToken = generateRefreshToken(account, ipAddress);
-            console.log('Refresh token generated successfully');
-        } catch (refreshError) {
-            console.error('Refresh token generation failed:', refreshError);
-            throw { name: 'TokenGenerationError', message: 'Failed to generate refresh token', detail: refreshError.message };
-        }
-
-        // Ensure tokens were generated correctly
-        if (!jwtToken) {
-            throw { name: 'TokenGenerationError', message: 'JWT token is empty or null' };
-        }
-
-        if (!refreshToken || !refreshToken.token) {
-            throw { name: 'TokenGenerationError', message: 'Refresh token is invalid or missing token property' };
-        }
-
-        // Save refresh token with error handling
-        try {
-            await refreshToken.save();
-            console.log('Refresh token saved successfully');
-        } catch (saveError) {
-            console.error('Failed to save refresh token to database:', saveError);
-            throw { name: 'DatabaseError', message: 'Failed to save refresh token', detail: saveError.message };
-        }
+        // Save refresh token
+    await refreshToken.save();
 
         // Return basic details and tokens
-        console.log('Authentication successful, returning tokens');
-        return {
-            ...basicDetails(account),
-            jwtToken,
-            token: refreshToken.token
-        };
+    return {
+        ...basicDetails(account),
+        jwtToken,
+        refreshToken: refreshToken.token
+    };
     } catch (error) {
         console.error('Authentication error:', error);
         throw error;
@@ -195,7 +163,7 @@ async function refreshToken({ token, ipAddress }) {
         return {
         ...basicDetails(account),
         jwtToken,
-        token: newRefreshToken.token
+        refreshToken: newRefreshToken.token
     };
     } catch (error) {
         console.error('Refresh token error:', error);
@@ -390,20 +358,9 @@ async function hash(password) {
 function generateJwtToken(account) {
     try {
         // Validate account
-        if (!account) {
-            throw new Error('Account object is null or undefined');
+        if (!account || !account.id) {
+            throw new Error('Invalid account provided to generateJwtToken');
         }
-        
-        if (!account.id) {
-            throw new Error('Account ID is missing');
-        }
-
-        // Log account details being used for token generation
-        console.log(`Generating JWT for account: ${JSON.stringify({
-            id: account.id,
-            role: account.role,
-            status: account.status,
-        })}`);
 
         // Create a JWT token that expires in 15 minutes
         const expiresIn = '15m';
@@ -421,23 +378,12 @@ function generateJwtToken(account) {
             { expiresIn }
         );
         
-        // Verify token was created
-        if (!token) {
-            throw new Error('JWT library returned null or empty token');
-        }
-        
-        // Make sure token is a string
-        if (typeof token !== 'string') {
-            throw new Error(`JWT token has unexpected type: ${typeof token}`);
-        }
-        
-        console.log(`JWT token generated successfully for account ${account.id} (length: ${token.length})`);
         return token;
     } catch (error) {
         console.error('Error generating JWT token:', error);
         throw {
             name: 'TokenGenerationError',
-            message: 'Failed to generate JWT token: ' + error.message
+            message: 'Failed to generate JWT token'
         };
     }
 }
@@ -445,17 +391,8 @@ function generateJwtToken(account) {
 function generateRefreshToken(account, ipAddress) {
     try {
         // Ensure we have a valid account object
-        if (!account) {
-            throw new Error('Account object is null or undefined');
-        }
-        
-        if (!account.id) {
-            throw new Error('Account ID is missing');
-        }
-        
-        if (!ipAddress) {
-            console.warn('IP address is missing, using "unknown" as default');
-            ipAddress = 'unknown';
+        if (!account || !account.id) {
+            throw new Error('Invalid account provided to generateRefreshToken');
         }
         
         // Create a refresh token that expires in 7 days
@@ -463,33 +400,28 @@ function generateRefreshToken(account, ipAddress) {
         const expires = new Date(Date.now() + 7*24*60*60*1000);
         
         console.log(`Generating refresh token for account ${account.id}:
-            Token length: ${token.length}
+            Token: ${token}
             Expires: ${expires.toISOString()}
             IP: ${ipAddress}`
         );
         
         const refreshToken = new db.RefreshToken({
-            accountId: account.id,
+        accountId: account.id,
             token: token,
             expires: expires,
-            createdByIp: ipAddress
-        });
+        createdByIp: ipAddress
+    });
 
-        if (!refreshToken) {
-            throw new Error('Failed to create refresh token object');
+        if (!refreshToken || !refreshToken.token) {
+            throw new Error('Failed to create refresh token');
         }
 
-        if (!refreshToken.token) {
-            throw new Error('Refresh token was created but token property is missing');
-        }
-        
-        console.log(`Refresh token object created successfully with token length: ${refreshToken.token.length}`);
         return refreshToken;
     } catch (error) {
         console.error('Error generating refresh token:', error);
         throw {
             name: 'TokenGenerationError',
-            message: 'Failed to generate refresh token: ' + error.message
+            message: 'Failed to generate refresh token'
         };
     }
 }

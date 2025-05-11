@@ -9,6 +9,7 @@ export class Account {
     role?: Role;
     status?: string;
     jwtToken?: string;
+    refreshToken?: string;
     token?: string;
     isVerified?: boolean;
     created?: Date;

@@ -35,24 +35,9 @@ function authenticate(req, res, next) {
     const { email, password } = req.body;
     const ipAddress = req.ip;
     
-    console.log(`Authentication attempt for email: ${email}`);
-    
     accountService.authenticate({ email, password, ipAddress })
-        .then((result) => {
-            console.log('Authentication response received:', {
-                hasToken: !!result.token,
-                hasJwtToken: !!result.jwtToken,
-                accountId: result.id,
-                status: result.status
-            });
-            
-            const { refreshToken, jwtToken, ...account } = result;
-            
+        .then(({ refreshToken, jwtToken, ...account }) => {
             if (!refreshToken || !jwtToken) {
-                console.error('Invalid authentication response: missing tokens', { 
-                    hasRefreshToken: !!refreshToken, 
-                    hasJwtToken: !!jwtToken 
-                });
                 throw new Error('Invalid authentication response');
             }
 
@@ -65,16 +50,9 @@ function authenticate(req, res, next) {
             }
             
             // Set refresh token in cookie
-            try {
-                setTokenCookie(res, refreshToken);
-                console.log('Refresh token cookie set successfully');
-            } catch (cookieError) {
-                console.error('Error setting refresh token cookie:', cookieError);
-                throw cookieError;
-            }
+            setTokenCookie(res, refreshToken);
             
             // Return account details and JWT token
-            console.log('Authentication successful, sending response');
             res.json({
                 ...account,
                 jwtToken,
@@ -88,27 +66,11 @@ function authenticate(req, res, next) {
                 return res.status(400).json({ message: error.message });
             }
             
-            if (error.name === 'TokenGenerationError') {
-                return res.status(500).json({ 
-                    message: error.message,
-                    detail: error.detail || 'Token generation failed'
-                });
-            }
-            
-            if (error.name === 'DatabaseError') {
-                return res.status(500).json({ 
-                    message: error.message,
-                    detail: error.detail || 'Database operation failed'
-                });
-            }
-            
             // Log unexpected errors
             console.error('Unexpected authentication error:', error);
             return res.status(500).json({ 
                 message: 'An unexpected error occurred during authentication',
-                error: process.env.NODE_ENV === 'development' ? 
-                    (error.stack || error.message || error.toString()) : 
-                    undefined
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         });
 }

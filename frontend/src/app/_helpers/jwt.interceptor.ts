@@ -19,7 +19,7 @@ export class JwtInterceptor implements HttpInterceptor {
         const isLoggedIn = account?.jwtToken;
         const isApiUrl = request.url.startsWith(environment.apiUrl);
         
-        if (isLoggedIn && isApiUrl && !this.isRefreshTokenRequest(request) && account && account.jwtToken) {
+        if (isLoggedIn && isApiUrl && !this.isRefreshTokenRequest(request)) {
             request = this.addTokenHeader(request, account.jwtToken);
         }
 
@@ -67,13 +67,8 @@ export class JwtInterceptor implements HttpInterceptor {
             return this.accountService.refreshToken().pipe(
                 switchMap((account: any) => {
                     this.isRefreshing = false;
-                    if (account?.jwtToken) {
-                        this.refreshTokenSubject.next(account.jwtToken);
-                        return next.handle(this.addTokenHeader(request, account.jwtToken));
-                    } else {
-                        // If no token in response, something is wrong
-                        throw new Error('No JWT token in refresh response');
-                    }
+                    this.refreshTokenSubject.next(account.jwtToken);
+                    return next.handle(this.addTokenHeader(request, account.jwtToken));
                 }),
                 catchError(error => {
                     this.isRefreshing = false;

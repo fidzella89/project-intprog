@@ -71,11 +71,6 @@ export class AccountService implements IAccountService {
                         throw new Error('No JWT token in response');
                     }
 
-                    // Log token information for debugging
-                    console.log('Authentication successful. JWT and refresh token received:', 
-                        !!account.jwtToken, 
-                        !!account.token);
-
                     // Update the account subject
                     this.accountSubject.next(account);
                     
@@ -133,11 +128,18 @@ export class AccountService implements IAccountService {
         this.refreshingToken = true;
         console.log('Starting token refresh request');
         
-        // Get the token from accountValue
-        const tokenValue = this.accountValue.token;
-        console.log('Using token for refresh:', tokenValue ? 'token present' : 'no token');
+        // The backend expects: token = JWT token, refreshToken = refresh token
+        // Get both tokens - jwtToken for 'token' parameter, refreshToken for authentication
+        const jwtToken = this.accountValue.jwtToken;
+        const refreshToken = this.accountValue.token || this.accountValue.refreshToken;
         
-        return this.http.post<any>(`${baseUrl}/refresh-token`, { token: tokenValue }, { 
+        console.log('Using JWT for token parameter:', jwtToken ? 'token present' : 'no token');
+        console.log('Using refreshToken for authentication:', refreshToken ? 'token present' : 'no token');
+        
+        return this.http.post<any>(`${baseUrl}/refresh-token`, { 
+            token: jwtToken,  // Pass JWT token as token parameter
+            refreshToken: refreshToken  // Also pass refresh token as a backup
+        }, { 
             withCredentials: true,
             headers: new HttpHeaders({
                 'Content-Type': 'application/json',
@@ -155,11 +157,6 @@ export class AccountService implements IAccountService {
                 if (!response.jwtToken) {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
-                
-                // Log token information for debugging
-                console.log('Refresh successful. JWT and refresh token received:', 
-                    !!response.jwtToken, 
-                    !!response.token);
                 
                 // Update the account subject with the new data
                 this.accountSubject.next(response);
