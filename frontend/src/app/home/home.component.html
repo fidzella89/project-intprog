@@ -1,6 +1,6 @@
 <div class="p-4">
     <div class="container">
-        <h1>Welcome, {{account?.firstName}}!</h1>
+        <h1>Welcome, {{account?.firstName || 'User'}}!</h1>
         <p>You're logged in to the Angular application!</p>
         
         <div class="card mt-4">
@@ -13,9 +13,9 @@
                         <p><strong>Role:</strong> {{account?.role}}</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Status:</strong> {{account?.status}}</p>
+                        <p><strong>Status:</strong> {{account?.status || 'Active'}}</p>
                         <p><strong>Verified:</strong> {{account?.isVerified ? 'Yes' : 'No'}}</p>
-                        <p><strong>Created:</strong> {{account?.created | date:'medium'}}</p>
+                        <p><strong>Created:</strong> {{account?.created ? (account?.created | date:'medium') : 'N/A'}}</p>
                     </div>
                 </div>
             </div>
