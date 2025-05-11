@@ -74,13 +74,36 @@ export class AccountService {
                     if (!account || !account.jwtToken) {
                         throw new Error('Invalid login response: Missing token');
                     }
+
+                    // Check account status
+                    if (account.status === 'Inactive') {
+                        throw new Error('Account is inactive. Please contact administrator.');
+                    }
+
                     this.storeAccount(account);
                     this.startRefreshTokenTimer();
                     return account;
                 }),
                 catchError(error => {
                     console.error('Login error:', error);
-                    return throwError(() => error?.error?.message || error?.message || 'An error occurred during login');
+                    
+                    // Handle specific error cases
+                    if (error.error) {
+                        if (error.error.status === 'Inactive') {
+                            return throwError(() => 'Account is inactive. Please contact administrator.');
+                        }
+                        if (error.error.message) {
+                            return throwError(() => error.error.message);
+                        }
+                    }
+                    
+                    // If we have a direct error message
+                    if (error.message) {
+                        return throwError(() => error.message);
+                    }
+                    
+                    // Fallback to generic error
+                    return throwError(() => 'An error occurred during login. Please try again.');
                 })
             );
     }

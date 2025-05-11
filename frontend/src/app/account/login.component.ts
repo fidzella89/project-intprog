@@ -54,16 +54,33 @@ export class LoginComponent implements OnInit {
             .pipe(
                 first(),
                 finalize(() => {
-                    // Always set loading to false when the request completes
                     this.loading = false;
                 })
             )
             .subscribe({
                 next: (account) => {
                     console.log('Login successful:', account);
+                    
+                    // Check account status
+                    if (account.status === 'Inactive') {
+                        this.alertService.error('Account is inactive. Please contact administrator.');
+                        return;
+                    }
+                    
                     if (account && account.jwtToken) {
-                        // Force navigation to home page
-                        this.router.navigate(['/'], { replaceUrl: true });
+                        // Get the return url from route parameters or default to '/'
+                        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+                        
+                        // Use router.navigateByUrl for more reliable navigation
+                        this.router.navigateByUrl(returnUrl, { replaceUrl: true })
+                            .then(() => {
+                                console.log('Navigation successful to:', returnUrl);
+                            })
+                            .catch(error => {
+                                console.error('Navigation failed:', error);
+                                // Fallback to home page if navigation fails
+                                this.router.navigateByUrl('/', { replaceUrl: true });
+                            });
                     } else {
                         this.alertService.error('Login failed: Invalid response from server');
                     }

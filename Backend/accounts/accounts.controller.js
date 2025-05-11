@@ -53,7 +53,16 @@ function authenticate(req, res, next) {
             if (error === 'Password is incorrect') {
                 return res.status(400).json({ message: error });
             }
-            next(error);
+            if (error === 'Account is inactive. Please contact administrator.') {
+                return res.status(400).json({ 
+                    message: error,
+                    status: 'Inactive'
+                });
+            }
+            // Log unexpected errors
+            console.error('Authentication error:', error);
+            // Return a generic error message for unexpected errors
+            return res.status(500).json({ message: 'An unexpected error occurred during authentication' });
         });
 }
 
