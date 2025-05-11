@@ -100,14 +100,14 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        // replace old refresh token with a new one and save
-        const newRefreshToken = generateRefreshToken(account, ipAddress);
+    // replace old refresh token with a new one and save
+    const newRefreshToken = generateRefreshToken(account, ipAddress);
         
         // Save both tokens in a transaction
         await db.sequelize.transaction(async (t) => {
-            refreshToken.revoked = Date.now();
-            refreshToken.revokedByIp = ipAddress;
-            refreshToken.replacedByToken = newRefreshToken.token;
+    refreshToken.revoked = Date.now();
+    refreshToken.revokedByIp = ipAddress;
+    refreshToken.replacedByToken = newRefreshToken.token;
             await refreshToken.save({ transaction: t });
             await newRefreshToken.save({ transaction: t });
         }).catch(error => {
@@ -118,15 +118,15 @@ async function refreshToken({ token, ipAddress }) {
             };
         });
 
-        // generate new jwt
-        const jwtToken = generateJwtToken(account);
+    // generate new jwt
+    const jwtToken = generateJwtToken(account);
 
-        // return basic details and tokens
+    // return basic details and tokens
         const response = {
-            ...basicDetails(account),
-            jwtToken,
-            refreshToken: newRefreshToken.token
-        };
+        ...basicDetails(account),
+        jwtToken,
+        refreshToken: newRefreshToken.token
+    };
 
         console.log('Successfully refreshed token');
         return response;

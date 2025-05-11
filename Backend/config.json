@@ -1,7 +1,7 @@
 {
   "database": {
     "development": {
-      "host": "localhost",
+    "host": "localhost",
       "port": 5432,
       "database": "request_management_db",
       "user": "postgres",

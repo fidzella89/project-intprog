@@ -31,39 +31,26 @@ function authenticateSchema(req, res, next) {
     validateRequest(req, next, schema);
 }
 
-function setJwtCookie(res, token) {
-    const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        expires: new Date(Date.now() + 60 * 60 * 1000) // 1 hour expiry
-    };
-
-    if (process.env.NODE_ENV === 'production') {
-        cookieOptions.domain = 'final-intprog-project-1.onrender.com';
-    }
-
-    res.cookie('token', token, cookieOptions);
-}
-
 function authenticate(req, res, next) {
     const { email, password } = req.body;
     const ipAddress = req.ip;
-
     accountService.authenticate({ email, password, ipAddress })
-        .then(({ jwtToken, refreshToken, ...account }) => {
-            setJwtCookie(res, jwtToken);     
-            setTokenCookie(res, refreshToken); 
+        .then(({ refreshToken, ...account }) => {
+            setTokenCookie(res, refreshToken);
             res.json(account);
         })
         .catch(error => {
-            const knownMessages = [
-                'Email does not exist',
-                'Email is not verified',
-                'Account is inactive. Please contact administrator.',
-                'Password is incorrect'
-            ];
-            if (typeof error === 'string' && knownMessages.includes(error)) {
+            if (error === 'Email does not exist') {
+                return res.status(400).json({ message: error });
+            }
+            if (error === 'Account not verified. Please check your email for verification instructions.') {
+                return res.status(400).json({ 
+                    message: error,
+                    verificationRequired: true,
+                    email: email
+                });
+            }
+            if (error === 'Password is incorrect') {
                 return res.status(400).json({ message: error });
             }
             next(error);
@@ -74,13 +61,13 @@ function refreshToken(req, res, next) {
     try {
         // try to get token from request body first, then from cookie
         const token = req.body.token || req.cookies.refreshToken;
-        const ipAddress = req.ip;
+    const ipAddress = req.ip;
 
         if (!token) {
             return res.status(400).json({ message: 'Refresh token is required' });
         }
 
-        accountService.refreshToken({ token, ipAddress })
+    accountService.refreshToken({ token, ipAddress })
             .then(response => {
                 if (!response || !response.refreshToken) {
                     throw new Error('Invalid response from refresh token service');

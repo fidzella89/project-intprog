@@ -1,7 +1,7 @@
 [build]
   command = "ng build --configuration production"
   publish = "dist/frontend"
-
+ 
 [[redirects]]
   from = "/*"
   to = "/index.html"

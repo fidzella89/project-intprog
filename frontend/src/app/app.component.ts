@@ -1,22 +1,46 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { AccountService } from './_services';
 import { Account, Role } from './_models';
+import { Subscription } from 'rxjs';
 
 @Component({
-    selector: 'app',
-    templateUrl: 'app.component.html'
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.css']
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
     Role = Role;
-    account: Account;
+    account?: Account | null;
     showLogoutModal = false;
+    private accountSubscription?: Subscription;
 
     constructor(
         private accountService: AccountService,
         private router: Router
     ) {
-        this.accountService.account.subscribe(x => this.account = x);
+        // Initialize account from service
+        this.account = this.accountService.accountValue;
+    }
+
+    ngOnInit() {
+        // Subscribe to account changes
+        this.accountSubscription = this.accountService.account.subscribe({
+            next: (account) => {
+                console.log('Account state changed:', account);
+                this.account = account;
+            },
+            error: (error) => {
+                console.error('Error in account subscription:', error);
+            }
+        });
+    }
+
+    ngOnDestroy() {
+        // Clean up subscription
+        if (this.accountSubscription) {
+            this.accountSubscription.unsubscribe();
+        }
     }
 
     openLogoutModal() {
@@ -35,6 +59,7 @@ export class AppComponent {
             },
             error: (error) => {
                 console.error('Logout error:', error);
+                // Still navigate to login on error
                 this.router.navigate(['/account/login']);
             }
         });

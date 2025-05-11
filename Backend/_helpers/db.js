@@ -39,18 +39,18 @@ async function initialize() {
                 host: dbConfig.host,
                 port: dbConfig.port,
                 dialect: 'postgres',
-                logging: console.log,
-                pool: {
-                    max: 5,
-                    min: 0,
-                    acquire: 30000,
-                    idle: 10000
-                }
-            });
+            logging: console.log,
+            pool: {
+                max: 5,
+                min: 0,
+                acquire: 30000,
+                idle: 10000
+            }
+        });
         }
 
         console.log('Connecting to PostgreSQL server...');
-        
+
         // Test the connection
         await sequelize.authenticate();
         console.log('Database connection authenticated successfully');

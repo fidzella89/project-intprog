@@ -71,20 +71,34 @@ export class AccountService {
         return this.http.post<Account>(`${baseUrl}/authenticate`, { email, password }, { withCredentials: true })
             .pipe(
                 map(account => {
+                    if (!account || !account.jwtToken) {
+                        throw new Error('Invalid login response: Missing token');
+                    }
                     this.storeAccount(account);
                     this.startRefreshTokenTimer();
                     return account;
                 }),
                 catchError(error => {
                     console.error('Login error:', error);
-                    return throwError(() => error);
+                    return throwError(() => error?.error?.message || error?.message || 'An error occurred during login');
                 })
             );
     }
 
     private storeAccount(account: Account) {
-        localStorage.setItem('account', JSON.stringify(account));
-        this.accountSubject.next(account);
+        // Ensure we have a valid account object
+        if (!account || !account.jwtToken) {
+            console.error('Invalid account data:', account);
+            return;
+        }
+        
+        try {
+            localStorage.setItem('account', JSON.stringify(account));
+            this.accountSubject.next(account);
+        } catch (error) {
+            console.error('Error storing account:', error);
+            this.clearAccountData();
+        }
     }
 
     logout() {
@@ -125,7 +139,7 @@ export class AccountService {
         }
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, {
-            refreshToken: account.refreshToken
+            token: account.refreshToken // Send as 'token' instead of 'refreshToken'
         }, { 
             withCredentials: true,
             headers: {
@@ -139,11 +153,13 @@ export class AccountService {
                     throw new Error('Invalid refresh token response');
                 }
                 
-                // Store the new account details
+                // Create new account object with the refresh token
                 const newAccount = {
                     ...response,
-                    refreshToken: account.refreshToken // Keep the refresh token
+                    refreshToken: account.refreshToken // Keep the existing refresh token
                 };
+                
+                // Store the new account details
                 this.storeAccount(newAccount);
                 
                 // Restart the refresh timer

@@ -12,7 +12,7 @@ services:
           name: final-intprog-project-1-db
           property: connectionString
     healthCheckPath: /health
-    autoDeploy: true
+    autoDeploy: true 
     disk:
       name: tmp
       mountPath: /tmp

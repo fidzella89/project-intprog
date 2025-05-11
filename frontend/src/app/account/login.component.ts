@@ -53,9 +53,15 @@ export class LoginComponent implements OnInit {
         this.accountService.login(this.f.email.value, this.f.password.value)
             .pipe(first())
             .subscribe({
-                next: () => {
-                    // Navigate to return URL
-                    this.router.navigate([this.returnUrl]);
+                next: (account) => {
+                    // Ensure account is stored and token refresh timer is started
+                    if (account && account.jwtToken) {
+                        // Navigate to return URL
+                        this.router.navigate([this.returnUrl]);
+                    } else {
+                        this.alertService.error('Login failed: Invalid response from server');
+                        this.loading = false;
+                    }
                 },
                 error: error => {
                     this.alertService.error(error);
