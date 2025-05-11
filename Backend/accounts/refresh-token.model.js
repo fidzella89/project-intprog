@@ -4,6 +4,14 @@ module.exports = model;
 
 function model(sequelize) {
     const attributes = {
+        accountId: { 
+            type: DataTypes.INTEGER, 
+            allowNull: false,
+            references: {
+                model: 'account',
+                key: 'id'
+            }
+        },
         token: { type: DataTypes.STRING },
         expires: { type: DataTypes.DATE },
         created: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
