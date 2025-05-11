@@ -34,10 +34,11 @@ function authenticateSchema(req, res, next) {
 function authenticate(req, res, next) {
     const { email, password } = req.body;
     const ipAddress = req.ip;
-    
+
     accountService.authenticate({ email, password, ipAddress })
-        .then(({ refreshToken, ...account }) => {
-            setTokenCookie(res, refreshToken);
+        .then(({ jwtToken, refreshToken, ...account }) => {
+            setJwtCookie(res, jwtToken);     
+            setTokenCookie(res, refreshToken); 
             res.json(account);
         })
         .catch(error => {
@@ -47,13 +48,9 @@ function authenticate(req, res, next) {
                 'Account is inactive. Please contact administrator.',
                 'Password is incorrect'
             ];
-
-            // Handle known string errors
             if (typeof error === 'string' && knownMessages.includes(error)) {
                 return res.status(400).json({ message: error });
             }
-
-            // Unknown errors go to default error handler
             next(error);
         });
 }
