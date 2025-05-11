@@ -79,6 +79,7 @@ function refreshToken(req, res, next) {
         // Check for token in multiple places
         const token = req.cookies?.refreshToken || 
                      req.headers?.['x-refresh-token'] || 
+                     req.body?.token ||  // Check for token in body
                      req.body?.refreshToken;
         
         const ipAddress = req.ip;
@@ -88,7 +89,7 @@ function refreshToken(req, res, next) {
             hasCookies: !!req.cookies,
             cookieToken: req.cookies?.refreshToken,
             headerToken: req.headers?.['x-refresh-token'],
-            bodyToken: req.body?.refreshToken,
+            bodyToken: req.body?.token || req.body?.refreshToken, // Log both possible body token fields
             finalToken: token
         });
         

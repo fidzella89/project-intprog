@@ -128,7 +128,13 @@ export class AccountService implements IAccountService {
         this.refreshingToken = true;
         console.log('Starting token refresh request');
 
-        return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
+        // Get the refresh token from cookie or localStorage as fallback
+        const refreshToken = this.getCookie('refreshToken');
+        console.log('Using refresh token for request:', refreshToken ? 'Token found' : 'No token found');
+
+        return this.http.post<any>(`${baseUrl}/refresh-token`, { 
+            token: refreshToken // Explicitly send token in request body
+        }, { 
             withCredentials: true,
             headers: new HttpHeaders({
                 'Content-Type': 'application/json',
@@ -312,5 +318,16 @@ export class AccountService implements IAccountService {
             clearTimeout(this.refreshTokenTimeout);
             this.refreshTokenTimeout = null;
         }
+    }
+
+    private getCookie(name: string): string | null {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+                return cookie.substring(name.length + 1);
+            }
+        }
+        return null;
     }
 }
