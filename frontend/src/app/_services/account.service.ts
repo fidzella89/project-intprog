@@ -128,17 +128,13 @@ export class AccountService implements IAccountService {
         this.refreshingToken = true;
         console.log('Starting token refresh request');
         
-        // The backend expects: token = JWT token, refreshToken = refresh token
-        // Get both tokens - jwtToken for 'token' parameter, refreshToken for authentication
+        // The backend expects: token = JWT token
         const jwtToken = this.accountValue.jwtToken;
-        const refreshToken = this.accountValue.token || this.accountValue.refreshToken;
         
         console.log('Using JWT for token parameter:', jwtToken ? 'token present' : 'no token');
-        console.log('Using refreshToken for authentication:', refreshToken ? 'token present' : 'no token');
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, { 
-            token: jwtToken,  // Pass JWT token as token parameter
-            refreshToken: refreshToken  // Also pass refresh token as a backup
+            token: jwtToken  // Pass JWT token as token parameter
         }, { 
             withCredentials: true,
             headers: new HttpHeaders({
