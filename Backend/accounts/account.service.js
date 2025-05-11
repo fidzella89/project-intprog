@@ -77,60 +77,38 @@ async function authenticate({ email, password, ipAddress }) {
     }
 }
 
-async function refreshToken({ token, ipAddress }) {
+async function refreshToken({ jwtToken, ipAddress }) {
     try {
-        if (!token) {
+        // Validate JWT token
+        if (!jwtToken) {
             throw {
                 name: 'ValidationError',
-                message: 'Refresh token is required'
+                message: 'JWT token is required'
             };
         }
-
-        // Find the refresh token with account details
-        const refreshToken = await db.RefreshToken.findOne({
-            where: { token },
-            include: [{
-                model: db.Account,
-                attributes: { 
-                    exclude: ['passwordHash'],
-                    include: ['id', 'email', 'role', 'status'] 
-                }
-            }]
-        });
-
-        if (!refreshToken) {
+        
+        // Extract account ID from JWT token
+        let accountId;
+        try {
+            const decoded = jwt.verify(jwtToken, config.secret);
+            accountId = decoded.id;
+        } catch (err) {
+            throw {
+                name: 'JwtError',
+                message: 'Invalid JWT token'
+            };
+        }
+        
+        // Find the account
+        const account = await db.Account.findByPk(accountId);
+        
+        if (!account) {
             throw {
                 name: 'NotFoundError',
-                message: 'Invalid refresh token'
+                message: 'Account not found'
             };
         }
-
-        if (!refreshToken.Account) {
-            throw {
-                name: 'NotFoundError',
-                message: 'Associated account not found'
-            };
-        }
-
-        // Verify token hasn't expired
-        if (refreshToken.expires < new Date()) {
-            await refreshToken.destroy();
-            throw {
-                name: 'InvalidTokenError',
-                message: 'Token has expired'
-            };
-        }
-
-        // Check if token is revoked
-        if (refreshToken.revoked) {
-            throw {
-                name: 'InvalidTokenError',
-                message: 'Token has been revoked'
-            };
-        }
-
-        const account = refreshToken.Account;
-
+        
         // Check account status
         if (account.status === 'Inactive') {
             throw {
@@ -139,32 +117,29 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        // Generate new tokens within transaction
-    const newRefreshToken = generateRefreshToken(account, ipAddress);
-        const jwtToken = generateJwtToken(account);
-
-        if (!newRefreshToken || !jwtToken) {
+        // Generate new tokens
+        const newJwtToken = generateJwtToken(account);
+        const newRefreshToken = generateRefreshToken(account, ipAddress);
+        
+        if (!newRefreshToken || !newJwtToken) {
             throw new Error('Failed to generate new tokens');
         }
         
-        // Save in transaction
-        await db.sequelize.transaction(async (t) => {
-            // Revoke current token
-    refreshToken.revoked = Date.now();
-    refreshToken.revokedByIp = ipAddress;
-    refreshToken.replacedByToken = newRefreshToken.token;
-            await refreshToken.save({ transaction: t });
-
-            // Save new token
-            await newRefreshToken.save({ transaction: t });
-        });
+        // Revoke old refresh tokens for this account
+        await db.RefreshToken.update(
+            { revoked: Date.now(), revokedByIp: ipAddress },
+            { where: { accountId: account.id, revoked: null } }
+        );
+        
+        // Save new refresh token
+        await newRefreshToken.save();
 
         // Return response with both tokens
         return {
-        ...basicDetails(account),
-        jwtToken,
-        refreshToken: newRefreshToken.token
-    };
+            ...basicDetails(account),
+            jwtToken: newJwtToken,
+            refreshToken: newRefreshToken.token
+        };
     } catch (error) {
         console.error('Refresh token error:', error);
         throw error;

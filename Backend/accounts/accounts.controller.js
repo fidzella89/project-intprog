@@ -77,36 +77,29 @@ function authenticate(req, res, next) {
 
 function refreshToken(req, res, next) {
     try {
-        // Check for token in multiple places
-        const token = req.cookies?.refreshToken || 
-                     req.headers?.['x-refresh-token'] || 
-                     req.body?.token ||
-                     req.body?.refreshToken;
+        // The JWT token comes from the request body now
+        const jwtToken = req.body?.token;
+        
+        if (!jwtToken) {
+            return res.status(400).json({ 
+                message: 'JWT token is required in request body',
+                code: 'JWT_TOKEN_REQUIRED',
+                debug: process.env.NODE_ENV === 'development' ? {
+                    body: req.body
+                } : undefined
+            });
+        }
         
         const ipAddress = req.ip;
         
         // Log debugging information
         console.log('Refresh Token Request:', {
-            hasCookies: !!req.cookies,
-            cookieToken: req.cookies?.refreshToken,
-            headerToken: req.headers?.['x-refresh-token'],
-            bodyToken: req.body?.token || req.body?.refreshToken,
-            finalToken: token
+            hasJwtToken: !!jwtToken,
+            jwtToken: jwtToken
         });
 
-        if (!token) {
-            return res.status(401).json({ 
-                message: 'Refresh token is required',
-                code: 'TOKEN_REQUIRED',
-                debug: process.env.NODE_ENV === 'development' ? {
-                    cookies: req.cookies,
-                    headers: req.headers,
-                    body: req.body
-                } : undefined
-            });
-        }
-
-        accountService.refreshToken({ token, ipAddress })
+        // We'll generate a new refresh token - no need to get it from the request
+        accountService.refreshToken({ jwtToken, ipAddress })
             .then(({ jwtToken, refreshToken, ...account }) => {
                 if (!jwtToken || !refreshToken) {
                     throw new Error('Invalid token response from service');
@@ -132,17 +125,6 @@ function refreshToken(req, res, next) {
                 });
             })
             .catch(error => {
-                // Clear the invalid refresh token with same options as setting
-                const cookieOptions = {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                    path: '/',
-                    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
-                };
-                
-                res.clearCookie('refreshToken', cookieOptions);
-                
                 // Log the error for debugging
                 console.error('Refresh token error:', error);
 
@@ -167,6 +149,11 @@ function refreshToken(req, res, next) {
                         return res.status(500).json({ 
                             message: error.message,
                             code: 'TOKEN_GENERATION_ERROR'
+                        });
+                    case 'JwtError':
+                        return res.status(401).json({ 
+                            message: error.message,
+                            code: 'JWT_INVALID'
                         });
                     default:
                         return res.status(500).json({ 
