@@ -31,6 +31,21 @@ function authenticateSchema(req, res, next) {
     validateRequest(req, next, schema);
 }
 
+function setJwtCookie(res, token) {
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        expires: new Date(Date.now() + 60 * 60 * 1000) // 1 hour expiry
+    };
+
+    if (process.env.NODE_ENV === 'production') {
+        cookieOptions.domain = 'final-intprog-project-1.onrender.com';
+    }
+
+    res.cookie('token', token, cookieOptions);
+}
+
 function authenticate(req, res, next) {
     const { email, password } = req.body;
     const ipAddress = req.ip;
