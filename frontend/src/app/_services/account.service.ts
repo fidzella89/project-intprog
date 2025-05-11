@@ -70,11 +70,6 @@ export class AccountService implements IAccountService {
                     if (!account.jwtToken) {
                         throw new Error('No JWT token in response');
                     }
-                    
-                    // Handle both token and refreshToken properties in the response
-                    if (account.token && !account.refreshToken) {
-                        account.refreshToken = account.token;
-                    }
 
                     // Update the account subject
                     this.accountSubject.next(account);
@@ -152,11 +147,6 @@ export class AccountService implements IAccountService {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
                 
-                // Handle both token and refreshToken properties in the response
-                if (response.token && !response.refreshToken) {
-                    response.refreshToken = response.token;
-                }
-                
                 // Update the account subject with the new data
                 this.accountSubject.next(response);
                 
@@ -169,7 +159,7 @@ export class AccountService implements IAccountService {
                 console.error('Token refresh failed:', error);
                 
                 // Clear account data and stop refresh timer
-                this.clearAccountData();
+                    this.clearAccountData();
                 this.stopRefreshTokenTimer();
                 
                 // Determine error message
@@ -266,40 +256,8 @@ export class AccountService implements IAccountService {
                 return;
             }
 
-            // Make sure the token has the correct format (header.payload.signature)
-            const tokenParts = jwtToken.split('.');
-            if (tokenParts.length !== 3) {
-                console.error('Invalid JWT token format - expected 3 parts separated by dots');
-                this.clearAccountData();
-                this.router.navigate(['/account/login']);
-                return;
-            }
-
-            // Safely base64 decode the token payload
-            let jwtPayload;
-            try {
-                // Make sure payload is properly padded for base64 decoding
-                const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
-                const paddedPayload = base64Payload.padEnd(
-                    base64Payload.length + (4 - (base64Payload.length % 4)) % 4, 
-                    '='
-                );
-                
-                jwtPayload = JSON.parse(atob(paddedPayload));
-            } catch (e) {
-                console.error('Failed to decode JWT payload:', e);
-                this.clearAccountData();
-                this.router.navigate(['/account/login']);
-                return;
-            }
-
-            if (!jwtPayload || !jwtPayload.exp) {
-                console.error('Invalid JWT payload or missing expiration time');
-                this.clearAccountData();
-                this.router.navigate(['/account/login']);
-                return;
-            }
-
+            // Parse the token payload
+            const jwtPayload = JSON.parse(atob(jwtToken.split('.')[1]));
             const expires = new Date(jwtPayload.exp * 1000);
             const now = new Date();
             

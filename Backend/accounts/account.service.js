@@ -20,8 +20,7 @@ module.exports = {
     getById,
     create,
     update,
-    delete: _delete,
-    checkToken
+    delete: _delete
 };
 
 async function authenticate({ email, password, ipAddress }) {
@@ -35,21 +34,21 @@ async function authenticate({ email, password, ipAddress }) {
             }]
         });
 
-        if (!account) {
+    if (!account) {
             throw { name: 'ValidationError', message: 'Email does not exist' };
-        }
+    }
 
-        if (!account.isVerified) {
+    if (!account.isVerified) {
             throw { name: 'ValidationError', message: 'Email is not verified' };
-        }
+    }
 
-        if (account.status === 'Inactive') {
+    if (account.status === 'Inactive') {
             throw { name: 'ValidationError', message: 'Account is inactive. Please contact administrator.' };
-        }
+    }
 
-        if (!(await bcrypt.compare(password, account.passwordHash))) {
+    if (!(await bcrypt.compare(password, account.passwordHash))) {
             throw { name: 'ValidationError', message: 'Password is incorrect' };
-        }
+    }
 
         // Revoke any existing active refresh tokens
         if (account.RefreshTokens && account.RefreshTokens.length) {
@@ -60,18 +59,18 @@ async function authenticate({ email, password, ipAddress }) {
         }
 
         // Generate new tokens
-        const jwtToken = generateJwtToken(account);
-        const refreshToken = generateRefreshToken(account, ipAddress);
+    const jwtToken = generateJwtToken(account);
+    const refreshToken = generateRefreshToken(account, ipAddress);
 
         // Save refresh token
-        await refreshToken.save();
+    await refreshToken.save();
 
         // Return basic details and tokens
-        return {
-            ...basicDetails(account),
-            jwtToken,
-            refreshToken: refreshToken.token
-        };
+    return {
+        ...basicDetails(account),
+        jwtToken,
+        refreshToken: refreshToken.token
+    };
     } catch (error) {
         console.error('Authentication error:', error);
         throw error;
@@ -87,65 +86,29 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        console.log('Refreshing token:', token.substring(0, 10) + '...');
-
         // Find the refresh token with account details
         const refreshToken = await db.RefreshToken.findOne({
             where: { token },
             include: [{
                 model: db.Account,
                 attributes: { 
-                    exclude: ['passwordHash']
+                    exclude: ['passwordHash'],
+                    include: ['id', 'email', 'role', 'status'] 
                 }
             }]
         });
 
         if (!refreshToken) {
-            console.error('Token not found in database');
             throw {
                 name: 'NotFoundError',
                 message: 'Invalid refresh token'
             };
         }
 
-        // Explicitly check if Account is loaded
         if (!refreshToken.Account) {
-            console.error(`Account not found for token. AccountId: ${refreshToken.accountId}`);
-            
-            // Try to find the account directly
-            const account = await db.Account.findByPk(refreshToken.accountId);
-            
-            if (!account) {
-                throw {
-                    name: 'NotFoundError',
-                    message: 'Associated account not found'
-                };
-            }
-            
-            // If we find the account, use it for token refresh
-            console.log(`Found account manually: ${account.id}, ${account.email}`);
-            
-            // Generate new tokens
-            const newRefreshToken = generateRefreshToken(account, ipAddress);
-            const jwtToken = generateJwtToken(account);
-            
-            // Save in transaction
-            await db.sequelize.transaction(async (t) => {
-                // Revoke current token
-                refreshToken.revoked = Date.now();
-                refreshToken.revokedByIp = ipAddress;
-                refreshToken.replacedByToken = newRefreshToken.token;
-                await refreshToken.save({ transaction: t });
-                
-                // Save new token
-                await newRefreshToken.save({ transaction: t });
-            });
-            
-            // Return response with both tokens
-            return {
-                ...basicDetails(account),
-                jwtToken,
-                refreshToken: newRefreshToken.token
+            throw {
+                name: 'NotFoundError',
+                message: 'Associated account not found'
             };
         }
 
@@ -177,19 +140,19 @@ async function refreshToken({ token, ipAddress }) {
         }
 
         // Generate new tokens within transaction
-        const newRefreshToken = generateRefreshToken(account, ipAddress);
+    const newRefreshToken = generateRefreshToken(account, ipAddress);
         const jwtToken = generateJwtToken(account);
 
         if (!newRefreshToken || !jwtToken) {
             throw new Error('Failed to generate new tokens');
         }
-
+        
         // Save in transaction
         await db.sequelize.transaction(async (t) => {
             // Revoke current token
-            refreshToken.revoked = Date.now();
-            refreshToken.revokedByIp = ipAddress;
-            refreshToken.replacedByToken = newRefreshToken.token;
+    refreshToken.revoked = Date.now();
+    refreshToken.revokedByIp = ipAddress;
+    refreshToken.replacedByToken = newRefreshToken.token;
             await refreshToken.save({ transaction: t });
 
             // Save new token
@@ -198,10 +161,10 @@ async function refreshToken({ token, ipAddress }) {
 
         // Return response with both tokens
         return {
-            ...basicDetails(account),
-            jwtToken,
-            refreshToken: newRefreshToken.token
-        };
+        ...basicDetails(account),
+        jwtToken,
+        refreshToken: newRefreshToken.token
+    };
     } catch (error) {
         console.error('Refresh token error:', error);
         throw error;
@@ -443,11 +406,11 @@ function generateRefreshToken(account, ipAddress) {
         );
         
         const refreshToken = new db.RefreshToken({
-            accountId: account.id,
+        accountId: account.id,
             token: token,
             expires: expires,
-            createdByIp: ipAddress
-        });
+        createdByIp: ipAddress
+    });
 
         if (!refreshToken || !refreshToken.token) {
             throw new Error('Failed to create refresh token');
@@ -548,57 +511,5 @@ async function checkActiveTokens() {
         }
     } catch (error) {
         console.error('Error checking active tokens:', error);
-    }
-}
-
-// Add checkToken method
-async function checkToken(token) {
-    try {
-        const refreshToken = await db.RefreshToken.findOne({ 
-            where: { token },
-            include: [{
-                model: db.Account,
-                attributes: { exclude: ['passwordHash'] }
-            }]
-        });
-
-        if (!refreshToken) {
-            return {
-                valid: false,
-                reason: 'Token not found in database'
-            };
-        }
-
-        // Check token expiry
-        const isExpired = refreshToken.expires < new Date();
-        
-        // Check if revoked
-        const isRevoked = !!refreshToken.revoked;
-        
-        // Check if account exists
-        const hasAccount = !!refreshToken.Account;
-        
-        return {
-            valid: !isExpired && !isRevoked && hasAccount,
-            tokenDetails: {
-                id: refreshToken.id,
-                expires: refreshToken.expires,
-                issuedAt: refreshToken.created,
-                isExpired,
-                isRevoked,
-                revokedAt: refreshToken.revoked,
-                accountId: refreshToken.accountId
-            },
-            accountDetails: hasAccount ? {
-                id: refreshToken.Account.id,
-                email: refreshToken.Account.email,
-                role: refreshToken.Account.role,
-                status: refreshToken.Account.status,
-                isVerified: refreshToken.Account.isVerified
-            } : null
-        };
-    } catch (error) {
-        console.error('Error checking token:', error);
-        throw error;
     }
 }

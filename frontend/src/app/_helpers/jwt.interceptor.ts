@@ -16,14 +16,11 @@ export class JwtInterceptor implements HttpInterceptor {
     intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         // add auth header with jwt if account is logged in and request is to the api url
         const account = this.accountService.accountValue;
-        const isLoggedIn = account?.token;
+        const isLoggedIn = account?.jwtToken;
         const isApiUrl = request.url.startsWith(environment.apiUrl);
         
         if (isLoggedIn && isApiUrl && !this.isRefreshTokenRequest(request)) {
-            // Ensure token is not undefined
-            if (account && account.token) {
-                request = this.addTokenHeader(request, account.token);
-            }
+            request = this.addTokenHeader(request, account.jwtToken);
         }
 
         return next.handle(request).pipe(
@@ -70,8 +67,8 @@ export class JwtInterceptor implements HttpInterceptor {
             return this.accountService.refreshToken().pipe(
                 switchMap((account: any) => {
                     this.isRefreshing = false;
-                    this.refreshTokenSubject.next(account.token);
-                    return next.handle(this.addTokenHeader(request, account.token));
+                    this.refreshTokenSubject.next(account.jwtToken);
+                    return next.handle(this.addTokenHeader(request, account.jwtToken));
                 }),
                 catchError(error => {
                     this.isRefreshing = false;
