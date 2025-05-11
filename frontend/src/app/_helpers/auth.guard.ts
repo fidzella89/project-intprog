@@ -16,18 +16,14 @@ export class AuthGuard {
     canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> {
         const account = this.accountService.accountValue;
         
-        if (!account) {
-            // Check if we're already on the login page to prevent loops
-            if (state.url.startsWith('/account/login')) {
-                return of(true);
-            }
+        // Check if we're already on the login page to prevent loops
+        if (state.url.startsWith('/account/login')) {
+            return of(true);
+        }
 
-            // Not logged in, show message and redirect to login
-            this.alertService.error('You are unauthorized. Please log in.', { 
-                keepAfterRouteChange: true,
-                autoClose: true,
-                autoCloseTimeout: 6000 // 6 seconds
-            });
+        if (!account || !account.jwtToken) {
+            console.log('Auth Guard: No account or token found, redirecting to login');
+            // Not logged in, redirect to login page with return url
             this.router.navigate(['/account/login'], { queryParams: { returnUrl: state.url } });
             return of(false);
         }
@@ -36,25 +32,29 @@ export class AuthGuard {
         return this.accountService.refreshToken().pipe(
             map(() => {
                 const currentAccount = this.accountService.accountValue;
+                console.log('Auth Guard: Token refreshed, checking roles');
                 
                 // Check if route requires specific roles
                 if (route.data['roles'] && !route.data['roles'].includes(currentAccount?.role)) {
+                    console.log('Auth Guard: Role check failed');
                     this.alertService.error('You are unauthorized to access this page.', { 
                         keepAfterRouteChange: true,
                         autoClose: true,
-                        autoCloseTimeout: 6000 // 6 seconds
+                        autoCloseTimeout: 6000
                     });
                     this.router.navigate(['/']);
                     return false;
                 }
                 
+                console.log('Auth Guard: Access granted');
                 return true;
             }),
             catchError((error) => {
+                console.error('Auth Guard: Token refresh failed:', error);
                 this.alertService.error('Your session has expired. Please log in again.', { 
                     keepAfterRouteChange: true,
                     autoClose: true,
-                    autoCloseTimeout: 6000 // 6 seconds
+                    autoCloseTimeout: 6000
                 });
                 this.router.navigate(['/account/login'], { queryParams: { returnUrl: state.url } });
                 return of(false);

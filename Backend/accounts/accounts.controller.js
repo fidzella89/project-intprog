@@ -36,10 +36,20 @@ function authenticate(req, res, next) {
     const ipAddress = req.ip;
     accountService.authenticate({ email, password, ipAddress })
         .then(({ refreshToken, ...account }) => {
+            // Check account status before setting token
+            if (account.status === 'Inactive') {
+                return res.status(400).json({
+                    message: 'Account is inactive. Please contact administrator.',
+                    status: 'Inactive'
+                });
+            }
+            
             setTokenCookie(res, refreshToken);
             res.json(account);
         })
         .catch(error => {
+            console.error('Authentication error:', error);
+            
             if (error === 'Email does not exist') {
                 return res.status(400).json({ message: error });
             }
@@ -59,8 +69,9 @@ function authenticate(req, res, next) {
                     status: 'Inactive'
                 });
             }
+            
             // Log unexpected errors
-            console.error('Authentication error:', error);
+            console.error('Unexpected authentication error:', error);
             // Return a generic error message for unexpected errors
             return res.status(500).json({ message: 'An unexpected error occurred during authentication' });
         });

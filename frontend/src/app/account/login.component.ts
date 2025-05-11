@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
-import { first, finalize } from 'rxjs/operators';
+import { first } from 'rxjs/operators';
 
 import { AccountService, AlertService } from '@app/_services';
 
@@ -51,43 +51,28 @@ export class LoginComponent implements OnInit {
 
         this.loading = true;
         this.accountService.login(this.f.email.value, this.f.password.value)
-            .pipe(
-                first(),
-                finalize(() => {
-                    this.loading = false;
-                })
-            )
+            .pipe(first())
             .subscribe({
                 next: (account) => {
-                    console.log('Login successful:', account);
+                    console.log('Login successful, navigating to:', this.returnUrl);
                     
-                    // Check account status
-                    if (account.status === 'Inactive') {
-                        this.alertService.error('Account is inactive. Please contact administrator.');
-                        return;
-                    }
-                    
-                    if (account && account.jwtToken) {
-                        // Get the return url from route parameters or default to '/'
-                        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
-                        
-                        // Use router.navigateByUrl for more reliable navigation
-                        this.router.navigateByUrl(returnUrl, { replaceUrl: true })
-                            .then(() => {
-                                console.log('Navigation successful to:', returnUrl);
-                            })
-                            .catch(error => {
-                                console.error('Navigation failed:', error);
-                                // Fallback to home page if navigation fails
-                                this.router.navigateByUrl('/', { replaceUrl: true });
-                            });
-                    } else {
-                        this.alertService.error('Login failed: Invalid response from server');
-                    }
+                    // Navigate to return url or home
+                    this.router.navigate([this.returnUrl])
+                        .then(() => {
+                            console.log('Navigation successful');
+                            // Force a page reload to ensure all components are properly initialized
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            console.error('Navigation failed:', error);
+                            // Fallback to home page if navigation fails
+                            this.router.navigate(['/']);
+                        });
                 },
                 error: error => {
                     console.error('Login error:', error);
                     this.alertService.error(error);
+                    this.loading = false;
                 }
             });
     }
