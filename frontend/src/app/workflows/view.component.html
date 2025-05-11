@@ -47,7 +47,7 @@
         </div>
 
         <div class="border-top pt-3">
-            <a routerLink="/workflows" [queryParams]="{ employeeId: employeeId }" queryParamsHandling="merge" class="btn btn-link">Back to List</a>
+            <a routerLink="/workflows" [queryParams]="getBackToListQueryParams()" class="btn btn-link">Back to List</a>
             <button *ngIf="isOwner" (click)="deleteWorkflow()" class="btn btn-danger me-2" [disabled]="loading">
                 <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
                 Delete Workflow

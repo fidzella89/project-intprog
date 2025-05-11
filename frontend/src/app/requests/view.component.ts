@@ -8,8 +8,8 @@ declare var bootstrap: any;
 
 @Component({ templateUrl: 'view.component.html' })
 export class ViewComponent implements OnInit {
-    id: string;
-    request: Request;
+    id!: string;
+    request!: Request;
     loading = false;
     isAdmin = false;
     isModerator = false;
@@ -122,5 +122,22 @@ export class ViewComponent implements OnInit {
     formatDate(date: Date): string {
         if (!date) return '';
         return new Date(date).toLocaleString();
+    }
+
+    // Helper method to determine the query params for Back to List button
+    getBackToListQueryParams() {
+        // If the user is not an admin, always show their own requests
+        if (!this.isAdmin && !this.isModerator) {
+            const currentUserId = this.accountService.accountValue?.id;
+            return currentUserId ? { employeeId: currentUserId } : {};
+        }
+        
+        // For admins viewing someone else's request, use that employee's ID
+        if (this.request && this.request.employeeId) {
+            return { employeeId: this.request.employeeId };
+        }
+        
+        // Default case
+        return {};
     }
 } 

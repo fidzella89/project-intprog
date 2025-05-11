@@ -82,10 +82,10 @@
                     </td>
                     <td class="text-center align-middle">{{request.createdDate | date:'medium'}}</td>
                     <td class="text-center align-middle" style="white-space: nowrap">
-                        <a routerLink="view/{{request.id}}" class="btn btn-sm btn-primary me-1">View</a>
+                        <a [routerLink]="['view', request.id]" [queryParams]="{employeeId: employeeId}" class="btn btn-sm btn-primary me-1">View</a>
                         <!-- Edit, Delete, and Status Change buttons only for admin -->
                         <ng-container *ngIf="isAdmin">
-                            <a routerLink="edit/{{request.id}}" class="btn btn-sm btn-warning me-1">Edit</a>
+                            <a [routerLink]="['edit', request.id]" [queryParams]="{employeeId: employeeId}" class="btn btn-sm btn-warning me-1">Edit</a>
                             <div class="btn-group me-1">
                                 <button type="button" class="btn btn-sm btn-info dropdown-toggle" data-bs-toggle="dropdown" [disabled]="request.isUpdating">
                                     <span *ngIf="request.isUpdating" class="spinner-border spinner-border-sm me-1"></span>

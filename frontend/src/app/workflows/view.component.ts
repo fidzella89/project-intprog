@@ -7,9 +7,10 @@ import { Role, Workflow } from '@app/_models';
 
 @Component({ templateUrl: 'view.component.html' })
 export class ViewWorkflowComponent implements OnInit {
-    workflow: Workflow;
+    workflow!: Workflow;
     loading = false;
     isAdmin = false;
+    isOwner = false;
     employee: any = null;
     employeeId: string | null = null;
     displayEmployeeId: string | null = null;
@@ -44,6 +45,11 @@ export class ViewWorkflowComponent implements OnInit {
                     if (workflow.employee && workflow.employee.account) {
                         this.employee = workflow.employee;
                         this.displayEmployeeId = `EMP${workflow.employee.employeeId}`;
+                        
+                        // Check if current user is the owner of the workflow
+                        const currentUserId = this.accountService.accountValue?.id;
+                        this.isOwner = this.isAdmin || 
+                            (currentUserId && workflow.employee.id === Number(currentUserId));
                     }
                     this.loading = false;
                 },
@@ -72,9 +78,10 @@ export class ViewWorkflowComponent implements OnInit {
                 .subscribe({
                     next: () => {
                         this.alertService.success('Workflow deleted successfully');
+                        const empId = this.employeeId || '';
                         this.router.navigate(['../'], { 
                             relativeTo: this.route,
-                            queryParams: { employeeId: this.employeeId },
+                            queryParams: { employeeId: empId },
                             queryParamsHandling: 'merge'
                         });
                     },
@@ -84,5 +91,22 @@ export class ViewWorkflowComponent implements OnInit {
                     }
                 });
         }
+    }
+
+    // Helper method to determine query params for the Back to List button
+    getBackToListQueryParams() {
+        // If user is not an admin, always show their own workflows
+        if (!this.isAdmin) {
+            const currentUserId = this.accountService.accountValue?.id;
+            return currentUserId ? { employeeId: currentUserId } : {};
+        }
+        
+        // For admins viewing someone else's workflow
+        if (this.workflow?.employee?.id) {
+            return { employeeId: this.workflow.employee.id };
+        }
+        
+        // Default case
+        return {};
     }
 } 

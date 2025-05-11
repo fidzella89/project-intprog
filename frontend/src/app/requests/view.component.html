@@ -50,11 +50,11 @@
             </div>
 
             <div class="border-top pt-3">
-                <a routerLink="/requests" class="btn btn-link">Back to List</a>
-                <button *ngIf="isOwner && request.status === 'Pending'" routerLink="/requests/edit/{{request.id}}" class="btn btn-primary me-2">
+                <a routerLink="/requests" [queryParams]="getBackToListQueryParams()" class="btn btn-link">Back to List</a>
+                <button *ngIf="isOwner" routerLink="/requests/edit/{{request.id}}" class="btn btn-primary me-2">
                     Edit Request
                 </button>
-                <button *ngIf="isOwner && request.status === 'Pending'" (click)="openDeleteModal(request)" class="btn btn-danger me-2" [disabled]="deleting">
+                <button *ngIf="isOwner" (click)="openDeleteModal(request)" class="btn btn-danger me-2" [disabled]="deleting">
                     <span *ngIf="deleting" class="spinner-border spinner-border-sm me-1"></span>
                     Delete Request
                 </button>
