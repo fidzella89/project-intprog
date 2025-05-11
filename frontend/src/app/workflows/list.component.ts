@@ -88,13 +88,15 @@ export class ListWorkflowComponent implements OnInit {
                         return dateB - dateA;
                     });
                     this.loading = false;
-                    this.notFound = false;
+                    this.notFound = !workflows || workflows.length === 0;
                 },
                 error: error => {
-                    if (error.status === 404) {
+                    if (error.status === 404 || error.toLowerCase?.().includes('not found')) {
                         this.notFound = true;
+                        this.alertService.info("No data found");
+                    } else {
+                        this.alertService.error(error);
                     }
-                    this.alertService.error(error);
                     this.loading = false;
                 }
             });

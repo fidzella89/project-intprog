@@ -14,11 +14,10 @@
         <div *ngIf="loading" class="text-center">
             <span class="spinner-border spinner-border-lg align-center"></span>
         </div>
-        <div *ngIf="!loading && notFound" class="alert alert-warning">
-            No requests found for Employee #{{employeeId}}
-        </div>
-        <div *ngIf="!loading && !notFound && (!requests || requests.length === 0)" class="alert alert-info text-center">
-            <i class="fas fa-info-circle me-2"></i> No data found
+        <div *ngIf="notFound" class="alert alert-warning">
+            <i class="fas fa-info-circle me-2"></i>
+            <ng-container *ngIf="employeeId">No requests found for Employee #{{employeeId}}</ng-container>
+            <ng-container *ngIf="!employeeId">No data found</ng-container>
         </div>
         <table *ngIf="!loading && !notFound && requests && requests.length > 0" class="table table-striped">
             <thead>

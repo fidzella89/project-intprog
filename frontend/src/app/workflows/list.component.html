@@ -23,10 +23,9 @@
             <span class="spinner-border spinner-border-lg align-center"></span>
         </div>
         <div *ngIf="notFound" class="alert alert-warning">
-            No workflows found for Employee {{displayEmployeeId}}
-        </div>
-        <div *ngIf="!loading && !notFound && (!workflows || workflows.length === 0)" class="alert alert-info text-center">
-            <i class="fas fa-info-circle me-2"></i> No data found
+            <i class="fas fa-info-circle me-2"></i>
+            <ng-container *ngIf="employeeId">No workflows found for Employee {{displayEmployeeId}}</ng-container>
+            <ng-container *ngIf="!employeeId">No data found</ng-container>
         </div>
         <table *ngIf="!loading && !notFound && workflows && workflows.length > 0" class="table table-striped">
             <thead>

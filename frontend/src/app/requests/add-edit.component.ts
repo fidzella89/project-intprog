@@ -281,6 +281,9 @@ export class AddEditComponent implements OnInit {
                         this.errorMessage = 'Failed to create request. Please try again.';
                     }
                     
+                    // Auto-clear error message after 5 seconds
+                    setTimeout(() => this.clearError(), 5000);
+                    
                     this.loading = false;
                 }
             });
@@ -299,7 +302,24 @@ export class AddEditComponent implements OnInit {
                     });
                 },
                 error: error => {
-                    this.alertService.error(error);
+                    console.error('Error updating request:', error);
+                    
+                    // Handle specific error messages
+                    if (typeof error === 'string') {
+                        if (error.includes('Employee') && error.includes('does not exist')) {
+                            this.errorMessage = 'The specified employee does not exist. Please check the employee ID.';
+                        } else if (error.includes('Foreign key constraint')) {
+                            this.errorMessage = 'Invalid employee ID or reference.';
+                        } else {
+                            this.errorMessage = error;
+                        }
+                    } else {
+                        this.errorMessage = 'Failed to update request. Please try again.';
+                    }
+                    
+                    // Auto-clear error message after 5 seconds
+                    setTimeout(() => this.clearError(), 5000);
+                    
                     this.loading = false;
                 }
             });

@@ -10,8 +10,11 @@ export class AlertComponent implements OnInit, OnDestroy {
     @Input() id = 'default-alert';
     @Input() fade = true;
     alerts: Alert[] = [];
-    alertSubscription: Subscription;
-    routeSubscription: Subscription;
+    alertSubscription!: Subscription;
+    routeSubscription!: Subscription;
+    
+    // Make the AlertType enum available in the template
+    AlertType = AlertType;
 
     constructor(private router: Router, private alertService: AlertService) { }
 
@@ -24,7 +27,11 @@ export class AlertComponent implements OnInit, OnDestroy {
                     // filter out alerts without 'keepAfterRouteChange' flag
                     this.alerts = this.alerts.filter(x => x.keepAfterRouteChange);
                     // remove 'keepAfterRouteChange' flag on the rest
-                    this.alerts.forEach(x => delete x.keepAfterRouteChange);
+                    this.alerts.forEach(x => {
+                        if (x.keepAfterRouteChange) {
+                            x.keepAfterRouteChange = false;
+                        }
+                    });
                     return;
                 }
 
@@ -33,7 +40,7 @@ export class AlertComponent implements OnInit, OnDestroy {
 
                 // auto close alert if required
                 if (alert.autoClose) {
-                    setTimeout(() => this.removeAlert(alert), 3000);
+                    setTimeout(() => this.removeAlert(alert), 5000);
                 }
             });
 
@@ -69,24 +76,47 @@ export class AlertComponent implements OnInit, OnDestroy {
         }
     }
 
-    cssClasses(alert: Alert) {
-        if (!alert) return;
+    // Get the Bootstrap alert class based on alert type
+    getAlertClass(alert: Alert) {
+        if (!alert) return '';
 
-        const classes = ['alert', 'alert-dismissable'];
-
-        const alertTypeClass = {
-            [AlertType.Success]: 'alert alert-success',
-            [AlertType.Error]: 'alert alert-danger',
-            [AlertType.Info]: 'alert alert-info',
-            [AlertType.Warning]: 'alert alert-warning'
-        }
-
-        classes.push(alertTypeClass[alert.type]);
+        const classes = [];
 
         if (alert.fade) {
             classes.push('fade');
         }
 
+        const alertType = Number(alert.type);
+        
+        if (alertType === AlertType.Success) {
+            classes.push('alert-success');
+        } else if (alertType === AlertType.Error) {
+            classes.push('alert-danger');
+        } else if (alertType === AlertType.Info) {
+            classes.push('alert-info');
+        } else if (alertType === AlertType.Warning) {
+            classes.push('alert-warning');
+        }
+
         return classes.join(' ');
+    }
+
+    // Get the Font Awesome icon class based on alert type
+    getAlertIcon(alert: Alert) {
+        if (!alert) return '';
+
+        const alertType = Number(alert.type);
+        
+        if (alertType === AlertType.Success) {
+            return 'fas fa-check-circle';
+        } else if (alertType === AlertType.Error) {
+            return 'fas fa-exclamation-circle';
+        } else if (alertType === AlertType.Info) {
+            return 'fas fa-info-circle';
+        } else if (alertType === AlertType.Warning) {
+            return 'fas fa-exclamation-triangle';
+        }
+        
+        return 'fas fa-info-circle';
     }
 }

@@ -55,9 +55,18 @@ export class ListComponent implements OnInit {
                         this.requests = requests || [];
                         this.notFound = !requests || requests.length === 0;
                         this.loading = false;
+                        
+                        if (this.notFound) {
+                            this.alertService.info("No data found");
+                        }
                     },
                     error: error => {
-                        this.alertService.error(error);
+                        if (error.status === 404 || error.toLowerCase?.().includes('not found')) {
+                            this.notFound = true;
+                            this.alertService.info("No data found");
+                        } else {
+                            this.alertService.error(error);
+                        }
                         this.loading = false;
                     }
                 });
@@ -67,11 +76,21 @@ export class ListComponent implements OnInit {
                 .pipe(first())
                 .subscribe({
                     next: (requests: any) => {
-                        this.requests = requests;
+                        this.requests = requests || [];
+                        this.notFound = !requests || requests.length === 0;
                         this.loading = false;
+                        
+                        if (this.notFound) {
+                            this.alertService.info("No data found");
+                        }
                     },
                     error: error => {
-                        this.alertService.error(error);
+                        if (error.status === 404 || error.toLowerCase?.().includes('not found')) {
+                            this.notFound = true;
+                            this.alertService.info("No data found");
+                        } else {
+                            this.alertService.error(error);
+                        }
                         this.loading = false;
                     }
                 });
