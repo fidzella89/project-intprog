@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { AccountService } from './_services';
+import { AccountService, AlertService } from './_services';
 import { Account, Role } from './_models';
 import { Subscription, filter } from 'rxjs';
 
@@ -18,7 +18,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
     constructor(
         private accountService: AccountService,
-        private router: Router
+        private router: Router,
+        private alertService: AlertService
     ) {
         // Initialize account from service
         this.account = this.accountService.accountValue;
@@ -87,9 +88,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
     logout() {
         console.log('App: Logging out user');
+        this.closeLogoutModal(); // Close modal immediately after user confirms
+        
         this.accountService.logout().subscribe({
             next: () => {
                 console.log('App: Logout successful');
+                this.alertService.success('Logged out successfully');
                 this.router.navigate(['/account/login']);
             },
             error: (error) => {
@@ -97,9 +101,6 @@ export class AppComponent implements OnInit, OnDestroy {
                 // Even if there's an error, still clear local data and redirect
                 this.accountService.clearAccountData();
                 this.router.navigate(['/account/login']);
-            },
-            complete: () => {
-                this.closeLogoutModal();
             }
         });
     }

@@ -170,6 +170,16 @@ async function create(params, retryCount = 0) {
                 message: 'Request type is required'
             };
         }
+        
+        // Check if the employee exists
+        const employee = await db.Employee.findByPk(params.employeeId);
+        if (!employee) {
+            console.error(`Employee with ID ${params.employeeId} not found`);
+            throw {
+                name: 'ValidationError',
+                message: `Employee with ID ${params.employeeId} does not exist`
+            };
+        }
 
         // Generate request number
         const requestNumber = await generateRequestNumber();
@@ -197,24 +207,29 @@ async function create(params, retryCount = 0) {
         
         // Create request and items in a transaction
         const result = await db.Request.sequelize.transaction(async (t) => {
-            // Create the request
-            const request = await db.Request.create(params, { transaction: t });
-            console.log('Created request:', request.toJSON()); // Debug log
-            
-            // Create items
-            if (items.length > 0) {
-                const requestItems = items.map(item => ({
-                    ...item,
-                    requestId: request.id
-                }));
-                await db.RequestItem.bulkCreate(requestItems, { 
-                    transaction: t,
-                    validate: true
-                });
-                console.log('Created request items:', requestItems); // Debug log
-            }
+            try {
+                // Create the request
+                const request = await db.Request.create(params, { transaction: t });
+                console.log('Created request:', request.toJSON()); // Debug log
+                
+                // Create items
+                if (items.length > 0) {
+                    const requestItems = items.map(item => ({
+                        ...item,
+                        requestId: request.id
+                    }));
+                    await db.RequestItem.bulkCreate(requestItems, { 
+                        transaction: t,
+                        validate: true
+                    });
+                    console.log('Created request items:', requestItems); // Debug log
+                }
 
-            return request;
+                return request;
+            } catch (txError) {
+                console.error('Transaction error:', txError);
+                throw txError;
+            }
         });
 
         console.log('Request created successfully:', result.id);
@@ -233,7 +248,7 @@ async function create(params, retryCount = 0) {
         } else if (error.name === 'SequelizeForeignKeyConstraintError') {
             throw {
                 name: 'ValidationError',
-                message: 'Invalid reference to an employee or other entity'
+                message: 'Employee ID does not exist or invalid reference to another entity'
             };
         } else if (error.name === 'SequelizeUniqueConstraintError') {
             throw {
@@ -243,7 +258,8 @@ async function create(params, retryCount = 0) {
         } else {
             throw {
                 name: 'InternalError',
-                message: 'Failed to create request. Please try again later.'
+                message: 'Failed to create request. Please try again later.',
+                details: process.env.NODE_ENV === 'development' ? error.message : undefined
             };
         }
     }

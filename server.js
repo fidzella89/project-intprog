@@ -90,6 +90,12 @@ app.use((err, req, res, next) => {
             statusCode = 400;
             errorMessage = err.message;
             break;
+            
+        case err.name === 'SequelizeForeignKeyConstraintError':
+            // Foreign key constraint error
+            statusCode = 400;
+            errorMessage = 'The referenced employee or entity does not exist';
+            break;
 
         case err.name === 'NotFoundError':
             // Not found error

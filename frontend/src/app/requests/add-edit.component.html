@@ -6,6 +6,21 @@
         </ng-container>
     </h4>
     <div class="card-body">
+        <!-- Custom error alert with improved styling -->
+        <div *ngIf="errorMessage" class="alert alert-custom mb-4 alert-danger">
+            <div class="d-flex align-items-center">
+                <div class="alert-icon mr-3">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="alert-content">
+                    <strong>Error:</strong> {{errorMessage}}
+                </div>
+                <button type="button" class="close ml-auto" (click)="clearError()">
+                    <span>&times;</span>
+                </button>
+            </div>
+        </div>
+
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
             <div class="mb-3">
                 <label class="form-label">Type</label>
@@ -77,4 +92,37 @@
             </div>
         </form>
     </div>
-</div> 
+</div>
+
+<style>
+    .alert-custom {
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 5px solid;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .alert-custom.alert-danger {
+        border-left-color: #dc3545;
+        background-color: #fff8f8;
+    }
+    
+    .alert-icon {
+        font-size: 1.5rem;
+        color: #dc3545;
+    }
+    
+    .alert-content {
+        flex: 1;
+    }
+    
+    .close {
+        background: transparent;
+        border: none;
+        font-size: 1.25rem;
+        padding: 0;
+        margin-left: 10px;
+        cursor: pointer;
+    }
+</style> 

@@ -8,9 +8,9 @@ import { Role, RequestType, RequestStatus } from '@app/_models';
 
 @Component({ templateUrl: 'add-edit.component.html' })
 export class AddEditComponent implements OnInit {
-    form: FormGroup;
-    id: string;
-    isAddMode: boolean;
+    form!: FormGroup;
+    id!: string;
+    isAddMode!: boolean;
     loading = false;
     submitted = false;
     employeeId: string | null = null;
@@ -19,6 +19,9 @@ export class AddEditComponent implements OnInit {
     deletedItems: any[] = []; // Track items marked for deletion
     originalItems: any[] = []; // Store original items for comparison
     hiddenItems: { [key: number]: boolean } = {}; // Track visually hidden items
+    
+    // Error handling
+    errorMessage: string | null = null;
 
     constructor(
         private formBuilder: FormBuilder,
@@ -62,8 +65,10 @@ export class AddEditComponent implements OnInit {
                     next: (employee) => {
                         console.log('Employee details loaded:', employee); // Debug log
                         if (employee && employee.account) {
-                            const firstName = employee.account.firstName.charAt(0).toUpperCase() + employee.account.firstName.slice(1).toLowerCase();
-                            const lastName = employee.account.lastName.charAt(0).toUpperCase() + employee.account.lastName.slice(1).toLowerCase();
+                            const firstName = employee.account.firstName?.charAt(0).toUpperCase() + 
+                                             (employee.account.firstName?.slice(1)?.toLowerCase() || '');
+                            const lastName = employee.account.lastName?.charAt(0).toUpperCase() + 
+                                           (employee.account.lastName?.slice(1)?.toLowerCase() || '');
                             this.employeeFullName = `${firstName} ${lastName}`;
                         }
                     },
@@ -104,8 +109,10 @@ export class AddEditComponent implements OnInit {
                                 .pipe(first())
                                 .subscribe(employee => {
                                     if (employee && employee.account) {
-                                        const firstName = employee.account.firstName.charAt(0).toUpperCase() + employee.account.firstName.slice(1).toLowerCase();
-                                        const lastName = employee.account.lastName.charAt(0).toUpperCase() + employee.account.lastName.slice(1).toLowerCase();
+                                        const firstName = employee.account.firstName?.charAt(0).toUpperCase() + 
+                                                        (employee.account.firstName?.slice(1)?.toLowerCase() || '');
+                                        const lastName = employee.account.lastName?.charAt(0).toUpperCase() + 
+                                                       (employee.account.lastName?.slice(1)?.toLowerCase() || '');
                                         this.employeeFullName = `${firstName} ${lastName}`;
                                     }
                                 });
@@ -159,8 +166,22 @@ export class AddEditComponent implements OnInit {
         } else {
             // If no ID, it's a new item that can be removed directly
             this.items.removeAt(index);
-                }
+        }
+    }
+
+    // Restore a previously hidden item
+    restoreItem(index: number) {
+        this.hiddenItems[index] = false;
+        
+        // If the item ID was in deletedItems, remove it
+        const item = this.items.at(index).value;
+        if (item.id) {
+            const idIndex = this.deletedItems.indexOf(item.id);
+            if (idIndex !== -1) {
+                this.deletedItems.splice(idIndex, 1);
             }
+        }
+    }
 
     // Check if item is hidden
     isItemHidden(index: number): boolean {
@@ -188,6 +209,13 @@ export class AddEditComponent implements OnInit {
             return;
         }
 
+        // Validate that employeeId is a valid number
+        const employeeIdNum = Number(this.employeeId);
+        if (isNaN(employeeIdNum) || employeeIdNum <= 0) {
+            this.alertService.error('Invalid Employee ID');
+            return;
+        }
+
         // Validate items if type is not Leave
         if (this.form.value.type !== 'Leave' && this.items.length === 0) {
             this.alertService.error('At least one item is required for Equipment and Resources requests');
@@ -212,7 +240,7 @@ export class AddEditComponent implements OnInit {
         // Prepare request data - use the employeeId directly from query params
         const requestData = {
             type: this.form.value.type,
-            employeeId: Number(this.employeeId), // This is now the employee's id, not employeeId
+            employeeId: employeeIdNum, // Ensure it's a number
             items: visibleItems,
             isAdmin: this.accountService.accountValue?.role === Role.Admin
         };
@@ -238,7 +266,21 @@ export class AddEditComponent implements OnInit {
                     });
                 },
                 error: error => {
-                    this.alertService.error(error);
+                    console.error('Error creating request:', error);
+                    
+                    // Handle specific error messages
+                    if (typeof error === 'string') {
+                        if (error.includes('Employee') && error.includes('does not exist')) {
+                            this.errorMessage = 'The specified employee does not exist. Please check the employee ID.';
+                        } else if (error.includes('Foreign key constraint')) {
+                            this.errorMessage = 'Invalid employee ID or reference.';
+                        } else {
+                            this.errorMessage = error;
+                        }
+                    } else {
+                        this.errorMessage = 'Failed to create request. Please try again.';
+                    }
+                    
                     this.loading = false;
                 }
             });
@@ -273,5 +315,10 @@ export class AddEditComponent implements OnInit {
         } else {
             this.router.navigate(['/requests']);
         }
+    }
+
+    // Method to clear error messages
+    clearError() {
+        this.errorMessage = null;
     }
 } 

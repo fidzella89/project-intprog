@@ -25,7 +25,10 @@
         <div *ngIf="notFound" class="alert alert-warning">
             No workflows found for Employee {{displayEmployeeId}}
         </div>
-        <table *ngIf="!loading && !notFound && workflows" class="table table-striped">
+        <div *ngIf="!loading && !notFound && (!workflows || workflows.length === 0)" class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i> No data found
+        </div>
+        <table *ngIf="!loading && !notFound && workflows && workflows.length > 0" class="table table-striped">
             <thead>
                 <tr>
                     <th style="width: 10%">ID</th>
