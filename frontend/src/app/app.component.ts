@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { AccountService } from './_services';
 import { Account, Role } from './_models';
-import { Subscription } from 'rxjs';
+import { Subscription, filter } from 'rxjs';
 
 @Component({
     selector: 'app-root',
@@ -14,6 +14,7 @@ export class AppComponent implements OnInit, OnDestroy {
     account?: Account | null;
     showLogoutModal = false;
     private accountSubscription?: Subscription;
+    private routerSubscription?: Subscription;
 
     constructor(
         private accountService: AccountService,
@@ -41,12 +42,32 @@ export class AppComponent implements OnInit, OnDestroy {
                 console.error('App: Error in account subscription:', error);
             }
         });
+
+        // Subscribe to router events to handle navigation
+        this.routerSubscription = this.router.events
+            .pipe(filter(event => event instanceof NavigationEnd))
+            .subscribe(() => {
+                // Check if we should redirect to home when logged in
+                if (this.account && this.router.url.includes('/account/login')) {
+                    console.log('App: Navigation - Redirecting logged in user from login page');
+                    this.router.navigate(['/']);
+                }
+                
+                // Check if we need to redirect to login when not logged in
+                if (!this.account && !this.router.url.includes('/account/')) {
+                    console.log('App: Navigation - Redirecting non-logged in user to login');
+                    this.router.navigate(['/account/login']);
+                }
+            });
     }
 
     ngOnDestroy() {
-        // Clean up subscription
+        // Clean up subscriptions
         if (this.accountSubscription) {
             this.accountSubscription.unsubscribe();
+        }
+        if (this.routerSubscription) {
+            this.routerSubscription.unsubscribe();
         }
     }
 
@@ -59,16 +80,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     logout() {
+        this.accountService.clearAccountData();
         this.closeLogoutModal();
-        this.accountService.logout().subscribe({
-            complete: () => {
-                this.router.navigate(['/account/login']);
-            },
-            error: (error) => {
-                console.error('Logout error:', error);
-                // Still navigate to login on error
-                this.router.navigate(['/account/login']);
-            }
-        });
     }
 }

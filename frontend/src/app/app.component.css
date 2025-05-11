@@ -1,6 +1,8 @@
 /* App Component Styles */
 .app-container {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .bg-light {
@@ -9,8 +11,9 @@
 
 /* Navigation Styles */
 .navbar {
-    padding: 0.5rem 1rem;
-    margin-bottom: 1rem;
+    padding: 0.75rem 0;
+    margin-bottom: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .navbar-nav {
@@ -25,6 +28,7 @@
 .nav-link {
     color: rgba(255, 255, 255, 0.85);
     transition: color 0.2s ease-in-out;
+    padding: 0.5rem 1rem;
 }
 
 .nav-link:hover {
@@ -34,6 +38,17 @@
 .nav-link.active {
     color: #ffffff;
     font-weight: 500;
+    position: relative;
+}
+
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 1rem;
+    right: 1rem;
+    height: 2px;
+    background-color: #ffffff;
 }
 
 /* Modal Styles */
@@ -53,10 +68,41 @@
 
 .modal-dialog {
     margin: 1.75rem auto;
+    max-width: 500px;
+}
+
+.modal-content {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
 }
 
 /* Alert Component Styles */
 alert {
     display: block;
-    margin: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Content Area */
+.container {
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+    max-width: 1140px;
 } 

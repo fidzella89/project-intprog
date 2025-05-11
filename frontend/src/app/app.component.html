@@ -1,48 +1,59 @@
 <div class="app-container" [ngClass]="{ 'bg-light': account }">
-    <!-- main nav -->
+    <!-- Main Navigation -->
     <nav class="navbar navbar-expand navbar-dark bg-dark" *ngIf="account">
-        <div class="navbar-nav">
-            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
-                class="nav-item nav-link">Home</a>
-            <a routerLink="/profile" routerLinkActive="active" class="nav-item nav-link">Profile</a>
-            <a *ngIf="account.role === Role.Admin || account.role === Role.Moderator" 
-                routerLink="/employees" routerLinkActive="active" class="nav-item nav-link">Employees</a>
-            <a *ngIf="account.role === Role.Admin"
-                routerLink="/departments" routerLinkActive="active" class="nav-item nav-link">Departments</a>
-            <a *ngIf="account.role === Role.Admin" routerLink="/admin" routerLinkActive="active"
-                class="nav-item nav-link">Admin</a>
-            <a (click)="openLogoutModal()" class="nav-item nav-link" style="cursor: pointer;">Logout</a>
+        <div class="container">
+            <div class="navbar-nav me-auto">
+                <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
+                    class="nav-item nav-link">Home</a>
+                <a routerLink="/profile" routerLinkActive="active" class="nav-item nav-link">Profile</a>
+                <a *ngIf="account.role === Role.Admin || account.role === Role.Moderator" 
+                    routerLink="/employees" routerLinkActive="active" class="nav-item nav-link">Employees</a>
+                <a *ngIf="account.role === Role.Admin"
+                    routerLink="/departments" routerLinkActive="active" class="nav-item nav-link">Departments</a>
+                <a *ngIf="account.role === Role.Admin" routerLink="/admin" routerLinkActive="active"
+                    class="nav-item nav-link">Admin</a>
+            </div>
+            <div class="navbar-nav">
+                <span class="nav-item nav-link text-light me-3">
+                    Welcome, {{account.firstName || 'User'}}!
+                </span>
+                <a (click)="openLogoutModal()" class="nav-item nav-link" style="cursor: pointer;">Logout</a>
+            </div>
         </div>
     </nav>
 
-    <!-- Logout Confirmation Modal -->
-    <div class="modal fade show" [ngClass]="{'d-block': showLogoutModal}" tabindex="-1" role="dialog" *ngIf="showLogoutModal">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Logout</h5>
-                    <button type="button" class="close" (click)="closeLogoutModal()" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to logout?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" (click)="closeLogoutModal()">Cancel</button>
-                    <button type="button" class="btn btn-primary" (click)="logout()">Logout</button>
-                </div>
+    <!-- Subnav Router Outlet -->
+    <router-outlet name="subnav"></router-outlet>
+
+    <!-- Alert Component -->
+    <div class="container mt-3">
+        <alert></alert>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="container mt-3">
+        <router-outlet></router-outlet>
+    </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div class="modal fade show" [ngClass]="{'d-block': showLogoutModal}" tabindex="-1" role="dialog" *ngIf="showLogoutModal">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Logout</h5>
+                <button type="button" class="close" (click)="closeLogoutModal()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to logout?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="closeLogoutModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" (click)="logout()">Logout</button>
             </div>
         </div>
     </div>
-    <div class="modal-backdrop fade show" *ngIf="showLogoutModal"></div>
-
-    <!-- subnav router outlet -->
-    <router-outlet name="subnav"></router-outlet>
-
-    <!-- global alert -->
-    <alert></alert>
-
-    <!-- main router outlet -->
-    <router-outlet></router-outlet>
 </div>
+<div class="modal-backdrop fade show" *ngIf="showLogoutModal"></div>
