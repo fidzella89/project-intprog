@@ -61,7 +61,7 @@ export class AccountService implements IAccountService {
         return this.http.post<Account>(`${baseUrl}/authenticate`, { email, password }, { withCredentials: true })
             .pipe(
                 map(account => {
-                    console.log('Login response:', account);
+                    console.log('Login response received');
                     
                     if (!account) {
                         throw new Error('Invalid login response');
@@ -80,12 +80,9 @@ export class AccountService implements IAccountService {
                     return account;
                 }),
                 catchError(error => {
-                    console.error('Login error details:', error);
-                    
-                    // Clear any existing account data
+                    console.error('Login error:', error);
                     this.clearAccountData();
                     
-                    // Handle specific error responses from the server
                     if (error.error) {
                         if (error.error.status === 'Inactive') {
                             return throwError(() => 'Account is inactive. Please contact administrator.');
@@ -95,12 +92,10 @@ export class AccountService implements IAccountService {
                         }
                     }
                     
-                    // Handle direct error messages
                     if (error.message) {
                         return throwError(() => error.message);
                     }
                     
-                    // Fallback error message
                     return throwError(() => 'An error occurred during login. Please try again.');
                 })
             );
@@ -118,9 +113,9 @@ export class AccountService implements IAccountService {
     }
 
     refreshToken() {
-        // If we're already refreshing, just return the current account observable
+        // If we're already refreshing, return the current account observable
         if (this.refreshingToken) {
-            console.log('Token refresh already in progress, skipping');
+            console.log('Token refresh already in progress, returning current account');
             return this.account;
         }
 
@@ -131,7 +126,7 @@ export class AccountService implements IAccountService {
         }
 
         this.refreshingToken = true;
-        console.log('Attempting to refresh token');
+        console.log('Starting token refresh request');
 
         return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
@@ -142,9 +137,8 @@ export class AccountService implements IAccountService {
             }
         }).pipe(
             map(response => {
-                console.log('Refresh token response:', response);
+                console.log('Token refresh response received:', response ? 'valid' : 'invalid');
                 
-                // Validate the response has the expected structure
                 if (!response) {
                     throw new Error('Empty response from refresh token endpoint');
                 }
@@ -156,7 +150,7 @@ export class AccountService implements IAccountService {
                 // Update the account subject with the new data
                 this.accountSubject.next(response);
                 
-                // Restart the refresh timer
+                // Restart the refresh timer with the new token
                 this.startRefreshTokenTimer();
                 
                 return response;
@@ -169,7 +163,7 @@ export class AccountService implements IAccountService {
                 return throwError(() => new Error(error.error?.message || 'Failed to refresh token'));
             }),
             finalize(() => {
-                console.log('Refresh token request completed');
+                console.log('Token refresh request completed');
                 this.refreshingToken = false;
             })
         );
@@ -232,23 +226,32 @@ export class AccountService implements IAccountService {
     }
 
     public clearAccountData(): void {
+        console.log('Clearing account data');
         this.stopRefreshTokenTimer();
         this.accountSubject.next(null);
         this.refreshingToken = false;
     }
 
     private startRefreshTokenTimer() {
-        // Parse the JWT token
-        const jwtToken = this.accountValue?.jwtToken;
-        if (!jwtToken) {
-            console.log('No JWT token available, not starting refresh timer');
-            return;
-        }
-
         try {
+            // Parse the JWT token
+            const jwtToken = this.accountValue?.jwtToken;
+            if (!jwtToken) {
+                console.log('No JWT token available, not starting refresh timer');
+                return;
+            }
+
+            // Parse the token payload
             const jwtPayload = JSON.parse(atob(jwtToken.split('.')[1]));
             const expires = new Date(jwtPayload.exp * 1000);
-            const timeout = expires.getTime() - Date.now() - (5 * 60 * 1000); // Refresh 5 minutes before expiry
+            const now = new Date();
+            
+            console.log('Token expires at:', expires.toISOString());
+            console.log('Current time:', now.toISOString());
+
+            // Calculate timeout - refresh at 70% of token lifetime instead of fixed time
+            const tokenLifetime = expires.getTime() - now.getTime();
+            const timeout = Math.floor(tokenLifetime * 0.7);
 
             if (timeout <= 0) {
                 console.log('Token already expired or about to expire');
@@ -257,20 +260,31 @@ export class AccountService implements IAccountService {
                 return;
             }
 
-            console.log(`Setting refresh timer for ${new Date(Date.now() + timeout).toISOString()}`);
+            console.log(`Setting refresh timer for ${timeout}ms (${new Date(now.getTime() + timeout).toISOString()})`);
+            
+            // Clear any existing timer
             this.stopRefreshTokenTimer();
+
+            // Set new timer
             this.refreshTokenTimeout = setTimeout(() => {
                 console.log('Token refresh timer triggered');
                 if (!this.refreshingToken) {
+                    console.log('Starting token refresh');
                     this.refreshToken().subscribe({
+                        next: () => {
+                            console.log('Token refresh successful');
+                        },
                         error: (error) => {
                             console.error('Failed to refresh token:', error);
                             this.clearAccountData();
                             this.router.navigate(['/account/login']);
                         }
                     });
+                } else {
+                    console.log('Token refresh already in progress');
                 }
             }, Math.max(0, timeout));
+
         } catch (error) {
             console.error('Error starting refresh token timer:', error);
             this.clearAccountData();
