@@ -8,8 +8,9 @@ export class Account {
     email?: string;
     role?: Role;
     status?: string;
-    token?: string;
+    jwtToken?: string;
     refreshToken?: string;
+    token?: string;
     isVerified?: boolean;
     created?: Date;
     updated?: Date | null;

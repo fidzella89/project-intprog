@@ -15,11 +15,11 @@ router.post('/verify-email', verifyEmailSchema, verifyEmail);
 router.post('/forgot-password', forgotPasswordSchema, forgotPassword);
 router.post('/validate-reset-token', validateResetTokenSchema, validateResetToken);
 router.post('/reset-password', resetPasswordSchema, resetPassword);
-router.get('/token-diagnostics', tokenDiagnostics);
 router.get('/', authorize(Role.Admin), getAll);
 router.get('/:id', authorize(), getById);
 router.post('/', authorize(Role.Admin), createSchema, create);
 router.put('/:id', authorize(), updateSchema, update);
+
 
 module.exports = router;
 
@@ -49,30 +49,15 @@ function authenticate(req, res, next) {
                 });
             }
             
-            // Set refresh token in cookie - more explicitly handled for debugging
-            try {
-                const cookieOptions = {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                    path: '/',
-                    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
-                    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-                };
-                
-                res.cookie('refreshToken', refreshToken, cookieOptions);
-                console.log('Set refresh token cookie with options:', cookieOptions);
-                
-                // Return account details and JWT token and refreshToken for backup
-                res.json({
-                    ...account,
-                    token: jwtToken,
-                    refreshToken: refreshToken // Include refresh token in response for backup
-                });
-            } catch (error) {
-                console.error('Error setting cookie:', error);
-                throw error;
-            }
+            // Set refresh token in cookie
+            setTokenCookie(res, refreshToken);
+            
+            // Return account details and JWT token
+            res.json({
+                ...account,
+                jwtToken,
+                token: refreshToken
+            });
         })
         .catch(error => {
             console.error('Authentication error:', error);
@@ -92,19 +77,9 @@ function authenticate(req, res, next) {
 
 function refreshToken(req, res, next) {
     try {
-        // Enhanced detailed logging
-        console.log('RefreshToken Request Details:', {
-            'Request Headers': req.headers,
-            'Request Body': req.body,
-            'Cookie Header': req.headers.cookie,
-            'Has Cookies Object': !!req.cookies,
-            'Cookie Names': req.cookies ? Object.keys(req.cookies) : 'No cookies object'
-        });
-        
         // Check for token in multiple places
         const token = req.cookies?.refreshToken || 
                      req.headers?.['x-refresh-token'] || 
-                     req.body?.token ||  // Check for token in body
                      req.body?.refreshToken;
         
         const ipAddress = req.ip;
@@ -114,19 +89,17 @@ function refreshToken(req, res, next) {
             hasCookies: !!req.cookies,
             cookieToken: req.cookies?.refreshToken,
             headerToken: req.headers?.['x-refresh-token'],
-            bodyToken: req.body?.token || req.body?.refreshToken, // Log both possible body token fields
-            finalToken: token ? token.substring(0, 10) + '...' : 'No token found'
+            bodyToken: req.body?.refreshToken,
+            finalToken: token
         });
-        
+
         if (!token) {
             return res.status(401).json({ 
                 message: 'Refresh token is required',
                 code: 'TOKEN_REQUIRED',
                 debug: process.env.NODE_ENV === 'development' ? {
                     cookies: req.cookies,
-                    cookieHeader: req.headers.cookie,
-                    bodyKeys: req.body ? Object.keys(req.body) : [],
-                    bodyHasToken: req.body && (req.body.token || req.body.refreshToken) ? true : false
+                    headers: req.headers
                 } : undefined
             });
         }
@@ -152,7 +125,8 @@ function refreshToken(req, res, next) {
                 // Return the JWT token and account details
                 res.json({
                     ...account,
-                    token: jwtToken
+                    jwtToken,
+                    token: refreshToken
                 });
             })
             .catch(error => {
@@ -427,52 +401,5 @@ function setTokenCookie(res, token) {
     } catch (error) {
         console.error('Error setting refresh token cookie:', error);
         throw error;
-    }
-}
-
-// Add diagnostic endpoint to check tokens
-function tokenDiagnostics(req, res, next) {
-    try {
-        // Get token from request
-        const token = req.query.token || 
-                     req.cookies?.refreshToken || 
-                     req.headers?.['x-refresh-token'] || 
-                     req.body?.token || 
-                     req.body?.refreshToken;
-        
-        if (!token) {
-            return res.status(400).json({ 
-                message: 'No token provided',
-                tokenSources: {
-                    query: !!req.query.token,
-                    cookies: !!req.cookies?.refreshToken,
-                    headers: !!req.headers?.['x-refresh-token'],
-                    body: !!(req.body?.token || req.body?.refreshToken)
-                }
-            });
-        }
-        
-        // Check token in database
-        accountService.checkToken(token)
-            .then(result => {
-                res.json({
-                    message: 'Token diagnostic information',
-                    token: token.substring(0, 10) + '...',
-                    result
-                });
-            })
-            .catch(error => {
-                res.status(400).json({
-                    message: 'Token check failed',
-                    error: error.message || 'Unknown error',
-                    token: token.substring(0, 10) + '...'
-                });
-            });
-    } catch (error) {
-        console.error('Token diagnostics error:', error);
-        res.status(500).json({
-            message: 'An error occurred during token diagnostics',
-            error: error.message
-        });
     }
 }
