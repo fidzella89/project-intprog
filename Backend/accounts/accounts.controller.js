@@ -88,6 +88,10 @@ function refreshToken(req, res, next) {
 
         accountService.refreshToken({ token, ipAddress })
             .then(response => {
+                if (!response || !response.jwtToken || !response.refreshToken) {
+                    throw new Error('Invalid token response from service');
+                }
+
                 // Set the new refresh token cookie
                 setTokenCookie(res, response.refreshToken);
                 
@@ -99,17 +103,24 @@ function refreshToken(req, res, next) {
                 // Clear the invalid refresh token
                 res.clearCookie('refreshToken');
                 
+                // Log the error for debugging
+                console.error('Refresh token error:', error);
+
                 // Handle specific error types
-                if (error.name === 'ValidationError' || error.name === 'NotFoundError') {
-                    return res.status(400).json({ message: error.message });
+                switch(error.name) {
+                    case 'ValidationError':
+                        return res.status(400).json({ message: error.message });
+                    case 'NotFoundError':
+                        return res.status(404).json({ message: error.message });
+                    case 'InvalidTokenError':
+                        return res.status(401).json({ message: error.message });
+                    case 'TokenGenerationError':
+                        return res.status(500).json({ message: error.message });
+                    default:
+                        return res.status(500).json({ 
+                            message: error.message || 'An error occurred while refreshing the token'
+                        });
                 }
-                if (error.name === 'InvalidTokenError') {
-                    return res.status(401).json({ message: error.message });
-                }
-                
-                // Log unexpected errors
-                console.error('Unexpected error in refresh token endpoint:', error);
-                return res.status(500).json({ message: 'An error occurred while refreshing the token' });
             });
     } catch (err) {
         console.error('Unexpected error in refresh token endpoint:', err);
@@ -313,7 +324,7 @@ function _delete(req, res, next) {
 function setTokenCookie(res, token) {
     if (!token) {
         console.error('Attempted to set cookie with empty token');
-        return;
+        throw new Error('Invalid token provided');
     }
     
     console.log('Setting refresh token cookie with token:', token);
@@ -326,12 +337,6 @@ function setTokenCookie(res, token) {
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         path: '/'
     };
-
-    // In production, set the domain to match your Render domain
-    if (process.env.NODE_ENV === 'production') {
-        // Allow cookies on all subdomains
-        cookieOptions.domain = '.onrender.com';
-    }
 
     res.cookie('refreshToken', token, cookieOptions);
     console.log('Refresh token cookie set successfully');

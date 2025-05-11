@@ -75,7 +75,7 @@ async function refreshToken({ token, ipAddress }) {
             }]
         });
 
-        if (!refreshToken) {
+        if (!refreshToken || !refreshToken.Account) {
             throw {
                 name: 'NotFoundError',
                 message: 'Invalid refresh token'
@@ -100,14 +100,7 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        // Get account
-        const account = await db.Account.findByPk(refreshToken.accountId);
-        if (!account) {
-            throw {
-                name: 'NotFoundError',
-                message: 'Account not found'
-            };
-        }
+        const account = refreshToken.Account;
 
         // Check account status
         if (account.status === 'Inactive') {
@@ -117,29 +110,40 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        // Generate new tokens
-        const newRefreshToken = generateRefreshToken(account, ipAddress);
-        const jwtToken = generateJwtToken(account);
+        try {
+            // Generate new tokens
+            const newRefreshToken = generateRefreshToken(account, ipAddress);
+            const jwtToken = generateJwtToken(account);
 
-        // Save in transaction
-        await db.sequelize.transaction(async (t) => {
-            // Revoke current token
-            refreshToken.revoked = Date.now();
-            refreshToken.revokedByIp = ipAddress;
-            refreshToken.replacedByToken = newRefreshToken.token;
-            await refreshToken.save({ transaction: t });
+            if (!newRefreshToken || !jwtToken) {
+                throw new Error('Failed to generate new tokens');
+            }
 
-            // Save new token
-            await newRefreshToken.save({ transaction: t });
-        });
+            // Save in transaction
+            await db.sequelize.transaction(async (t) => {
+                // Revoke current token
+                refreshToken.revoked = Date.now();
+                refreshToken.revokedByIp = ipAddress;
+                refreshToken.replacedByToken = newRefreshToken.token;
+                await refreshToken.save({ transaction: t });
 
-        // Return response with both tokens
-        return {
-            ...basicDetails(account),
-            jwtToken,
-            refreshToken: newRefreshToken.token
-        };
+                // Save new token
+                await newRefreshToken.save({ transaction: t });
+            });
 
+            // Return response with both tokens
+            return {
+                ...basicDetails(account),
+                jwtToken,
+                refreshToken: newRefreshToken.token
+            };
+        } catch (error) {
+            console.error('Error during token refresh:', error);
+            throw {
+                name: 'TokenGenerationError',
+                message: 'Failed to refresh tokens'
+            };
+        }
     } catch (error) {
         // Log the error for debugging
         console.error('Refresh token error:', error);
@@ -341,48 +345,74 @@ async function hash(password) {
 }
 
 function generateJwtToken(account) {
-    // Create a JWT token that expires in 15 minutes
-    const expiresIn = '15m';
-    console.log(`Generating JWT token for account ${account.id} with expiry ${expiresIn}`);
-    
-    const token = jwt.sign(
-        { 
-            sub: account.id, 
-            id: account.id,
-            role: account.role,
-            // Add timestamp to ensure unique tokens
-            iat: Math.floor(Date.now() / 1000)
-        }, 
-        config.secret, 
-        { expiresIn }
-    );
-    
-    return token;
+    try {
+        // Validate account
+        if (!account || !account.id) {
+            throw new Error('Invalid account provided to generateJwtToken');
+        }
+
+        // Create a JWT token that expires in 15 minutes
+        const expiresIn = '15m';
+        console.log(`Generating JWT token for account ${account.id} with expiry ${expiresIn}`);
+        
+        const token = jwt.sign(
+            { 
+                sub: account.id, 
+                id: account.id,
+                role: account.role,
+                // Add timestamp to ensure unique tokens
+                iat: Math.floor(Date.now() / 1000)
+            }, 
+            config.secret, 
+            { expiresIn }
+        );
+        
+        return token;
+    } catch (error) {
+        console.error('Error generating JWT token:', error);
+        throw {
+            name: 'TokenGenerationError',
+            message: 'Failed to generate JWT token'
+        };
+    }
 }
 
 function generateRefreshToken(account, ipAddress) {
-    // Ensure we have a valid account object
-    if (!account || !account.id) {
-        console.error('Invalid account provided to generateRefreshToken');
-        throw new Error('Invalid account');
+    try {
+        // Ensure we have a valid account object
+        if (!account || !account.id) {
+            throw new Error('Invalid account provided to generateRefreshToken');
+        }
+        
+        // Create a refresh token that expires in 7 days
+        const token = randomTokenString();
+        const expires = new Date(Date.now() + 7*24*60*60*1000);
+        
+        console.log(`Generating refresh token for account ${account.id}:
+            Token: ${token}
+            Expires: ${expires.toISOString()}
+            IP: ${ipAddress}`
+        );
+        
+        const refreshToken = new db.RefreshToken({
+            accountId: account.id,
+            token: token,
+            expires: expires,
+            createdByIp: ipAddress
+        });
+
+        if (!refreshToken || !refreshToken.token) {
+            throw new Error('Failed to create refresh token');
+        }
+
+        return refreshToken;
+    } catch (error) {
+        console.error('Error generating refresh token:', error);
+        throw {
+            name: 'TokenGenerationError',
+            message: 'Failed to generate refresh token'
+        };
     }
-    
-    // Create a refresh token that expires in 7 days
-    const token = randomTokenString();
-    const expires = new Date(Date.now() + 7*24*60*60*1000);
-    
-    console.log(`Generating refresh token for account ${account.id}:
-        Token: ${token}
-        Expires: ${expires.toISOString()}
-        IP: ${ipAddress}`
-    );
-    
-    return new db.RefreshToken({
-        accountId: account.id,
-        token: token,
-        expires: expires,
-        createdByIp: ipAddress
-    });
 }
 
 function randomTokenString() {
