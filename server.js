@@ -136,7 +136,9 @@ app.use((err, req, res, next) => {
 
     res.status(statusCode).json({
         message: errorMessage,
-        error: process.env.NODE_ENV === 'development' ? err : {}
+        error: err,  // Include the full error object regardless of environment
+        stack: err.stack,  // Include the stack trace for better debugging
+        originalError: err.originalError || {}  // Include any wrapped original error
     });
 });
 

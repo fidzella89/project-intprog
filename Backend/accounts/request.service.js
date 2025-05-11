@@ -243,23 +243,29 @@ async function create(params, retryCount = 0) {
         } else if (error.name === 'SequelizeValidationError') {
             throw {
                 name: 'ValidationError',
-                message: error.errors[0]?.message || 'Request validation failed'
+                message: error.errors[0]?.message || 'Request validation failed',
+                originalError: error
             };
         } else if (error.name === 'SequelizeForeignKeyConstraintError') {
             throw {
                 name: 'ValidationError',
-                message: 'Employee ID does not exist or invalid reference to another entity'
+                message: 'Employee ID does not exist or invalid reference to another entity',
+                originalError: error,
+                details: `Referenced key: ${error.fields ? error.fields.join(', ') : 'unknown'}`
             };
         } else if (error.name === 'SequelizeUniqueConstraintError') {
             throw {
                 name: 'ValidationError',
-                message: 'A duplicate entry was detected'
+                message: 'A duplicate entry was detected',
+                originalError: error
             };
         } else {
             throw {
                 name: 'InternalError',
                 message: 'Failed to create request. Please try again later.',
-                details: process.env.NODE_ENV === 'development' ? error.message : undefined
+                details: error.message || 'Unknown error',
+                stack: error.stack,
+                originalError: error
             };
         }
     }

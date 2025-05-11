@@ -77,27 +77,34 @@ function create(req, res, next) {
         .then(request => res.json(request))
         .catch(error => {
             console.error('Error in create request controller:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            console.error('Stack trace:', error.stack);
             
             // Handle specific error types with appropriate status codes
             if (error.name === 'ValidationError') {
                 return res.status(400).json({
                     message: error.message || 'Validation error',
-                    code: 'VALIDATION_ERROR'
+                    code: 'VALIDATION_ERROR',
+                    details: error.details || {},
+                    originalError: error
                 });
             } else if (error.name === 'NotFoundError') {
                 return res.status(404).json({
                     message: error.message || 'Resource not found',
-                    code: 'NOT_FOUND'
+                    code: 'NOT_FOUND',
+                    originalError: error
                 });
             } else if (error.name === 'UnauthorizedError') {
                 return res.status(401).json({
                     message: error.message || 'Unauthorized access',
-                    code: 'UNAUTHORIZED'
+                    code: 'UNAUTHORIZED',
+                    originalError: error
                 });
             } else if (error.name === 'ForbiddenError') {
                 return res.status(403).json({
                     message: error.message || 'Forbidden action',
-                    code: 'FORBIDDEN'
+                    code: 'FORBIDDEN',
+                    originalError: error
                 });
             } else {
                 // For unexpected errors, pass to the global error handler

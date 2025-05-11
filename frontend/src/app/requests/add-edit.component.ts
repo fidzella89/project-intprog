@@ -268,14 +268,27 @@ export class AddEditComponent implements OnInit {
                 error: error => {
                     console.error('Error creating request:', error);
                     
+                    // Log detailed error information for debugging
+                    if (error && error.error) {
+                        console.error('Detailed error:', error.error);
+                        if (error.error.originalError) {
+                            console.error('Original error:', error.error.originalError);
+                        }
+                        if (error.error.stack) {
+                            console.error('Stack trace:', error.error.stack);
+                        }
+                    }
+                    
                     // Handle specific error messages
                     if (typeof error === 'string') {
-                        if (error.includes('Employee') && error.includes('does not exist')) {
+                        this.errorMessage = error;
+                    } else if (error && error.error && error.error.message) {
+                        if (error.error.message.includes('Employee') && error.error.message.includes('does not exist')) {
                             this.errorMessage = 'The specified employee does not exist. Please check the employee ID.';
-                        } else if (error.includes('Foreign key constraint')) {
+                        } else if (error.error.message.includes('Foreign key constraint')) {
                             this.errorMessage = 'Invalid employee ID or reference.';
                         } else {
-                            this.errorMessage = error;
+                            this.errorMessage = error.error.message;
                         }
                     } else {
                         this.errorMessage = 'Failed to create request. Please try again.';
@@ -304,14 +317,27 @@ export class AddEditComponent implements OnInit {
                 error: error => {
                     console.error('Error updating request:', error);
                     
+                    // Log detailed error information for debugging
+                    if (error && error.error) {
+                        console.error('Detailed error:', error.error);
+                        if (error.error.originalError) {
+                            console.error('Original error:', error.error.originalError);
+                        }
+                        if (error.error.stack) {
+                            console.error('Stack trace:', error.error.stack);
+                        }
+                    }
+                    
                     // Handle specific error messages
                     if (typeof error === 'string') {
-                        if (error.includes('Employee') && error.includes('does not exist')) {
+                        this.errorMessage = error;
+                    } else if (error && error.error && error.error.message) {
+                        if (error.error.message.includes('Employee') && error.error.message.includes('does not exist')) {
                             this.errorMessage = 'The specified employee does not exist. Please check the employee ID.';
-                        } else if (error.includes('Foreign key constraint')) {
+                        } else if (error.error.message.includes('Foreign key constraint')) {
                             this.errorMessage = 'Invalid employee ID or reference.';
                         } else {
-                            this.errorMessage = error;
+                            this.errorMessage = error.error.message;
                         }
                     } else {
                         this.errorMessage = 'Failed to update request. Please try again.';
