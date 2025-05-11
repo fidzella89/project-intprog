@@ -21,17 +21,24 @@ export class AppComponent implements OnInit, OnDestroy {
     ) {
         // Initialize account from service
         this.account = this.accountService.accountValue;
+        console.log('App: Initial account state:', this.account);
     }
 
     ngOnInit() {
         // Subscribe to account changes
         this.accountSubscription = this.accountService.account.subscribe({
             next: (account) => {
-                console.log('Account state changed:', account);
+                console.log('App: Account state changed:', account);
                 this.account = account;
+                
+                // If account exists and we're on the login page, redirect to home
+                if (account && this.router.url.includes('/account/login')) {
+                    console.log('App: Redirecting to home page');
+                    this.router.navigate(['/']);
+                }
             },
             error: (error) => {
-                console.error('Error in account subscription:', error);
+                console.error('App: Error in account subscription:', error);
             }
         });
     }

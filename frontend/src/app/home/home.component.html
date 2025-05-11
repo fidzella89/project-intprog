@@ -1,6 +1,24 @@
 <div class="p-4">
     <div class="container">
-        <h1>Hi {{account.firstName}}!</h1>
-        <p>You're logged in with Angular 10 & JWT!!</p>
+        <h1>Welcome, {{account?.firstName}}!</h1>
+        <p>You're logged in to the Angular application!</p>
+        
+        <div class="card mt-4">
+            <h4 class="card-header">Account Details</h4>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Name:</strong> {{account?.title}} {{account?.firstName}} {{account?.lastName}}</p>
+                        <p><strong>Email:</strong> {{account?.email}}</p>
+                        <p><strong>Role:</strong> {{account?.role}}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong> {{account?.status}}</p>
+                        <p><strong>Verified:</strong> {{account?.isVerified ? 'Yes' : 'No'}}</p>
+                        <p><strong>Created:</strong> {{account?.created | date:'medium'}}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
