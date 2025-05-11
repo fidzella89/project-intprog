@@ -89,23 +89,22 @@ export class AccountService implements IAccountService {
                     console.error('Error response body:', error.error);
                     this.clearAccountData();
                     
-                    // Pass through the exact error message from the server
-                    if (error.error) {
-                        // If the error object has a message property directly
+                    // Special handling for the auth endpoint error format
+                    // Server returns: {"message":"Password is incorrect","errorType":"password"}
+                    if (error.error && typeof error.error === 'object') {
+                        console.log('Server returned an error object:', error.error);
+                        
+                        // Direct access to the message property
                         if (error.error.message) {
-                            console.log('Using error.error.message:', error.error.message);
+                            console.log('Found error.error.message:', error.error.message);
                             return throwError(() => error.error.message);
                         }
-                        // If the server returns a descriptive message in a nested error property
-                        else if (error.error.error && error.error.error.message) {
-                            console.log('Using error.error.error.message:', error.error.error.message);
-                            return throwError(() => error.error.error.message);
-                        }
-                        // If error.error is a string, use it directly
-                        else if (typeof error.error === 'string') {
-                            console.log('Using error.error as string:', error.error);
-                            return throwError(() => error.error);
-                        }
+                    }
+                    
+                    // If error.error is a string, use it directly
+                    if (error.error && typeof error.error === 'string') {
+                        console.log('Using error.error as string:', error.error);
+                        return throwError(() => error.error);
                     }
                     
                     // If there is an error message on the error object, use it
