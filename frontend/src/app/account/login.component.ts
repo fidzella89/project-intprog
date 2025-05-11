@@ -71,7 +71,19 @@ export class LoginComponent implements OnInit {
                 },
                 error: error => {
                     console.error('Login error:', error);
-                    this.alertService.error(error);
+                    
+                    // Special handling for unverified account errors
+                    if (error.includes('not verified')) {
+                        // Display error with HTML link to register page
+                        this.alertService.error(`${error} <a href="/account/register" class="alert-link">Register again</a>`, { 
+                            autoClose: false, 
+                            keepAfterRouteChange: false 
+                        });
+                    } else {
+                        // Standard error handling
+                        this.alertService.error(error);
+                    }
+                    
                     this.loading = false;
                 }
             });

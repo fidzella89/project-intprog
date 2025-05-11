@@ -66,6 +66,20 @@ function authenticate(req, res, next) {
                 return res.status(400).json({ message: error.message });
             }
             
+            if (error.name === 'InactiveAccountError') {
+                return res.status(403).json({ 
+                    message: error.message,
+                    status: error.status 
+                });
+            }
+            
+            if (error.name === 'UnverifiedAccountError') {
+                return res.status(403).json({ 
+                    message: error.message,
+                    status: error.status 
+                });
+            }
+            
             // Log unexpected errors
             console.error('Unexpected authentication error:', error);
             return res.status(500).json({ 

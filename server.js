@@ -103,6 +103,18 @@ app.use((err, req, res, next) => {
             errorMessage = err.message || 'Invalid token';
             break;
             
+        case err.name === 'InactiveAccountError':
+            // Inactive account error
+            statusCode = 403;
+            errorMessage = err.message || 'Account is inactive. Contact the administrator.';
+            break;
+            
+        case err.name === 'UnverifiedAccountError':
+            // Unverified account error
+            statusCode = 403;
+            errorMessage = err.message || 'Email is not verified. Please check your email for the verification link or register again to receive a new verification link.';
+            break;
+            
         case err.status === 'Inactive':
             // Inactive account error
             statusCode = 403;

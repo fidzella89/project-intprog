@@ -39,11 +39,19 @@ async function authenticate({ email, password, ipAddress }) {
     }
 
     if (!account.isVerified) {
-            throw { name: 'ValidationError', message: 'Email is not verified' };
+            throw { 
+                name: 'UnverifiedAccountError', 
+                message: 'Email is not verified. Please check your email for the verification link or register again to receive a new verification link.',
+                status: 'Unverified'
+            };
     }
 
     if (account.status === 'Inactive') {
-            throw { name: 'ValidationError', message: 'Account is inactive. Please contact administrator.' };
+            throw { 
+                name: 'InactiveAccountError', 
+                message: 'Account is inactive. Please contact administrator.',
+                status: 'Inactive'
+            };
     }
 
     if (!(await bcrypt.compare(password, account.passwordHash))) {

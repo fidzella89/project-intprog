@@ -21,8 +21,16 @@ export class ErrorInterceptor implements HttpInterceptor {
                 let errorMessage = 'An unexpected error occurred';
                 
                 if (err.error) {
+                    // Check for inactive account status
+                    if (err.error.status === 'Inactive') {
+                        errorMessage = 'Account is inactive. Please contact administrator.';
+                    }
+                    // Check for unverified account status
+                    else if (err.error.status === 'Unverified') {
+                        errorMessage = 'Email is not verified. Please check your email for the verification link or register again to receive a new verification link.';
+                    }
                     // If there's a specific error message in the response, use it
-                    if (err.error.message) {
+                    else if (err.error.message) {
                         errorMessage = err.error.message;
                     } 
                     // If error.error is a string, use it directly

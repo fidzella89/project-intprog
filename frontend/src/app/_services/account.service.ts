@@ -88,8 +88,15 @@ export class AccountService implements IAccountService {
                     this.clearAccountData();
                     
                     if (error.error) {
-                        if (error.error.status === 'Inactive') {
+                        // Special handling for inactive accounts
+                        if (error.error.status === 'Inactive' || 
+                            (error.status === 403 && error.error.message?.includes('inactive'))) {
                             return throwError(() => 'Account is inactive. Please contact administrator.');
+                        }
+                        // Special handling for unverified accounts
+                        if (error.error.status === 'Unverified' || 
+                            (error.status === 403 && error.error.message?.includes('not verified'))) {
+                            return throwError(() => 'Email is not verified. Please check your email for the verification link or register again to receive a new verification link.');
                         }
                         if (error.error.message) {
                             return throwError(() => error.error.message);
