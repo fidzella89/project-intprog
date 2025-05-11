@@ -22,6 +22,22 @@ export class JwtInterceptor implements HttpInterceptor {
         if (isLoggedIn && isApiUrl && !this.isRefreshTokenRequest(request)) {
             request = this.addTokenHeader(request, account.jwtToken);
         }
+        
+        // If this is a refresh token request, add the stored token if available
+        if (this.isRefreshTokenRequest(request)) {
+            const storedToken = localStorage.getItem('tempRefreshToken');
+            if (storedToken) {
+                console.log('Adding stored refresh token to request');
+                request = request.clone({
+                    body: { ...request.body, refreshToken: storedToken }
+                });
+                
+                // Also add as header for redundancy
+                request = request.clone({
+                    headers: request.headers.set('X-Refresh-Token', storedToken)
+                });
+            }
+        }
 
         return next.handle(request).pipe(
             catchError(error => {

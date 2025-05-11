@@ -35,19 +35,35 @@ async function authenticate({ email, password, ipAddress }) {
         });
 
         if (!account) {
-            throw { name: 'ValidationError', message: 'Email does not exist' };
+            throw { 
+                name: 'InvalidCredentialsError', 
+                message: 'Email or password is incorrect',
+                accountStatus: null
+            };
         }
 
         if (!account.isVerified) {
-            throw { name: 'ValidationError', message: 'Email is not verified' };
+            throw { 
+                name: 'AccountInactiveError', 
+                message: 'Email is not verified',
+                accountStatus: 'Unverified'
+            };
         }
 
         if (account.status === 'Inactive') {
-            throw { name: 'ValidationError', message: 'Account is inactive. Please contact administrator.' };
+            throw { 
+                name: 'AccountInactiveError', 
+                message: 'Account is inactive. Please contact administrator.',
+                accountStatus: 'Inactive'
+            };
         }
 
         if (!(await bcrypt.compare(password, account.passwordHash))) {
-            throw { name: 'ValidationError', message: 'Password is incorrect' };
+            throw { 
+                name: 'InvalidCredentialsError', 
+                message: 'Email or password is incorrect',
+                accountStatus: account.status
+            };
         }
 
         // Revoke any existing active refresh tokens
@@ -69,7 +85,9 @@ async function authenticate({ email, password, ipAddress }) {
         return {
             ...basicDetails(account),
             jwtToken,
-            refreshToken: refreshToken.token
+            jwtTokenExpiryTime: '15m', // Match the expiry in generateJwtToken
+            refreshToken: refreshToken.token,
+            refreshTokenExpiry: refreshToken.expires.toISOString()
         };
     } catch (error) {
         console.error('Authentication error:', error);

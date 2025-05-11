@@ -134,26 +134,44 @@ export class AccountService implements IAccountService {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
-            })
+            }),
+            observe: 'response'
         }).pipe(
             map(response => {
                 console.log('Token refresh response received');
                 
-                if (!response) {
+                const body = response.body;
+                
+                if (!body) {
                     throw new Error('Empty response from refresh token endpoint');
                 }
                 
-                if (!response.jwtToken) {
+                if (!body.jwtToken) {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
                 
+                // Check if the body has a refreshToken (for development)
+                if (body.refreshToken) {
+                    console.log('Refresh token received in body for development');
+                    // Manually save this refresh token for the next request
+                    localStorage.setItem('tempRefreshToken', body.refreshToken);
+                }
+                
+                // Check if a X-Refresh-Token header is present
+                const headerToken = response.headers.get('X-Refresh-Token');
+                if (headerToken) {
+                    console.log('Refresh token received in X-Refresh-Token header');
+                    // Manually save this refresh token for the next request
+                    localStorage.setItem('tempRefreshToken', headerToken);
+                }
+                
                 // Update the account subject with the new data
-                this.accountSubject.next(response);
+                this.accountSubject.next(body);
                 
                 // Restart the refresh timer with the new token
                 this.startRefreshTokenTimer();
                 
-                return response;
+                return body;
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);
