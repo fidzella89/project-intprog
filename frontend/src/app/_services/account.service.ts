@@ -128,7 +128,11 @@ export class AccountService implements IAccountService {
         this.refreshingToken = true;
         console.log('Starting token refresh request');
         
-        return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
+        // Get the token from accountValue if available
+        const token = this.accountValue.token || this.accountValue.refreshToken;
+        console.log('Using token for refresh:', token ? 'token present' : 'no token');
+        
+        return this.http.post<any>(`${baseUrl}/refresh-token`, { refreshToken: token }, { 
             withCredentials: true,
             headers: new HttpHeaders({
                 'Content-Type': 'application/json',
@@ -159,7 +163,7 @@ export class AccountService implements IAccountService {
                 console.error('Token refresh failed:', error);
                 
                 // Clear account data and stop refresh timer
-                    this.clearAccountData();
+                this.clearAccountData();
                 this.stopRefreshTokenTimer();
                 
                 // Determine error message
