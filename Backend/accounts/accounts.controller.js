@@ -80,6 +80,7 @@ function refreshToken(req, res, next) {
         // Check for token in multiple places
         const token = req.cookies?.refreshToken || 
                      req.headers?.['x-refresh-token'] || 
+                     req.body?.token ||
                      req.body?.refreshToken;
         
         const ipAddress = req.ip;
@@ -89,7 +90,7 @@ function refreshToken(req, res, next) {
             hasCookies: !!req.cookies,
             cookieToken: req.cookies?.refreshToken,
             headerToken: req.headers?.['x-refresh-token'],
-            bodyToken: req.body?.refreshToken,
+            bodyToken: req.body?.token || req.body?.refreshToken,
             finalToken: token
         });
 
@@ -99,7 +100,8 @@ function refreshToken(req, res, next) {
                 code: 'TOKEN_REQUIRED',
                 debug: process.env.NODE_ENV === 'development' ? {
                     cookies: req.cookies,
-                    headers: req.headers
+                    headers: req.headers,
+                    body: req.body
                 } : undefined
             });
         }

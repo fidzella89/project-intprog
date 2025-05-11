@@ -129,10 +129,10 @@ export class AccountService implements IAccountService {
         console.log('Starting token refresh request');
         
         // Get the token from accountValue if available
-        const token = this.accountValue.token || this.accountValue.refreshToken;
-        console.log('Using token for refresh:', token ? 'token present' : 'no token');
+        const tokenValue = this.accountValue.token || this.accountValue.refreshToken;
+        console.log('Using token for refresh:', tokenValue ? 'token present' : 'no token');
         
-        return this.http.post<any>(`${baseUrl}/refresh-token`, { refreshToken: token }, { 
+        return this.http.post<any>(`${baseUrl}/refresh-token`, { token: tokenValue }, { 
             withCredentials: true,
             headers: new HttpHeaders({
                 'Content-Type': 'application/json',
