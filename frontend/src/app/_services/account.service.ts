@@ -67,13 +67,23 @@ export class AccountService implements IAccountService {
                         throw new Error('Invalid login response');
                     }
 
+                    if (!account.jwtToken) {
+                        throw new Error('No JWT token in response');
+                    }
+
                     // Update the account subject
                     this.accountSubject.next(account);
+                    
+                    // Start the refresh token timer
                     this.startRefreshTokenTimer();
+                    
                     return account;
                 }),
                 catchError(error => {
                     console.error('Login error details:', error);
+                    
+                    // Clear any existing account data
+                    this.clearAccountData();
                     
                     // Handle specific error responses from the server
                     if (error.error) {
@@ -137,9 +147,8 @@ export class AccountService implements IAccountService {
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);
-                // On refresh failure, clear the account state
-                this.stopRefreshTokenTimer();
-                this.accountSubject.next(null);
+                // On refresh failure, clear the account state and redirect to login
+                this.clearAccountData();
                 this.router.navigate(['/account/login']);
                 return throwError(() => error);
             }),
@@ -214,21 +223,41 @@ export class AccountService implements IAccountService {
     private startRefreshTokenTimer() {
         // Parse the JWT token
         const jwtToken = this.accountValue?.jwtToken;
-        if (!jwtToken) return;
+        if (!jwtToken) {
+            console.log('No JWT token available, not starting refresh timer');
+            return;
+        }
 
         try {
             const jwtPayload = JSON.parse(atob(jwtToken.split('.')[1]));
             const expires = new Date(jwtPayload.exp * 1000);
-            const timeout = expires.getTime() - Date.now() - (60 * 1000); // Refresh 1 minute before expiry
+            const timeout = expires.getTime() - Date.now() - (5 * 60 * 1000); // Refresh 5 minutes before expiry
 
+            if (timeout <= 0) {
+                console.log('Token already expired or about to expire');
+                this.clearAccountData();
+                this.router.navigate(['/account/login']);
+                return;
+            }
+
+            console.log(`Setting refresh timer for ${new Date(Date.now() + timeout).toISOString()}`);
             this.stopRefreshTokenTimer();
             this.refreshTokenTimeout = setTimeout(() => {
                 console.log('Token refresh timer triggered');
-                this.refreshToken().subscribe();
+                if (!this.refreshingToken) {
+                    this.refreshToken().subscribe({
+                        error: (error) => {
+                            console.error('Failed to refresh token:', error);
+                            this.clearAccountData();
+                            this.router.navigate(['/account/login']);
+                        }
+                    });
+                }
             }, Math.max(0, timeout));
         } catch (error) {
             console.error('Error starting refresh token timer:', error);
-            this.accountSubject.next(null);
+            this.clearAccountData();
+            this.router.navigate(['/account/login']);
         }
     }
 

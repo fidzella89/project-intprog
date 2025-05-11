@@ -16,10 +16,10 @@ export class AuthGuard {
     canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> {
         const account = this.accountService.accountValue;
         
-        // Check if we're already on the login page to prevent loops
-        if (state.url.startsWith('/account/login')) {
-            return of(true);
-        }
+            // Check if we're already on the login page to prevent loops
+            if (state.url.startsWith('/account/login')) {
+                return of(true);
+            }
 
         if (!account || !account.jwtToken) {
             console.log('Auth Guard: No account or token found, redirecting to login');
