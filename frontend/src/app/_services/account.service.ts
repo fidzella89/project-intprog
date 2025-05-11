@@ -35,6 +35,10 @@ export class AccountService implements IAccountService {
     public account: Observable<Account | null>;
     private refreshTokenTimeout: any;
     private refreshingToken = false;
+    // Track the last time we refreshed the token
+    private lastTokenRefresh: number = 0;
+    // Minimum time between refreshes in ms (2 minutes)
+    private readonly MIN_REFRESH_INTERVAL = 2 * 60 * 1000;
     private readonly TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
 
     constructor(
@@ -125,6 +129,14 @@ export class AccountService implements IAccountService {
             return throwError(() => new Error('No account data'));
         }
 
+        // Check if we've refreshed the token recently
+        const now = Date.now();
+        const timeSinceLastRefresh = now - this.lastTokenRefresh;
+        if (timeSinceLastRefresh < this.MIN_REFRESH_INTERVAL) {
+            console.log(`Token was refreshed ${timeSinceLastRefresh}ms ago, skipping refresh`);
+            return this.account;
+        }
+
         this.refreshingToken = true;
         console.log('Starting token refresh request');
         
@@ -156,6 +168,9 @@ export class AccountService implements IAccountService {
                 
                 // Update the account subject with the new data
                 this.accountSubject.next(response);
+                
+                // Update last refresh timestamp
+                this.lastTokenRefresh = Date.now();
                 
                 // Restart the refresh timer with the new token
                 this.startRefreshTokenTimer();
@@ -313,12 +328,24 @@ export class AccountService implements IAccountService {
 
             // Calculate timeout - refresh at 70% of token lifetime instead of fixed time
             const tokenLifetime = expires.getTime() - now.getTime();
-            const timeout = Math.floor(tokenLifetime * 0.7);
+            
+            // Ensure the timeout is at least the minimum refresh interval
+            const timeout = Math.max(
+                Math.floor(tokenLifetime * 0.7),
+                this.MIN_REFRESH_INTERVAL
+            );
 
             if (timeout <= 0) {
                 console.log('Token already expired or about to expire');
                 this.clearAccountData();
                 this.router.navigate(['/account/login']);
+                return;
+            }
+
+            // Check if the token was refreshed very recently, if so, don't schedule another refresh yet
+            const timeSinceLastRefresh = Date.now() - this.lastTokenRefresh;
+            if (timeSinceLastRefresh < this.MIN_REFRESH_INTERVAL) {
+                console.log(`Token was refreshed ${timeSinceLastRefresh}ms ago, delaying next refresh`);
                 return;
             }
 
