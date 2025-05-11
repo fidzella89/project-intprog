@@ -79,91 +79,34 @@ function authenticate(req, res, next) {
 
 function refreshToken(req, res, next) {
     try {
-        console.log('Refresh token request received');
-        console.log('Cookies:', req.cookies);
-        console.log('Body:', req.body);
-
-        // try to get token from request body first, then from cookie
-        const token = req.body.token || req.cookies.refreshToken;
+        const token = req.cookies.refreshToken;
         const ipAddress = req.ip;
-
-        if (!token) {
-            console.log('No refresh token provided in request');
-            return res.status(400).json({ message: 'Refresh token is required' });
-        }
-
-        console.log('Processing refresh token request with token:', token);
-
+        
         accountService.refreshToken({ token, ipAddress })
-            .then(response => {
-                console.log('Refresh token service response received');
-                
-                if (!response) {
-                    console.error('No response from refresh token service');
-                    return res.status(500).json({ message: 'Invalid refresh token response' });
-                }
-
-                // Log the response structure
-                console.log('Response structure:', Object.keys(response));
-                
-                if (!response.refreshToken) {
-                    console.error('No refreshToken in response object');
-                    return res.status(500).json({ message: 'Invalid token response structure' });
-                }
-
-                // Set cookie options
-                const cookieOptions = {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                    path: '/'
-                };
-
-                // In production, set the domain
-                if (process.env.NODE_ENV === 'production') {
-                    cookieOptions.domain = '.onrender.com';
-                }
-
-                // Set the refresh token cookie
-                res.cookie('refreshToken', response.refreshToken, cookieOptions);
-                console.log('Refresh token cookie set');
-
-                // Remove refresh token from response to avoid sending it in body
-                const { refreshToken, ...accountDetails } = response;
-                
-                console.log('Sending response to client');
-                res.json(accountDetails);
+            .then(({ refreshToken, ...account }) => {
+                setTokenCookie(res, refreshToken);
+                res.json(account);
             })
             .catch(error => {
-                console.error('Refresh token error:', error);
+                // Clear the invalid refresh token
+                res.clearCookie('refreshToken');
                 
-                // Log the full error object for debugging
-                console.error('Full error object:', JSON.stringify(error, null, 2));
-
-                if (error.name === 'ValidationError') {
-                    return res.status(400).json({ message: error.message });
+                // Handle specific error types
+                switch(error.name) {
+                    case 'ValidationError':
+                    case 'NotFoundError':
+                        return res.status(400).json({ message: error.message });
+                    case 'InvalidTokenError':
+                        return res.status(401).json({ message: error.message });
+                    default:
+                        return res.status(500).json({ 
+                            message: 'An error occurred while refreshing the token',
+                            error: error.message 
+                        });
                 }
-                if (error.name === 'NotFoundError') {
-                    return res.status(404).json({ message: error.message });
-                }
-                if (error.name === 'InvalidTokenError') {
-                    return res.status(401).json({ message: error.message });
-                }
-                
-                // Handle string errors
-                if (typeof error === 'string') {
-                    return res.status(400).json({ message: error });
-                }
-
-                // Handle any other errors
-                const message = error.message || 'An error occurred while refreshing the token';
-                return res.status(500).json({ message });
             });
     } catch (error) {
-        console.error('Refresh token handler error:', error);
-        console.error('Full error object:', JSON.stringify(error, null, 2));
-        return res.status(500).json({ message: 'Internal server error during token refresh' });
+        next(error);
     }
 }
 

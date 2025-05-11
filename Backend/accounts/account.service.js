@@ -59,18 +59,14 @@ async function authenticate({ email, password, ipAddress }) {
 
 async function refreshToken({ token, ipAddress }) {
     try {
-        console.log('Starting token refresh process');
-        
         if (!token) {
-            console.error('No token provided to refreshToken');
             throw {
                 name: 'ValidationError',
                 message: 'Refresh token is required'
             };
         }
 
-        // Find the refresh token
-        console.log('Looking for refresh token:', token);
+        // Find the refresh token with account details
         const refreshToken = await db.RefreshToken.findOne({
             where: { token },
             include: [{
@@ -80,18 +76,16 @@ async function refreshToken({ token, ipAddress }) {
         });
 
         if (!refreshToken) {
-            console.error('Refresh token not found:', token);
             throw {
                 name: 'NotFoundError',
                 message: 'Invalid refresh token'
             };
         }
 
-        console.log('Found refresh token, checking validity');
-
-        // Check if token is expired
+        // Verify token hasn't expired
         if (refreshToken.expires < new Date()) {
-            console.error('Token has expired:', refreshToken.expires);
+            // Remove expired token
+            await refreshToken.destroy();
             throw {
                 name: 'InvalidTokenError',
                 message: 'Token has expired'
@@ -100,28 +94,23 @@ async function refreshToken({ token, ipAddress }) {
 
         // Check if token is revoked
         if (refreshToken.revoked) {
-            console.error('Token has been revoked at:', refreshToken.revoked);
             throw {
                 name: 'InvalidTokenError',
                 message: 'Token has been revoked'
             };
         }
 
-        // Get the account
+        // Get account
         const account = await db.Account.findByPk(refreshToken.accountId);
         if (!account) {
-            console.error('No account found for token:', token);
             throw {
                 name: 'NotFoundError',
                 message: 'Account not found'
             };
         }
 
-        console.log('Found account:', account.id);
-
         // Check account status
         if (account.status === 'Inactive') {
-            console.error('Account is inactive:', account.id);
             throw {
                 name: 'ValidationError',
                 message: 'Account is inactive'
@@ -129,12 +118,10 @@ async function refreshToken({ token, ipAddress }) {
         }
 
         // Generate new tokens
-        console.log('Generating new tokens');
         const newRefreshToken = generateRefreshToken(account, ipAddress);
         const jwtToken = generateJwtToken(account);
 
         // Save in transaction
-        console.log('Saving tokens in transaction');
         await db.sequelize.transaction(async (t) => {
             // Revoke current token
             refreshToken.revoked = Date.now();
@@ -146,21 +133,26 @@ async function refreshToken({ token, ipAddress }) {
             await newRefreshToken.save({ transaction: t });
         });
 
-        console.log('Tokens saved successfully');
-
         // Return response with both tokens
-        const response = {
+        return {
             ...basicDetails(account),
             jwtToken,
             refreshToken: newRefreshToken.token
         };
 
-        console.log('Refresh token process completed successfully');
-        return response;
-
     } catch (error) {
-        console.error('Error in refreshToken:', error);
-        throw error;
+        // Log the error for debugging
+        console.error('Refresh token error:', error);
+        
+        // Re-throw the error with proper structure
+        if (error.name && error.message) {
+            throw error;
+        }
+        
+        throw {
+            name: 'InternalError',
+            message: 'An error occurred while refreshing the token'
+        };
     }
 }
 
