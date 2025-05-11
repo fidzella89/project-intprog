@@ -34,7 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
                 
                 // If account exists and we're on the login page, redirect to home
                 if (account && this.router.url.includes('/account/login')) {
-                    console.log('App: Redirecting to home page');
+                    console.log('App: Redirecting to home page from login');
                     this.router.navigate(['/']);
                 }
             },
@@ -46,17 +46,23 @@ export class AppComponent implements OnInit, OnDestroy {
         // Subscribe to router events to handle navigation
         this.routerSubscription = this.router.events
             .pipe(filter(event => event instanceof NavigationEnd))
-            .subscribe(() => {
+            .subscribe((event: NavigationEnd) => {
+                console.log('App: Navigation event to', event.url);
+                
                 // Check if we should redirect to home when logged in
-                if (this.account && this.router.url.includes('/account/login')) {
+                if (this.account && event.url.includes('/account/login')) {
                     console.log('App: Navigation - Redirecting logged in user from login page');
                     this.router.navigate(['/']);
                 }
                 
-                // Check if we need to redirect to login when not logged in
-                if (!this.account && !this.router.url.includes('/account/')) {
-                    console.log('App: Navigation - Redirecting non-logged in user to login');
-                    this.router.navigate(['/account/login']);
+                // We only want to check for auth redirect on main pages, not account pages
+                if (!event.url.includes('/account/')) {
+                    if (!this.account) {
+                        console.log('App: Navigation - Not logged in, redirecting to login');
+                        this.router.navigate(['/account/login']);
+                    } else {
+                        console.log('App: Navigation - Logged in, allowing access to', event.url);
+                    }
                 }
             });
     }
@@ -80,7 +86,21 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     logout() {
-        this.accountService.clearAccountData();
-        this.closeLogoutModal();
+        console.log('App: Logging out user');
+        this.accountService.logout().subscribe({
+            next: () => {
+                console.log('App: Logout successful');
+                this.router.navigate(['/account/login']);
+            },
+            error: (error) => {
+                console.error('App: Logout error:', error);
+                // Even if there's an error, still clear local data and redirect
+                this.accountService.clearAccountData();
+                this.router.navigate(['/account/login']);
+            },
+            complete: () => {
+                this.closeLogoutModal();
+            }
+        });
     }
 }

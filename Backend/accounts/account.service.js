@@ -66,7 +66,7 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-        console.log('Looking for refresh token');
+        console.log('Looking for refresh token:', token);
         const refreshToken = await db.RefreshToken.findOne({
             where: { token },
             include: [{
@@ -100,14 +100,18 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
-    // replace old refresh token with a new one and save
-    const newRefreshToken = generateRefreshToken(account, ipAddress);
+        console.log(`Found account for refresh token: ${account.id} (${account.email})`);
+
+        // replace old refresh token with a new one and save
+        const newRefreshToken = generateRefreshToken(account, ipAddress);
+        
+        console.log('Generated new refresh token:', newRefreshToken.token);
         
         // Save both tokens in a transaction
         await db.sequelize.transaction(async (t) => {
-    refreshToken.revoked = Date.now();
-    refreshToken.revokedByIp = ipAddress;
-    refreshToken.replacedByToken = newRefreshToken.token;
+            refreshToken.revoked = Date.now();
+            refreshToken.revokedByIp = ipAddress;
+            refreshToken.replacedByToken = newRefreshToken.token;
             await refreshToken.save({ transaction: t });
             await newRefreshToken.save({ transaction: t });
         }).catch(error => {
@@ -118,17 +122,17 @@ async function refreshToken({ token, ipAddress }) {
             };
         });
 
-    // generate new jwt
-    const jwtToken = generateJwtToken(account);
+        // generate new jwt
+        const jwtToken = generateJwtToken(account);
 
-    // return basic details and tokens
+        // return basic details and tokens
         const response = {
-        ...basicDetails(account),
-        jwtToken,
-        refreshToken: newRefreshToken.token
-    };
+            ...basicDetails(account),
+            jwtToken,
+            refreshToken: newRefreshToken.token
+        };
 
-        console.log('Successfully refreshed token');
+        console.log('Successfully refreshed token, response includes refreshToken:', !!response.refreshToken);
         return response;
     } catch (error) {
         console.error('Refresh token error:', error);

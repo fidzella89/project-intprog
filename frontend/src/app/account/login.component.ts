@@ -50,24 +50,24 @@ export class LoginComponent implements OnInit {
         }
 
         this.loading = true;
+        
+        console.log('Attempting login with:', this.f.email.value);
+        
         this.accountService.login(this.f.email.value, this.f.password.value)
             .pipe(first())
             .subscribe({
                 next: (account) => {
-                    console.log('Login successful, navigating to:', this.returnUrl);
+                    console.log('Login successful, received account data:', account);
                     
-                    // Navigate to return url or home
-                    this.router.navigate([this.returnUrl])
-                        .then(() => {
-                            console.log('Navigation successful');
-                            // Force a page reload to ensure all components are properly initialized
-                            window.location.reload();
-                        })
-                        .catch(error => {
-                            console.error('Navigation failed:', error);
-                            // Fallback to home page if navigation fails
-                            this.router.navigate(['/']);
-                        });
+                    // Get the return url from query parameters or default to '/'
+                    const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+                    
+                    console.log('Navigating to:', returnUrl);
+                    
+                    // Force a delay to ensure the token is properly processed
+                    setTimeout(() => {
+                        this.router.navigateByUrl(returnUrl);
+                    }, 500);
                 },
                 error: error => {
                     console.error('Login error:', error);

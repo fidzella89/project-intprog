@@ -89,12 +89,29 @@ function refreshToken(req, res, next) {
         }
 
         accountService.refreshToken({ token, ipAddress })
-            .then(({ refreshToken, ...account }) => {
-                if (!refreshToken) {
-                    throw new Error('No refresh token in response');
+            .then(response => {
+                // Add extra logging to diagnose the issue
+                console.log('Refresh token service response:', JSON.stringify(response));
+                
+                if (!response) {
+                    console.error('No response from refreshToken service');
+                    return res.status(500).json({ message: 'Invalid refresh token response' });
                 }
-                setTokenCookie(res, refreshToken);
-                res.json(account);
+                
+                // Check if refreshToken exists in the response
+                if (!response.refreshToken) {
+                    console.error('No refreshToken in response object');
+                    return res.status(500).json({ message: 'Invalid token response structure' });
+                }
+                
+                // Set the token cookie and send the account details
+                setTokenCookie(res, response.refreshToken);
+                
+                // Create a new response object without the refresh token
+                const accountDetails = { ...response };
+                delete accountDetails.refreshToken;
+                
+                res.json(accountDetails);
             })
             .catch(error => {
                 console.error('Refresh token error:', error);
