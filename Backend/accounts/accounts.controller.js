@@ -81,21 +81,20 @@ function refreshToken(req, res, next) {
     try {
         // try to get token from request body first, then from cookie
         const token = req.body.token || req.cookies.refreshToken;
-    const ipAddress = req.ip;
+        const ipAddress = req.ip;
 
         if (!token) {
+            console.log('No refresh token provided');
             return res.status(400).json({ message: 'Refresh token is required' });
         }
 
-    accountService.refreshToken({ token, ipAddress })
-            .then(response => {
-                if (!response || !response.refreshToken) {
-                    throw new Error('Invalid response from refresh token service');
+        accountService.refreshToken({ token, ipAddress })
+            .then(({ refreshToken, ...account }) => {
+                if (!refreshToken) {
+                    throw new Error('No refresh token in response');
                 }
-                setTokenCookie(res, response.refreshToken);
-                // Remove refresh token from response to avoid sending it twice
-                const { refreshToken, ...accountDetails } = response;
-                res.json(accountDetails);
+                setTokenCookie(res, refreshToken);
+                res.json(account);
             })
             .catch(error => {
                 console.error('Refresh token error:', error);
@@ -108,11 +107,11 @@ function refreshToken(req, res, next) {
                 if (error.name === 'InvalidTokenError') {
                     return res.status(401).json({ message: error.message });
                 }
-                next(error);
+                return res.status(500).json({ message: 'An error occurred while refreshing the token' });
             });
     } catch (error) {
         console.error('Refresh token handler error:', error);
-        next(error);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 }
 
@@ -315,12 +314,13 @@ function setTokenCookie(res, token) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        path: '/'
     };
 
     // In production, set the domain to match your Render domain
     if (process.env.NODE_ENV === 'production') {
-        cookieOptions.domain = 'final-intprog-project-1.onrender.com';
+        cookieOptions.domain = '.onrender.com';  // Allow subdomains
     }
 
     res.cookie('refreshToken', token, cookieOptions);

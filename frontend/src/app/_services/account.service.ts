@@ -123,6 +123,7 @@ export class AccountService implements IAccountService {
         }
 
         this.refreshingToken = true;
+        console.log('Attempting to refresh token');
 
         return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
@@ -133,8 +134,9 @@ export class AccountService implements IAccountService {
             }
         }).pipe(
             map(response => {
-                if (!response) {
-                    throw new Error('Invalid refresh token response');
+                console.log('Refresh token response:', response);
+                if (!response || !response.jwtToken) {
+                    throw new Error('Invalid refresh token response - no JWT token');
                 }
                 
                 // Update the account subject with the new data
@@ -150,9 +152,10 @@ export class AccountService implements IAccountService {
                 // On refresh failure, clear the account state and redirect to login
                 this.clearAccountData();
                 this.router.navigate(['/account/login']);
-                return throwError(() => error);
+                return throwError(() => new Error(error.error?.message || 'Failed to refresh token'));
             }),
             finalize(() => {
+                console.log('Refresh token request completed');
                 this.refreshingToken = false;
             })
         );
