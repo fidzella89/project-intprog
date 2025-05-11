@@ -93,6 +93,36 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Add cookie diagnostic endpoint
+app.get('/cookie-test', (req, res) => {
+    // Set a test cookie
+    const testCookieValue = `test-${Date.now()}`;
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
+        expires: new Date(Date.now() + 1000 * 60 * 5) // 5 minutes
+    };
+    
+    res.cookie('test-cookie', testCookieValue, cookieOptions);
+    
+    // Return diagnostic information
+    res.status(200).json({
+        message: 'Test cookie set',
+        sentCookieValue: testCookieValue,
+        receivedCookies: req.cookies || {},
+        cookieHeader: req.headers.cookie,
+        hasHttpOnlyCookies: !!req.cookies && Object.keys(req.cookies).length > 0,
+        cors: {
+            origin: req.headers.origin,
+            configuredOrigins: allowedOrigins
+        },
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
 // global error handler
 app.use(errorHandler);
 

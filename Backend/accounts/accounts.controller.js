@@ -49,14 +49,30 @@ function authenticate(req, res, next) {
                 });
             }
             
-            // Set refresh token in cookie
-            setTokenCookie(res, refreshToken);
-            
-            // Return account details and JWT token
-            res.json({
-                ...account,
-                token: jwtToken
-            });
+            // Set refresh token in cookie - more explicitly handled for debugging
+            try {
+                const cookieOptions = {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                    path: '/',
+                    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
+                    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+                };
+                
+                res.cookie('refreshToken', refreshToken, cookieOptions);
+                console.log('Set refresh token cookie with options:', cookieOptions);
+                
+                // Return account details and JWT token and refreshToken for backup
+                res.json({
+                    ...account,
+                    token: jwtToken,
+                    refreshToken: refreshToken // Include refresh token in response for backup
+                });
+            } catch (error) {
+                console.error('Error setting cookie:', error);
+                throw error;
+            }
         })
         .catch(error => {
             console.error('Authentication error:', error);
@@ -76,6 +92,15 @@ function authenticate(req, res, next) {
 
 function refreshToken(req, res, next) {
     try {
+        // Enhanced detailed logging
+        console.log('RefreshToken Request Details:', {
+            'Request Headers': req.headers,
+            'Request Body': req.body,
+            'Cookie Header': req.headers.cookie,
+            'Has Cookies Object': !!req.cookies,
+            'Cookie Names': req.cookies ? Object.keys(req.cookies) : 'No cookies object'
+        });
+        
         // Check for token in multiple places
         const token = req.cookies?.refreshToken || 
                      req.headers?.['x-refresh-token'] || 
@@ -90,7 +115,7 @@ function refreshToken(req, res, next) {
             cookieToken: req.cookies?.refreshToken,
             headerToken: req.headers?.['x-refresh-token'],
             bodyToken: req.body?.token || req.body?.refreshToken, // Log both possible body token fields
-            finalToken: token
+            finalToken: token ? token.substring(0, 10) + '...' : 'No token found'
         });
         
         if (!token) {
@@ -99,7 +124,9 @@ function refreshToken(req, res, next) {
                 code: 'TOKEN_REQUIRED',
                 debug: process.env.NODE_ENV === 'development' ? {
                     cookies: req.cookies,
-                    headers: req.headers
+                    cookieHeader: req.headers.cookie,
+                    bodyKeys: req.body ? Object.keys(req.body) : [],
+                    bodyHasToken: req.body && (req.body.token || req.body.refreshToken) ? true : false
                 } : undefined
             });
         }
