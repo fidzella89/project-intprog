@@ -34,18 +34,18 @@ async function getAll() {
                         SELECT CASE 
                             WHEN COUNT(*) = 0 THEN 'No Item'
                             WHEN COUNT(*) = 1 THEN '1 Item'
-                            ELSE CONCAT(COUNT(*), ' Items')
+                            ELSE COUNT(*) || ' Items'
                         END
                         FROM request_items 
-                        WHERE request_items.requestId = Request.id
+                        WHERE request_items."requestId" = "Request".id
                     )`),
                     'itemsDisplay'
                 ],
                 [
                     literal(`(
-                        SELECT GROUP_CONCAT(CONCAT(name, ' (', quantity, ')') SEPARATOR ', ')
+                        SELECT STRING_AGG(name || ' (' || quantity || ')', ', ')
                         FROM request_items 
-                        WHERE request_items.requestId = Request.id
+                        WHERE request_items."requestId" = "Request".id
                     )`),
                     'itemsList'
                 ]
@@ -79,10 +79,10 @@ async function getById(id) {
                         SELECT CASE 
                             WHEN COUNT(*) = 0 THEN 'No Item'
                             WHEN COUNT(*) = 1 THEN '1 Item'
-                            ELSE CONCAT(COUNT(*), ' Items')
+                            ELSE COUNT(*) || ' Items'
                         END
                         FROM request_items 
-                        WHERE request_items.requestId = Request.id
+                        WHERE request_items."requestId" = "Request".id
                     )`),
                     'itemsDisplay'
                 ]
@@ -117,18 +117,18 @@ async function getByRequesterId(requesterId) {
                         SELECT CASE 
                             WHEN COUNT(*) = 0 THEN 'No Item'
                             WHEN COUNT(*) = 1 THEN '1 Item'
-                            ELSE CONCAT(COUNT(*), ' Items')
+                            ELSE COUNT(*) || ' Items'
                         END
                         FROM request_items 
-                        WHERE request_items.requestId = Request.id
+                        WHERE request_items."requestId" = "Request".id
                     )`),
                     'itemsDisplay'
                 ],
                 [
                     literal(`(
-                        SELECT GROUP_CONCAT(CONCAT(name, ' (', quantity, ')') SEPARATOR ', ')
+                        SELECT STRING_AGG(name || ' (' || quantity || ')', ', ')
                         FROM request_items 
-                        WHERE request_items.requestId = Request.id
+                        WHERE request_items."requestId" = "Request".id
                     )`),
                     'itemsList'
                 ]
