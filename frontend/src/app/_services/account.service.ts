@@ -67,7 +67,7 @@ export class AccountService implements IAccountService {
                         throw new Error('Invalid login response');
                     }
 
-                    if (!account.jwtToken) {
+                    if (!account.token) {
                         throw new Error('No JWT token in response');
                     }
 
@@ -143,7 +143,7 @@ export class AccountService implements IAccountService {
                     throw new Error('Empty response from refresh token endpoint');
                 }
                 
-                if (!response.jwtToken) {
+                if (!response.token) {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
                 
@@ -250,7 +250,7 @@ export class AccountService implements IAccountService {
     private startRefreshTokenTimer() {
         try {
             // Parse the JWT token
-            const jwtToken = this.accountValue?.jwtToken;
+            const jwtToken = this.accountValue?.token;
             if (!jwtToken) {
                 console.log('No JWT token available, not starting refresh timer');
                 return;

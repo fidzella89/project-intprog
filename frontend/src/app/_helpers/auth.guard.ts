@@ -21,7 +21,7 @@ export class AuthGuard {
                 return of(true);
             }
 
-        if (!account || !account.jwtToken) {
+        if (!account || !account.token) {
             console.log('Auth Guard: No account or token found, redirecting to login');
             // Not logged in, redirect to login page with return url
             this.router.navigate(['/account/login'], { queryParams: { returnUrl: state.url } });
