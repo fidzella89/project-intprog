@@ -15,11 +15,11 @@ router.post('/verify-email', verifyEmailSchema, verifyEmail);
 router.post('/forgot-password', forgotPasswordSchema, forgotPassword);
 router.post('/validate-reset-token', validateResetTokenSchema, validateResetToken);
 router.post('/reset-password', resetPasswordSchema, resetPassword);
+router.get('/token-diagnostics', tokenDiagnostics);
 router.get('/', authorize(Role.Admin), getAll);
 router.get('/:id', authorize(), getById);
 router.post('/', authorize(Role.Admin), createSchema, create);
 router.put('/:id', authorize(), updateSchema, update);
-
 
 module.exports = router;
 
@@ -427,5 +427,52 @@ function setTokenCookie(res, token) {
     } catch (error) {
         console.error('Error setting refresh token cookie:', error);
         throw error;
+    }
+}
+
+// Add diagnostic endpoint to check tokens
+function tokenDiagnostics(req, res, next) {
+    try {
+        // Get token from request
+        const token = req.query.token || 
+                     req.cookies?.refreshToken || 
+                     req.headers?.['x-refresh-token'] || 
+                     req.body?.token || 
+                     req.body?.refreshToken;
+        
+        if (!token) {
+            return res.status(400).json({ 
+                message: 'No token provided',
+                tokenSources: {
+                    query: !!req.query.token,
+                    cookies: !!req.cookies?.refreshToken,
+                    headers: !!req.headers?.['x-refresh-token'],
+                    body: !!(req.body?.token || req.body?.refreshToken)
+                }
+            });
+        }
+        
+        // Check token in database
+        accountService.checkToken(token)
+            .then(result => {
+                res.json({
+                    message: 'Token diagnostic information',
+                    token: token.substring(0, 10) + '...',
+                    result
+                });
+            })
+            .catch(error => {
+                res.status(400).json({
+                    message: 'Token check failed',
+                    error: error.message || 'Unknown error',
+                    token: token.substring(0, 10) + '...'
+                });
+            });
+    } catch (error) {
+        console.error('Token diagnostics error:', error);
+        res.status(500).json({
+            message: 'An error occurred during token diagnostics',
+            error: error.message
+        });
     }
 }

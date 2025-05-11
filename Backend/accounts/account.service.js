@@ -20,7 +20,8 @@ module.exports = {
     getById,
     create,
     update,
-    delete: _delete
+    delete: _delete,
+    checkToken
 };
 
 async function authenticate({ email, password, ipAddress }) {
@@ -86,29 +87,65 @@ async function refreshToken({ token, ipAddress }) {
             };
         }
 
+        console.log('Refreshing token:', token.substring(0, 10) + '...');
+
         // Find the refresh token with account details
         const refreshToken = await db.RefreshToken.findOne({
             where: { token },
             include: [{
                 model: db.Account,
                 attributes: { 
-                    exclude: ['passwordHash'],
-                    include: ['id', 'email', 'role', 'status'] 
+                    exclude: ['passwordHash']
                 }
             }]
         });
 
         if (!refreshToken) {
+            console.error('Token not found in database');
             throw {
                 name: 'NotFoundError',
                 message: 'Invalid refresh token'
             };
         }
 
+        // Explicitly check if Account is loaded
         if (!refreshToken.Account) {
-            throw {
-                name: 'NotFoundError',
-                message: 'Associated account not found'
+            console.error(`Account not found for token. AccountId: ${refreshToken.accountId}`);
+            
+            // Try to find the account directly
+            const account = await db.Account.findByPk(refreshToken.accountId);
+            
+            if (!account) {
+                throw {
+                    name: 'NotFoundError',
+                    message: 'Associated account not found'
+                };
+            }
+            
+            // If we find the account, use it for token refresh
+            console.log(`Found account manually: ${account.id}, ${account.email}`);
+            
+            // Generate new tokens
+            const newRefreshToken = generateRefreshToken(account, ipAddress);
+            const jwtToken = generateJwtToken(account);
+            
+            // Save in transaction
+            await db.sequelize.transaction(async (t) => {
+                // Revoke current token
+                refreshToken.revoked = Date.now();
+                refreshToken.revokedByIp = ipAddress;
+                refreshToken.replacedByToken = newRefreshToken.token;
+                await refreshToken.save({ transaction: t });
+                
+                // Save new token
+                await newRefreshToken.save({ transaction: t });
+            });
+            
+            // Return response with both tokens
+            return {
+                ...basicDetails(account),
+                jwtToken,
+                refreshToken: newRefreshToken.token
             };
         }
 
@@ -511,5 +548,57 @@ async function checkActiveTokens() {
         }
     } catch (error) {
         console.error('Error checking active tokens:', error);
+    }
+}
+
+// Add checkToken method
+async function checkToken(token) {
+    try {
+        const refreshToken = await db.RefreshToken.findOne({ 
+            where: { token },
+            include: [{
+                model: db.Account,
+                attributes: { exclude: ['passwordHash'] }
+            }]
+        });
+
+        if (!refreshToken) {
+            return {
+                valid: false,
+                reason: 'Token not found in database'
+            };
+        }
+
+        // Check token expiry
+        const isExpired = refreshToken.expires < new Date();
+        
+        // Check if revoked
+        const isRevoked = !!refreshToken.revoked;
+        
+        // Check if account exists
+        const hasAccount = !!refreshToken.Account;
+        
+        return {
+            valid: !isExpired && !isRevoked && hasAccount,
+            tokenDetails: {
+                id: refreshToken.id,
+                expires: refreshToken.expires,
+                issuedAt: refreshToken.created,
+                isExpired,
+                isRevoked,
+                revokedAt: refreshToken.revoked,
+                accountId: refreshToken.accountId
+            },
+            accountDetails: hasAccount ? {
+                id: refreshToken.Account.id,
+                email: refreshToken.Account.email,
+                role: refreshToken.Account.role,
+                status: refreshToken.Account.status,
+                isVerified: refreshToken.Account.isVerified
+            } : null
+        };
+    } catch (error) {
+        console.error('Error checking token:', error);
+        throw error;
     }
 }
