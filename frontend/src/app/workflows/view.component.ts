@@ -46,14 +46,13 @@ export class ViewWorkflowComponent implements OnInit {
                         this.employee = workflow.employee;
                         // Don't add EMP prefix if it already exists
                         const empId = workflow.employee.employeeId || '';
-                        this.displayEmployeeId = empId.startsWith('EMP') 
-                            ? empId 
-                            : 'No Employee Id Passed';
+                        this.displayEmployeeId = empId;
                         
                         // Check if current user is the owner of the workflow
                         const currentUserId = this.accountService.accountValue?.id;
-                        this.isOwner = this.isAdmin || 
-                            (currentUserId && workflow.employee.id && workflow.employee.id === Number(currentUserId));
+                        // Convert both values to string for comparison
+                        this.isOwner = !!this.isAdmin || 
+                            !!(currentUserId && workflow.employee.id && String(workflow.employee.id) === String(currentUserId));
                     }
                     this.loading = false;
                 },
