@@ -61,18 +61,21 @@ export class AccountService implements IAccountService {
         return this.http.post<Account>(`${baseUrl}/authenticate`, { email, password }, { withCredentials: true })
             .pipe(
                 map(account => {
-                    if (!account || !account.jwtToken) {
-                        throw new Error('Invalid login response - missing JWT token');
-                    }
+                    console.log('Login response received');
                     
-                    // Store account details and jwt token in local storage to keep user logged in between page refreshes
+                    if (!account) {
+                        throw new Error('Invalid login response');
+                    }
+
+                    if (!account.jwtToken) {
+                        throw new Error('No JWT token in response');
+                    }
+
+                    // Update the account subject
                     this.accountSubject.next(account);
                     
-                    // Start timer to refresh token before it expires
+                    // Start the refresh token timer
                     this.startRefreshTokenTimer();
-                    
-                    // Ensure the refresh token cookie was set
-                    this.checkRefreshToken();
                     
                     return account;
                 }),
@@ -125,16 +128,12 @@ export class AccountService implements IAccountService {
         this.refreshingToken = true;
         console.log('Starting token refresh request');
 
-        // Get the token from cookies if available
-        let token = this.getCookie('refreshToken');
-        
-        return this.http.post<any>(`${baseUrl}/refresh-token`, { token }, { 
+        return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
             headers: new HttpHeaders({
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'X-Refresh-Token': token || '' // Send token in header as alternative
+                'Pragma': 'no-cache'
             })
         }).pipe(
             map(response => {
@@ -313,17 +312,5 @@ export class AccountService implements IAccountService {
             clearTimeout(this.refreshTokenTimeout);
             this.refreshTokenTimeout = null;
         }
-    }
-
-    private getCookie(name: string): string | undefined {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift();
-    }
-
-    private checkRefreshToken() {
-        // Check if the refresh token cookie was set
-        const token = this.getCookie('refreshToken');
-        console.log('Checking refresh token cookie:', token ? 'Found' : 'Not found');
     }
 }

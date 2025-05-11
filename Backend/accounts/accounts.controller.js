@@ -55,7 +55,7 @@ function authenticate(req, res, next) {
             // Return account details and JWT token
             res.json({
                 ...account,
-                jwtToken
+                token: jwtToken
             });
         })
         .catch(error => {
@@ -76,14 +76,9 @@ function authenticate(req, res, next) {
 
 function refreshToken(req, res, next) {
     try {
-        // Get all possible token sources
-        const cookieToken = Array.isArray(req.cookies?.refreshToken) 
-            ? req.cookies.refreshToken[req.cookies.refreshToken.length - 1] 
-            : req.cookies?.refreshToken;
-        
-        const token = cookieToken || 
+        // Check for token in multiple places
+        const token = req.cookies?.refreshToken || 
                      req.headers?.['x-refresh-token'] || 
-                     req.body?.token ||
                      req.body?.refreshToken;
         
         const ipAddress = req.ip;
@@ -91,11 +86,10 @@ function refreshToken(req, res, next) {
         // Log debugging information
         console.log('Refresh Token Request:', {
             hasCookies: !!req.cookies,
-            cookieToken: cookieToken,
+            cookieToken: req.cookies?.refreshToken,
             headerToken: req.headers?.['x-refresh-token'],
-            bodyToken: req.body?.token || req.body?.refreshToken,
-            finalToken: token,
-            cookieArray: Array.isArray(req.cookies?.refreshToken)
+            bodyToken: req.body?.refreshToken,
+            finalToken: token
         });
         
         if (!token) {
@@ -108,12 +102,6 @@ function refreshToken(req, res, next) {
                 } : undefined
             });
         }
-
-        // Clear any existing refresh tokens before processing
-        res.clearCookie('refreshToken', {
-            path: '/',
-            domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
-        });
 
         accountService.refreshToken({ token, ipAddress })
             .then(({ jwtToken, refreshToken, ...account }) => {
@@ -131,22 +119,16 @@ function refreshToken(req, res, next) {
                     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 };
 
-                // Log cookie setting
-                console.log('Setting new refresh token cookie with options:', {
-                    ...cookieOptions,
-                    tokenLength: refreshToken.length
-                });
-
                 res.cookie('refreshToken', refreshToken, cookieOptions);
                 
                 // Return the JWT token and account details
                 res.json({
                     ...account,
-                    jwtToken
+                    token: jwtToken
                 });
             })
             .catch(error => {
-                // Clear all refresh tokens on error
+                // Clear the invalid refresh token with same options as setting
                 const cookieOptions = {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
@@ -186,11 +168,7 @@ function refreshToken(req, res, next) {
                         return res.status(500).json({ 
                             message: error.message || 'An error occurred while refreshing the token',
                             code: 'INTERNAL_ERROR',
-                            debug: process.env.NODE_ENV === 'development' ? {
-                                error: error.message,
-                                stack: error.stack,
-                                cookies: req.cookies
-                            } : undefined
+                            debug: process.env.NODE_ENV === 'development' ? error : undefined
                         });
                 }
             });
@@ -201,8 +179,7 @@ function refreshToken(req, res, next) {
             code: 'INTERNAL_ERROR',
             debug: process.env.NODE_ENV === 'development' ? {
                 error: err.message,
-                stack: err.stack,
-                cookies: req.cookies
+                stack: err.stack
             } : undefined
         });
     }

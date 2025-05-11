@@ -45,27 +45,10 @@ app.use(cors(corsOptions));
 
 // Add cookie security middleware
 app.use((req, res, next) => {
-    // Log incoming cookies for debugging
-    if (req.cookies) {
-        console.log('Incoming cookies:', req.cookies);
-        
-        // If multiple refresh tokens exist, use the latest one
-        if (req.cookies.refreshToken && Array.isArray(req.cookies.refreshToken)) {
-            req.cookies.refreshToken = req.cookies.refreshToken[req.cookies.refreshToken.length - 1];
-            console.log('Multiple refresh tokens found, using:', req.cookies.refreshToken);
-        }
-    }
-
     res.cookie = res.cookie.bind(res);
     const oldCookie = res.cookie;
     
     res.cookie = function (name, value, options = {}) {
-        // Clear any existing cookies with the same name first
-        res.clearCookie(name, {
-            path: '/',
-            domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
-        });
-
         const secure = process.env.NODE_ENV === 'production';
         const sameSite = secure ? 'none' : 'lax';
         
@@ -77,27 +60,9 @@ app.use((req, res, next) => {
             domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
         };
         
-        console.log(`Setting cookie ${name} with options:`, { ...defaultOptions, ...options });
         return oldCookie.call(this, name, value, { ...defaultOptions, ...options });
     };
     
-    next();
-});
-
-// Add cookie cleanup middleware
-app.use((req, res, next) => {
-    const originalEnd = res.end;
-    res.end = function() {
-        // If we're about to send a new refresh token, clear the old ones
-        if (res.getHeader('Set-Cookie')?.includes('refreshToken=')) {
-            // Clear all existing refresh tokens
-            res.clearCookie('refreshToken', {
-                path: '/',
-                domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
-            });
-        }
-        originalEnd.apply(this, arguments);
-    };
     next();
 });
 
