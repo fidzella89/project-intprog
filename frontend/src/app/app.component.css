@@ -1,0 +1,62 @@
+/* App Component Styles */
+.app-container {
+    min-height: 100vh;
+}
+
+.bg-light {
+    background-color: #f8f9fa;
+}
+
+/* Navigation Styles */
+.navbar {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.navbar-nav {
+    display: flex;
+    align-items: center;
+}
+
+.nav-item {
+    margin-right: 1rem;
+}
+
+.nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    transition: color 0.2s ease-in-out;
+}
+
+.nav-link:hover {
+    color: #ffffff;
+}
+
+.nav-link.active {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+}
+
+.modal {
+    z-index: 1050;
+}
+
+.modal-dialog {
+    margin: 1.75rem auto;
+}
+
+/* Alert Component Styles */
+alert {
+    display: block;
+    margin: 1rem;
+} 
