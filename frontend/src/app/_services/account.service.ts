@@ -96,7 +96,7 @@ export class AccountService implements IAccountService {
                         
                         // Direct access to the message property
                         if (error.error.message) {
-                            console.log('Found error.error.message:', error.error.message);
+                            console.log('Using error.error.message:', error.error.message);
                             return throwError(() => error.error.message);
                         }
                     }

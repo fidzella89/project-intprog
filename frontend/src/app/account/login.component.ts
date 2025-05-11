@@ -83,36 +83,43 @@ export class LoginComponent implements OnInit {
                     this.clearErrors();
                     
                     // Handle specific error types
-                    if (error.toLowerCase().includes('email does not exist')) {
-                        this.emailError = 'Email does not exist';
-                        this.showError('The email address you entered does not exist in our system. Please check your email or register for a new account.', 'error');
-                    }
-                    else if (error.toLowerCase().includes('email is incorrect')) {
-                        this.emailError = 'Email is incorrect';
-                        this.showError('The email address you entered is not registered in our system.', 'error');
-                    } 
-                    else if (error.toLowerCase().includes('password is incorrect')) {
-                        this.passwordError = 'Password is incorrect';
-                        this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
-                    }
-                    // Special handling for when both email and password might be wrong
-                    else if (error.toLowerCase().includes('invalid credentials') || error.toLowerCase().includes('unauthorized')) {
-                        this.emailError = 'Email may be incorrect';
-                        this.passwordError = 'Password may be incorrect';
-                        this.showError('The email or password you entered is incorrect. Please check your credentials and try again.', 'error');
-                    }
-                    // Special handling for unverified account errors
-                    else if (error.includes('not verified')) {
-                        // Display error with HTML link to register page
-                        this.showError(`${error} <a href="/account/register" class="alert-link">Register again</a>`, 'warning');
-                    } 
-                    // Special handling for inactive account
-                    else if (error.includes('inactive')) {
-                        this.showError(error, 'warning');
-                    }
-                    else {
-                        // Standard error handling
-                        this.showError(error, 'error');
+                    if (typeof error === 'string') {
+                        const errorLowerCase = error.toLowerCase();
+                        
+                        if (errorLowerCase.includes('email does not exist')) {
+                            this.emailError = 'Email does not exist';
+                            this.showError('The email address you entered does not exist in our system. Please check your email or register for a new account.', 'error');
+                        }
+                        else if (errorLowerCase.includes('email is incorrect')) {
+                            this.emailError = 'Email is incorrect';
+                            this.showError('The email address you entered is not registered in our system.', 'error');
+                        } 
+                        else if (errorLowerCase.includes('password is incorrect')) {
+                            this.passwordError = 'Password is incorrect';
+                            this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
+                        }
+                        // Special handling for when both email and password might be wrong
+                        else if (errorLowerCase.includes('invalid credentials') || errorLowerCase.includes('unauthorized')) {
+                            this.emailError = 'Email may be incorrect';
+                            this.passwordError = 'Password may be incorrect';
+                            this.showError('The email or password you entered is incorrect. Please check your credentials and try again.', 'error');
+                        }
+                        // Special handling for unverified account errors
+                        else if (error.includes('not verified')) {
+                            // Display error with HTML link to register page
+                            this.showError(`${error} <a href="/account/register" class="alert-link">Register again</a>`, 'warning');
+                        } 
+                        // Special handling for inactive account
+                        else if (error.includes('inactive')) {
+                            this.showError(error, 'warning');
+                        }
+                        else {
+                            // Standard error handling
+                            this.showError(error, 'error');
+                        }
+                    } else {
+                        // If error is not a string, use a generic message
+                        this.showError('Login failed. Please try again.', 'error');
                     }
                     
                     this.loading = false;
