@@ -15,7 +15,7 @@ app.use(cookieParser(process.env.COOKIE_SECRET || 'your-secret-key'));
 
 // CORS configuration
 const allowedOrigins = [
-    'https://final-intprog-project-1.onrender.com',
+    'https://final-intprog-project-eqiv.onrender.com',
     'http://localhost:4200',
     'http://localhost:4000'
 ];
