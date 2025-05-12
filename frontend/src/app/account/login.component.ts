@@ -77,10 +77,21 @@ export class LoginComponent implements OnInit {
                     }, 500);
                 },
                 error: error => {
-                    console.error('Login error:', error);
+                    console.error('Login error details:', {
+                        originalError: error,
+                        message: typeof error === 'string' ? error : 'Non-string error received'
+                    });
                     
                     // Clear previous errors
                     this.clearErrors();
+                    
+                    // For authentication errors, always show password error
+                    if (error === 'Password is incorrect' || error === 'Login failed') {
+                        this.passwordError = 'Password is incorrect';
+                        this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
+                        this.loading = false;
+                        return;
+                    }
                     
                     // Handle specific error types
                     if (typeof error === 'string') {
