@@ -182,14 +182,18 @@ export class AccountService implements IAccountService {
         // Get the current token from the stored account
         const token = this.accountValue?.jwtToken || '';
         
+        // Always complete logout regardless of API response
+        const completeLogout = () => {
+            this.stopRefreshTokenTimer();
+            sessionStorage.removeItem('account');
+            this.accountSubject.next(null);
+            this.router.navigate(['/account/login']);
+        };
+        
+        // Try to revoke the token, but always complete logout
         return this.http.post<any>(`${baseUrl}/revoke-token`, { token }, { withCredentials: true })
             .pipe(
-                finalize(() => {
-                    this.stopRefreshTokenTimer();
-                    sessionStorage.removeItem('account');
-                    this.accountSubject.next(null);
-                    this.router.navigate(['/account/login']);
-                })
+                finalize(() => completeLogout())
             );
     }
 
