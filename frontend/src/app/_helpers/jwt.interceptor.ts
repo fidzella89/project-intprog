@@ -180,77 +180,21 @@ export class JwtInterceptor implements HttpInterceptor {
                 errorContent: error.error
             });
             
-            // Check for detailed error information
-            if (error.error && error.error.error) {
-                console.log('Detailed error from server:', error.error.error);
-                
-                // Use errorType to determine the specific error
-                if (error.error.errorType === 'email') {
-                    return 'Email does not exist';
-                }
-                
-                if (error.error.errorType === 'password') {
-                    return 'Password is incorrect';
-                }
-                
-                if (error.error.errorType === 'unverified') {
-                    return error.error.message || 'Email is not verified';
-                }
-                
-                if (error.error.errorType === 'inactive') {
-                    return error.error.message || 'Account is inactive';
-                }
+            // Use the exact backend error message if available
+            if (error.error && typeof error.error === 'object' && error.error.message) {
+                console.log('JWT Interceptor using exact backend message:', error.error.message);
+                return error.error.message;
             }
             
-            // Check for specific error messages in the response
-            if (error.error && typeof error.error === 'object') {
-                // Handle non-existent email
-                if (error.error.message && (
-                    error.error.message.includes('does not exist') || 
-                    error.error.message.includes('Email does not exist')
-                )) {
-                    console.log('JWT Interceptor detected non-existent email');
-                    return 'Email does not exist';
-                }
-                
-                // Handle unverified account
-                if (error.error.message && (
-                    error.error.message.includes('not verified') || 
-                    error.error.message.includes('unverified') ||
-                    error.error.message.includes('verification')
-                )) {
-                    console.log('JWT Interceptor detected unverified account');
-                    return 'Email is not verified';
-                }
-                
-                // Handle incorrect password
-                if (error.error.message && error.error.message.includes('Password is incorrect')) {
-                    console.log('JWT Interceptor detected incorrect password');
-                    return 'Password is incorrect';
-                }
-                
-                // Handle inactive account
-                if (error.error.message && error.error.message.includes('inactive')) {
-                    console.log('JWT Interceptor detected inactive account');
-                    return error.error.message;
-                }
-                
-                // Return the actual error message if available
-                if (error.error.message) {
-                    console.log('Using server provided message:', error.error.message);
-                    return error.error.message;
-                }
-            }
-            
-            // Handle 401 Unauthorized as password incorrect if no specific message found
+            // Handle 401 status code with a consistent message
             if (error.status === 401) {
-                console.log('JWT Interceptor handling 401 status as password incorrect');
-                return 'Password is incorrect';
+                console.log('JWT Interceptor handling 401 status');
+                return 'Authentication failed';
             }
             
-            // Handle 403 Forbidden as account issue
+            // Handle 403 status code with a consistent message
             if (error.status === 403) {
-                console.log('JWT Interceptor handling 403 status as account issue');
+                console.log('JWT Interceptor handling 403 status');
                 return 'Your account has an issue. It may be unverified or inactive.';
             }
         }

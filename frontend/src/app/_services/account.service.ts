@@ -99,30 +99,9 @@ export class AccountService implements IAccountService {
                         if (error.error) {
                             // Handle object error responses
                             if (typeof error.error === 'object') {
-                                // Check for errorType to determine specific error
-                                if (error.error.errorType) {
-                                    console.log('Error type detected:', error.error.errorType);
-                                    
-                                    if (error.error.errorType === 'email') {
-                                        return throwError(() => 'Email does not exist');
-                                    }
-                                    
-                                    if (error.error.errorType === 'password') {
-                                        return throwError(() => 'Password is incorrect');
-                                    }
-                                    
-                                    if (error.error.errorType === 'unverified') {
-                                        return throwError(() => error.error.message || 'Email is not verified');
-                                    }
-                                    
-                                    if (error.error.errorType === 'inactive') {
-                                        return throwError(() => error.error.message || 'Account is inactive');
-                                    }
-                                }
-                                
-                                // If we have an error message, use it
+                                // Use the message property directly from the response
                                 if (error.error.message) {
-                                    console.log('Using error.error.message:', error.error.message);
+                                    console.log('Using exact backend message:', error.error.message);
                                     return throwError(() => error.error.message);
                                 }
                             }
@@ -134,15 +113,15 @@ export class AccountService implements IAccountService {
                             }
                         }
                         
-                        // For 401 status (unauthorized), assume password is incorrect
+                        // For 401 status (unauthorized), return appropriate message
                         if (error.status === 401) {
-                            console.log('401 status detected, returning "Password is incorrect"');
-                            return throwError(() => 'Password is incorrect');
+                            console.log('401 status detected, returning authentication error');
+                            return throwError(() => 'Authentication failed');
                         }
                         
-                        // For 403 status (forbidden), could be unverified or inactive account
+                        // For 403 status (forbidden), handle account issues
                         if (error.status === 403) {
-                            console.log('403 status detected, returning "Account issue"');
+                            console.log('403 status detected, returning account issue message');
                             return throwError(() => 'Your account has an issue. It may be unverified or inactive.');
                         }
                     }

@@ -92,12 +92,15 @@ export class LoginComponent implements OnInit {
                         console.log('Error in lowercase:', errorLowerCase);
                         console.log('Original error string:', error);
                         
-                        // Case 1: Email does not exist - Check this first
+                        // Use the exact error message from the backend
+                        // Set appropriate field errors based on error type
+                        
+                        // Case 1: Email does not exist or is incorrect
                         if (errorLowerCase.includes('email does not exist') || 
-                            errorLowerCase.includes('email not found') ||
-                            errorLowerCase.includes('no account found')) {
-                            this.emailError = 'Email does not exist';
-                            this.showError('The email address you entered is not yet registered. Register now to get started.', 'error');
+                            errorLowerCase.includes('email is incorrect') ||
+                            errorLowerCase.includes('email not found')) {
+                            this.emailError = error; // Use exact message from backend
+                            this.showError(error, 'error');
                             this.loading = false;
                             return;
                         }
@@ -106,57 +109,43 @@ export class LoginComponent implements OnInit {
                         if (errorLowerCase.includes('not verified') || 
                             errorLowerCase.includes('unverified') ||
                             errorLowerCase.includes('verification')) {
-                            this.emailError = 'Email not verified';
-                            this.showError(`Your email is not verified. Please check your email for the verification link or <a href="/account/register" class="alert-link">register again</a> to receive a new verification link.`, 'warning');
+                            this.emailError = error; // Use exact message from backend
+                            // Add the register link to the original message
+                            this.showError(`${error} <a href="/account/register" class="alert-link">Register again</a> to receive a new verification link.`, 'warning');
                             this.loading = false;
                             return;
                         }
                         
                         // Case 3: Password is incorrect
                         if (errorLowerCase.includes('password is incorrect')) {
-                            this.passwordError = 'Password is incorrect';
-                            this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
+                            this.passwordError = error; // Use exact message from backend
+                            this.showError(error, 'error');
                             this.loading = false;
                             return;
                         }
                         
-                        // Case 4: Email is incorrect
-                        if (errorLowerCase.includes('email is incorrect')) {
-                            this.emailError = 'Email is incorrect';
-                            this.showError('The email address you entered is not yet registered. Register now to get started.', 'error');
-                            this.loading = false;
-                            return;
-                        }
-                        
-                        // Case 5: Invalid credentials (both email and password might be wrong)
+                        // Case 4: Invalid credentials (both email and password might be wrong)
                         if (errorLowerCase.includes('invalid credentials') || errorLowerCase.includes('unauthorized')) {
-                            this.emailError = 'Email may be incorrect';
-                            this.passwordError = 'Password may be incorrect';
-                            this.showError('The email or password you entered is incorrect. Please check your credentials and try again.', 'error');
+                            this.emailError = 'Invalid credentials';
+                            this.passwordError = 'Invalid credentials';
+                            this.showError(error, 'error');
                             this.loading = false;
                             return;
                         }
                         
-                        // Case 6: Account inactive
+                        // Case 5: Account inactive
                         if (errorLowerCase.includes('inactive')) {
-                            this.showError('Your account is inactive. Please contact the administrator for assistance.', 'warning');
+                            this.showError(error, 'warning');
                             this.loading = false;
                             return;
                         }
                         
-                        // Case 7: Account issue (generic)
+                        // Case 6: Account issue (generic)
                         if (errorLowerCase.includes('account') && (
                             errorLowerCase.includes('issue') || 
                             errorLowerCase.includes('problem')
                         )) {
-                            this.showError('There is an issue with your account. Please contact support for assistance.', 'warning');
-                            this.loading = false;
-                            return;
-                        }
-                        
-                        // Case 8: Generic login failed (only if it's explicitly "Login failed")
-                        if (error === 'Login failed') {
-                            this.showError('Login failed. Please check your credentials and try again.', 'error');
+                            this.showError(error, 'warning');
                             this.loading = false;
                             return;
                         }
