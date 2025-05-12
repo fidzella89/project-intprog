@@ -87,11 +87,27 @@ export class AccountService implements IAccountService {
                     // Log the complete error structure for debugging
                     console.error('Login error object:', error);
                     console.error('Error response body:', error.error);
+                    console.error('Error status:', error.status);
+                    console.error('Error URL:', error.url);
                     this.clearAccountData();
                     
                     // Handle specific authentication errors
                     if (error.status === 401) {
-                        console.log('Authentication failed with status 401');
+                        console.log('Authentication failed with status 401 - returning "Password is incorrect"');
+                        
+                        // Check for detailed error information
+                        if (error.error && error.error.error) {
+                            console.log('Detailed error information:', error.error.error);
+                            
+                            if (error.error.errorType === 'email') {
+                                return throwError(() => 'Email does not exist');
+                            }
+                            
+                            if (error.error.errorType === 'password') {
+                                return throwError(() => 'Password is incorrect');
+                            }
+                        }
+                        
                         return throwError(() => 'Password is incorrect');
                     }
                     
@@ -99,6 +115,27 @@ export class AccountService implements IAccountService {
                     // Server returns: {"message":"Password is incorrect","errorType":"password"}
                     if (error.error && typeof error.error === 'object') {
                         console.log('Server returned an error object:', error.error);
+                        
+                        // Check for errorType to determine specific error
+                        if (error.error.errorType) {
+                            console.log('Error type:', error.error.errorType);
+                            
+                            if (error.error.errorType === 'email') {
+                                return throwError(() => 'Email does not exist');
+                            }
+                            
+                            if (error.error.errorType === 'password') {
+                                return throwError(() => 'Password is incorrect');
+                            }
+                            
+                            if (error.error.errorType === 'unverified') {
+                                return throwError(() => error.error.message || 'Email is not verified');
+                            }
+                            
+                            if (error.error.errorType === 'inactive') {
+                                return throwError(() => error.error.message || 'Account is inactive');
+                            }
+                        }
                         
                         // Direct access to the message property
                         if (error.error.message) {
@@ -117,6 +154,12 @@ export class AccountService implements IAccountService {
                     if (error.message && error.message !== 'Http failure response') {
                         console.log('Using error.message:', error.message);
                         return throwError(() => error.message);
+                    }
+                    
+                    // For authentication endpoints, always return a specific message
+                    if (error.url && error.url.includes('/authenticate')) {
+                        console.log('Authentication endpoint error - returning specific message');
+                        return throwError(() => 'Password is incorrect');
                     }
                     
                     // Fallback generic message only if absolutely nothing else

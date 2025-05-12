@@ -79,7 +79,8 @@ export class LoginComponent implements OnInit {
                 error: error => {
                     console.error('Login error details:', {
                         originalError: error,
-                        message: typeof error === 'string' ? error : 'Non-string error received'
+                        message: typeof error === 'string' ? error : 'Non-string error received',
+                        timestamp: new Date().toISOString()
                     });
                     
                     // Clear previous errors
@@ -88,6 +89,8 @@ export class LoginComponent implements OnInit {
                     // Common authentication errors with specific messages
                     if (typeof error === 'string') {
                         const errorLowerCase = error.toLowerCase();
+                        console.log('Error in lowercase:', errorLowerCase);
+                        console.log('Original error string:', error);
                         
                         // Case 1: Email does not exist - Check this first
                         if (errorLowerCase.includes('email does not exist') || 
@@ -148,6 +151,7 @@ export class LoginComponent implements OnInit {
                     } 
                     
                     // If error is not a string, use a generic message
+                    console.error('Non-string error received in login component:', error);
                     this.passwordError = 'Authentication failed';
                     this.showError('Authentication failed. Please check your credentials and try again.', 'error');
                     this.loading = false;

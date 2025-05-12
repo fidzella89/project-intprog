@@ -180,6 +180,28 @@ export class JwtInterceptor implements HttpInterceptor {
                 errorContent: error.error
             });
             
+            // Check for detailed error information
+            if (error.error && error.error.error) {
+                console.log('Detailed error from server:', error.error.error);
+                
+                // Use errorType to determine the specific error
+                if (error.error.errorType === 'email') {
+                    return 'Email does not exist';
+                }
+                
+                if (error.error.errorType === 'password') {
+                    return 'Password is incorrect';
+                }
+                
+                if (error.error.errorType === 'unverified') {
+                    return error.error.message || 'Email is not verified';
+                }
+                
+                if (error.error.errorType === 'inactive') {
+                    return error.error.message || 'Account is inactive';
+                }
+            }
+            
             // Check for specific error messages in the response
             if (error.error && typeof error.error === 'object') {
                 // Handle non-existent email

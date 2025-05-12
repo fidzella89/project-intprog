@@ -73,7 +73,11 @@ function authenticate(req, res, next) {
             if (error.name === 'ValidationError') {
                 return res.status(400).json({ 
                     message: error.message,
-                    errorType: 'validation'
+                    errorType: 'validation',
+                    error: {
+                        name: error.name,
+                        details: error
+                    }
                 });
             }
             
@@ -81,7 +85,12 @@ function authenticate(req, res, next) {
                 // Make sure we're sending the right status code for credential errors
                 return res.status(401).json({ 
                     message: error.message,
-                    errorType: error.errorType || 'credentials'
+                    errorType: error.errorType || 'credentials',
+                    error: {
+                        name: error.name,
+                        type: error.errorType,
+                        details: error
+                    }
                 });
             }
             
@@ -89,7 +98,12 @@ function authenticate(req, res, next) {
                 return res.status(403).json({ 
                     message: error.message,
                     status: error.status,
-                    errorType: 'inactive'
+                    errorType: 'inactive',
+                    error: {
+                        name: error.name,
+                        status: error.status,
+                        details: error
+                    }
                 });
             }
             
@@ -97,7 +111,12 @@ function authenticate(req, res, next) {
                 return res.status(403).json({ 
                     message: error.message,
                     status: error.status,
-                    errorType: 'unverified'
+                    errorType: 'unverified',
+                    error: {
+                        name: error.name,
+                        status: error.status,
+                        details: error
+                    }
                 });
             }
             
@@ -105,7 +124,7 @@ function authenticate(req, res, next) {
             console.error('Unexpected authentication error:', error);
             return res.status(500).json({ 
                 message: 'An unexpected error occurred during authentication',
-                error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+                error: process.env.NODE_ENV === 'development' ? error : undefined,
                 errorType: 'server'
             });
         });
@@ -281,7 +300,12 @@ function register(req, res, next) {
             if (error.name === 'ValidationError') {
                 return res.status(400).json({
                     message: error.message,
-                    errorType: error.errorType || 'validation'
+                    errorType: error.errorType || 'validation',
+                    error: {
+                        name: error.name,
+                        type: error.errorType,
+                        details: error
+                    }
                 });
             }
             
@@ -289,7 +313,8 @@ function register(req, res, next) {
             console.error('Unexpected registration error:', error);
             return res.status(500).json({
                 message: 'An unexpected error occurred during registration',
-                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                error: process.env.NODE_ENV === 'development' ? error : undefined,
+                errorType: 'server'
             });
         });
 }
