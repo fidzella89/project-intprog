@@ -168,10 +168,37 @@ export class JwtInterceptor implements HttpInterceptor {
     }
 
     private extractErrorMessage(error: HttpErrorResponse): string {
-        // For authentication endpoints, use a specific message for 401 errors
-        if (error.url && error.url.includes('/authenticate') && error.status === 401) {
-            console.log('JWT Interceptor using specific authentication error message');
-            return 'Password is incorrect';
+        // For authentication endpoints, handle specific error cases
+        if (error.url && error.url.includes('/authenticate')) {
+            console.log('JWT Interceptor handling authentication error for URL:', error.url);
+            console.log('Authentication error details:', {
+                status: error.status,
+                statusText: error.statusText,
+                url: error.url,
+                hasErrorObj: !!error.error,
+                errorType: error.error ? typeof error.error : 'undefined'
+            });
+            
+            // Handle 401 Unauthorized - Password incorrect
+            if (error.status === 401) {
+                return 'Password is incorrect';
+            }
+            
+            // Handle specific error types from the server
+            if (error.error && typeof error.error === 'object') {
+                if (error.error.message) {
+                    if (error.error.message.includes('not verified')) {
+                        return error.error.message;
+                    }
+                    if (error.error.message.includes('does not exist')) {
+                        return 'Email does not exist';
+                    }
+                    if (error.error.message.includes('inactive')) {
+                        return error.error.message;
+                    }
+                    return error.error.message;
+                }
+            }
         }
         
         // Priority 1: Use error.error.message if available (most specific server error)

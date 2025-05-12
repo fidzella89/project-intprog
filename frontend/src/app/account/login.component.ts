@@ -85,55 +85,66 @@ export class LoginComponent implements OnInit {
                     // Clear previous errors
                     this.clearErrors();
                     
-                    // For authentication errors, always show password error
-                    if (error === 'Password is incorrect' || error === 'Login failed') {
-                        this.passwordError = 'Password is incorrect';
-                        this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
-                        this.loading = false;
-                        return;
-                    }
-                    
-                    // Handle specific error types
+                    // Common authentication errors with specific messages
                     if (typeof error === 'string') {
                         const errorLowerCase = error.toLowerCase();
                         
+                        // Case 1: Password is incorrect
+                        if (errorLowerCase.includes('password is incorrect') || error === 'Login failed') {
+                            this.passwordError = 'Password is incorrect';
+                            this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
+                            this.loading = false;
+                            return;
+                        }
+                        
+                        // Case 2: Email does not exist
                         if (errorLowerCase.includes('email does not exist')) {
                             this.emailError = 'Email does not exist';
                             this.showError('The email address you entered does not exist in our system. Please check your email or register for a new account.', 'error');
+                            this.loading = false;
+                            return;
                         }
-                        else if (errorLowerCase.includes('email is incorrect')) {
+                        
+                        // Case 3: Email is incorrect
+                        if (errorLowerCase.includes('email is incorrect')) {
                             this.emailError = 'Email is incorrect';
                             this.showError('The email address you entered is not registered in our system.', 'error');
-                        } 
-                        else if (errorLowerCase.includes('password is incorrect')) {
-                            this.passwordError = 'Password is incorrect';
-                            this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
+                            this.loading = false;
+                            return;
                         }
-                        // Special handling for when both email and password might be wrong
-                        else if (errorLowerCase.includes('invalid credentials') || errorLowerCase.includes('unauthorized')) {
+                        
+                        // Case 4: Invalid credentials (both email and password might be wrong)
+                        if (errorLowerCase.includes('invalid credentials') || errorLowerCase.includes('unauthorized')) {
                             this.emailError = 'Email may be incorrect';
                             this.passwordError = 'Password may be incorrect';
                             this.showError('The email or password you entered is incorrect. Please check your credentials and try again.', 'error');
+                            this.loading = false;
+                            return;
                         }
-                        // Special handling for unverified account errors
-                        else if (error.includes('not verified')) {
-                            // Display error with HTML link to register page
-                            this.showError(`${error} <a href="/account/register" class="alert-link">Register again</a>`, 'warning');
-                        } 
-                        // Special handling for inactive account
-                        else if (error.includes('inactive')) {
-                            this.showError(error, 'warning');
+                        
+                        // Case 5: Email not verified
+                        if (errorLowerCase.includes('not verified') || errorLowerCase.includes('unverified')) {
+                            this.showError(`Your email is not verified. Please check your email for the verification link or <a href="/account/register" class="alert-link">register again</a> to receive a new verification link.`, 'warning');
+                            this.loading = false;
+                            return;
                         }
-                        else {
-                            // Standard error handling
-                            this.showError(error, 'error');
+                        
+                        // Case 6: Account inactive
+                        if (errorLowerCase.includes('inactive')) {
+                            this.showError('Your account is inactive. Please contact the administrator for assistance.', 'warning');
+                            this.loading = false;
+                            return;
                         }
-                    } else {
-                        // If error is not a string, assume it's a password error
-                        this.passwordError = 'Password is incorrect';
-                        this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
-                    }
+                        
+                        // Default case: Use the error message directly
+                        this.showError(error, 'error');
+                        this.loading = false;
+                        return;
+                    } 
                     
+                    // If error is not a string, use a generic message
+                    this.passwordError = 'Authentication failed';
+                    this.showError('Authentication failed. Please check your credentials and try again.', 'error');
                     this.loading = false;
                 }
             });
