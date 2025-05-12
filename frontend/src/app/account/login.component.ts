@@ -89,7 +89,27 @@ export class LoginComponent implements OnInit {
                     if (typeof error === 'string') {
                         const errorLowerCase = error.toLowerCase();
                         
-                        // Case 1: Password is incorrect
+                        // Case 1: Email does not exist - Check this first
+                        if (errorLowerCase.includes('email does not exist') || 
+                            errorLowerCase.includes('email not found') ||
+                            errorLowerCase.includes('no account found')) {
+                            this.emailError = 'Email does not exist';
+                            this.showError('The email address you entered is not yet registered. Register now to get started.', 'error');
+                            this.loading = false;
+                            return;
+                        }
+                        
+                        // Case 2: Email not verified
+                        if (errorLowerCase.includes('not verified') || 
+                            errorLowerCase.includes('unverified') ||
+                            errorLowerCase.includes('verification')) {
+                            this.emailError = 'Email not verified';
+                            this.showError(`Your email is not verified. Please check your email for the verification link or <a href="/account/register" class="alert-link">register again</a> to receive a new verification link.`, 'warning');
+                            this.loading = false;
+                            return;
+                        }
+                        
+                        // Case 3: Password is incorrect
                         if (errorLowerCase.includes('password is incorrect') || error === 'Login failed') {
                             this.passwordError = 'Password is incorrect';
                             this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
@@ -97,34 +117,19 @@ export class LoginComponent implements OnInit {
                             return;
                         }
                         
-                        // Case 2: Email does not exist
-                        if (errorLowerCase.includes('email does not exist')) {
-                            this.emailError = 'Email does not exist';
-                            this.showError('The email address you entered does not exist in our system. Please check your email or register for a new account.', 'error');
-                            this.loading = false;
-                            return;
-                        }
-                        
-                        // Case 3: Email is incorrect
+                        // Case 4: Email is incorrect
                         if (errorLowerCase.includes('email is incorrect')) {
                             this.emailError = 'Email is incorrect';
-                            this.showError('The email address you entered is not registered in our system.', 'error');
+                            this.showError('The email address you entered is not yet registered. Register now to get started.', 'error');
                             this.loading = false;
                             return;
                         }
                         
-                        // Case 4: Invalid credentials (both email and password might be wrong)
+                        // Case 5: Invalid credentials (both email and password might be wrong)
                         if (errorLowerCase.includes('invalid credentials') || errorLowerCase.includes('unauthorized')) {
                             this.emailError = 'Email may be incorrect';
                             this.passwordError = 'Password may be incorrect';
                             this.showError('The email or password you entered is incorrect. Please check your credentials and try again.', 'error');
-                            this.loading = false;
-                            return;
-                        }
-                        
-                        // Case 5: Email not verified
-                        if (errorLowerCase.includes('not verified') || errorLowerCase.includes('unverified')) {
-                            this.showError(`Your email is not verified. Please check your email for the verification link or <a href="/account/register" class="alert-link">register again</a> to receive a new verification link.`, 'warning');
                             this.loading = false;
                             return;
                         }

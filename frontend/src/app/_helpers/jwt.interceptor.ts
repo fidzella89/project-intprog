@@ -176,28 +176,52 @@ export class JwtInterceptor implements HttpInterceptor {
                 statusText: error.statusText,
                 url: error.url,
                 hasErrorObj: !!error.error,
-                errorType: error.error ? typeof error.error : 'undefined'
+                errorType: error.error ? typeof error.error : 'undefined',
+                errorContent: error.error
             });
             
-            // Handle 401 Unauthorized - Password incorrect
-            if (error.status === 401) {
-                return 'Password is incorrect';
-            }
-            
-            // Handle specific error types from the server
+            // Check for specific error messages in the response
             if (error.error && typeof error.error === 'object') {
-                if (error.error.message) {
-                    if (error.error.message.includes('not verified')) {
-                        return error.error.message;
-                    }
-                    if (error.error.message.includes('does not exist')) {
-                        return 'Email does not exist';
-                    }
-                    if (error.error.message.includes('inactive')) {
-                        return error.error.message;
-                    }
+                // Handle non-existent email
+                if (error.error.message && (
+                    error.error.message.includes('does not exist') || 
+                    error.error.message.includes('Email does not exist')
+                )) {
+                    console.log('JWT Interceptor detected non-existent email');
+                    return 'Email does not exist';
+                }
+                
+                // Handle unverified account
+                if (error.error.message && (
+                    error.error.message.includes('not verified') || 
+                    error.error.message.includes('unverified') ||
+                    error.error.message.includes('verification')
+                )) {
+                    console.log('JWT Interceptor detected unverified account');
+                    return 'Email is not verified';
+                }
+                
+                // Handle incorrect password
+                if (error.error.message && error.error.message.includes('Password is incorrect')) {
+                    console.log('JWT Interceptor detected incorrect password');
+                    return 'Password is incorrect';
+                }
+                
+                // Handle inactive account
+                if (error.error.message && error.error.message.includes('inactive')) {
+                    console.log('JWT Interceptor detected inactive account');
                     return error.error.message;
                 }
+                
+                // Return the actual error message if available
+                if (error.error.message) {
+                    return error.error.message;
+                }
+            }
+            
+            // Handle 401 Unauthorized as password incorrect if no specific message found
+            if (error.status === 401) {
+                return 'Password is incorrect';
             }
         }
         
