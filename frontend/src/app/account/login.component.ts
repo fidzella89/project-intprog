@@ -58,18 +58,12 @@ export class LoginComponent implements OnInit {
 
         this.loading = true;
         
-        console.log('Attempting login with:', this.f.email.value);
-        
         this.accountService.login(this.f.email.value, this.f.password.value)
             .pipe(first())
             .subscribe({
                 next: (account) => {
-                    console.log('Login successful, received account data:', account);
-                    
                     // Get the return url from query parameters or default to '/'
                     const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
-                    
-                    console.log('Navigating to:', returnUrl);
                     
                     // Force a delay to ensure the token is properly processed
                     setTimeout(() => {
@@ -89,8 +83,6 @@ export class LoginComponent implements OnInit {
                     // Common authentication errors with specific messages
                     if (typeof error === 'string') {
                         const errorLowerCase = error.toLowerCase();
-                        console.log('Error in lowercase:', errorLowerCase);
-                        console.log('Original error string:', error);
                         
                         // Use the exact error message from the backend
                         // Set appropriate field errors based on error type
@@ -110,8 +102,8 @@ export class LoginComponent implements OnInit {
                             errorLowerCase.includes('unverified') ||
                             errorLowerCase.includes('verification')) {
                             this.emailError = error; // Use exact message from backend
-                            // Add the register link to the original message
-                            this.showError(`${error} <a href="/account/register" class="alert-link">Register again</a> to receive a new verification link.`, 'warning');
+                            // Display a more appropriate error message without suggesting registration
+                            this.showError(`${error} Please check the email account you registered with for the verification link.`, 'warning');
                             this.loading = false;
                             return;
                         }
@@ -154,7 +146,21 @@ export class LoginComponent implements OnInit {
                         this.showError(error, 'error');
                         this.loading = false;
                         return;
-                    } 
+                    } else if (error && typeof error === 'object') {
+                        // Check for specific error types from the server
+                        if (error.errorType === 'unverified' && error.canResendVerification) {
+                            this.emailError = error.message || 'Email is not verified';
+                            this.showError(`${error.message} If you need a new verification link, please <a href="/account/forgot-password" class="alert-link">reset your password</a> to verify your account.`, 'warning');
+                            this.loading = false;
+                            return;
+                        }
+                        
+                        // Default handling for object errors
+                        const errorMessage = error.message || 'Authentication failed';
+                        this.showError(errorMessage, 'error');
+                        this.loading = false;
+                        return;
+                    }
                     
                     // If error is not a string, use a generic message
                     console.error('Non-string error received in login component:', error);

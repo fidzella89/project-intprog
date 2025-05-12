@@ -65,8 +65,6 @@ export class AccountService implements IAccountService {
         return this.http.post<Account>(`${baseUrl}/authenticate`, { email, password }, { withCredentials: true })
             .pipe(
                 map(account => {
-                    console.log('Login response received');
-                    
                     if (!account) {
                         throw new Error('Invalid login response');
                     }
@@ -93,47 +91,58 @@ export class AccountService implements IAccountService {
                     
                     // For authentication endpoint errors, extract specific error information
                     if (error.url && error.url.includes('/authenticate')) {
-                        console.log('Processing authentication endpoint error');
-                        
                         // Check for detailed error information in the error object
                         if (error.error) {
                             // Handle object error responses
                             if (typeof error.error === 'object') {
+                                // Check for structured error with errorType
+                                if (error.error.errorType && error.error.message) {
+                                    // Pass the structured error object for special handling in the component
+                                    return throwError(() => error.error);
+                                }
+                                
                                 // Use the message property directly from the response
                                 if (error.error.message) {
-                                    console.log('Using exact backend message:', error.error.message);
                                     return throwError(() => error.error.message);
                                 }
                             }
                             
                             // If error.error is a string, use it directly
                             if (typeof error.error === 'string') {
-                                console.log('Using error.error as string:', error.error);
                                 return throwError(() => error.error);
                             }
                         }
                         
                         // For 401 status (unauthorized), return appropriate message
                         if (error.status === 401) {
-                            console.log('401 status detected, returning authentication error');
+                            // Check if there's a message in the error response
+                            if (error.error && error.error.message) {
+                                return throwError(() => error.error.message);
+                            }
                             return throwError(() => 'Authentication failed');
                         }
                         
                         // For 403 status (forbidden), handle account issues
                         if (error.status === 403) {
-                            console.log('403 status detected, returning account issue message');
+                            // Check if there's a structured error with errorType
+                            if (error.error && error.error.errorType) {
+                                return throwError(() => error.error);
+                            }
+                            
+                            // Check if there's a message in the error response
+                            if (error.error && error.error.message) {
+                                return throwError(() => error.error.message);
+                            }
                             return throwError(() => 'Your account has an issue. It may be unverified or inactive.');
                         }
                     }
                     
                     // If there is an error message on the error object, use it
                     if (error.message && error.message !== 'Http failure response') {
-                        console.log('Using error.message:', error.message);
                         return throwError(() => error.message);
                     }
                     
                     // Fallback generic message only if absolutely nothing else
-                    console.log('Using fallback error message');
                     return throwError(() => 'Login failed');
                 })
             );
@@ -153,13 +162,11 @@ export class AccountService implements IAccountService {
     refreshToken() {
         // If we're already refreshing, return the current account observable
         if (this.refreshingToken) {
-            console.log('Token refresh already in progress, returning current account');
             return this.account;
         }
 
         // If there's no account, don't attempt to refresh
         if (!this.accountValue) {
-            console.log('No account data to refresh token for');
             return throwError(() => new Error('No account data'));
         }
 
@@ -167,12 +174,10 @@ export class AccountService implements IAccountService {
         const now = Date.now();
         const timeSinceLastRefresh = now - this.lastTokenRefresh;
         if (timeSinceLastRefresh < this.MIN_REFRESH_INTERVAL) {
-            console.log(`Token was refreshed ${timeSinceLastRefresh}ms ago, skipping refresh`);
             return this.account;
         }
 
         this.refreshingToken = true;
-        console.log('Starting token refresh request');
         
         // The backend expects: token = JWT token
         const jwtToken = this.accountValue.jwtToken;
@@ -182,8 +187,6 @@ export class AccountService implements IAccountService {
             this.refreshingToken = false;
             return throwError(() => new Error('No JWT token available'));
         }
-        
-        console.log('Using JWT for token parameter:', jwtToken ? 'token present' : 'no token');
         
         return this.http.post<any>(`${baseUrl}/refresh-token`, { 
             token: jwtToken  // Pass JWT token as token parameter
@@ -196,8 +199,6 @@ export class AccountService implements IAccountService {
             })
         }).pipe(
             map(response => {
-                console.log('Token refresh response received');
-                
                 if (!response) {
                     throw new Error('Empty response from refresh token endpoint');
                 }
@@ -238,7 +239,6 @@ export class AccountService implements IAccountService {
                 return throwError(() => errorMessage);
             }),
             finalize(() => {
-                console.log('Token refresh request completed');
                 this.refreshingToken = false;
             })
         );
@@ -301,7 +301,6 @@ export class AccountService implements IAccountService {
     }
 
     public clearAccountData(): void {
-        console.log('Clearing account data');
         this.stopRefreshTokenTimer();
         this.accountSubject.next(null);
         this.refreshingToken = false;
@@ -341,7 +340,6 @@ export class AccountService implements IAccountService {
             // Parse the JWT token
             const jwtToken = this.accountValue?.jwtToken;
             if (!jwtToken) {
-                console.log('No JWT token available, not starting refresh timer');
                 return;
             }
 
@@ -361,15 +359,11 @@ export class AccountService implements IAccountService {
             const expires = new Date(jwtPayload.exp * 1000);
             const now = new Date();
             
-            console.log('Token expires at:', expires.toISOString());
-            console.log('Current time:', now.toISOString());
-
             // Check if token is already expired
             if (expires <= now) {
-                console.log('Token already expired, attempting to refresh immediately');
                 // Don't clear account data - attempt a refresh first
                 this.refreshToken().subscribe({
-                    next: () => console.log('Immediate token refresh successful'),
+                    next: () => {},
                     error: (error) => {
                         console.error('Immediate token refresh failed:', error);
                         // Don't clear account data or redirect here
@@ -393,32 +387,23 @@ export class AccountService implements IAccountService {
             // Check if the token was refreshed very recently, if so, don't schedule another refresh yet
             const timeSinceLastRefresh = Date.now() - this.lastTokenRefresh;
             if (timeSinceLastRefresh < this.MIN_REFRESH_INTERVAL) {
-                console.log(`Token was refreshed ${timeSinceLastRefresh}ms ago, delaying next refresh`);
                 return;
             }
-
-            console.log(`Setting refresh timer for ${timeout}ms (${new Date(now.getTime() + timeout).toISOString()})`);
             
             // Clear any existing timer
             this.stopRefreshTokenTimer();
 
             // Set new timer
             this.refreshTokenTimeout = setTimeout(() => {
-                console.log('Token refresh timer triggered');
                 if (!this.refreshingToken) {
-                    console.log('Starting token refresh');
                     this.refreshToken().subscribe({
-                        next: () => {
-                            console.log('Token refresh successful');
-                        },
+                        next: () => {},
                         error: (error) => {
                             console.error('Failed to refresh token:', error);
                             // Don't clear account data or redirect here
                             // Let the interceptor handle auth errors appropriately
                         }
                     });
-                } else {
-                    console.log('Token refresh already in progress');
                 }
             }, Math.max(0, timeout));
         } catch (error) {

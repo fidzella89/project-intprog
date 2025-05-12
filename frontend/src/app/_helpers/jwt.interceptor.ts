@@ -170,63 +170,56 @@ export class JwtInterceptor implements HttpInterceptor {
     private extractErrorMessage(error: HttpErrorResponse): string {
         // For authentication endpoints, handle specific error cases
         if (error.url && error.url.includes('/authenticate')) {
-            console.log('JWT Interceptor handling authentication error for URL:', error.url);
-            console.log('Authentication error details:', {
-                status: error.status,
-                statusText: error.statusText,
-                url: error.url,
-                hasErrorObj: !!error.error,
-                errorType: error.error ? typeof error.error : 'undefined',
-                errorContent: error.error
-            });
+            // Check for structured error object with errorType
+            if (error.error && typeof error.error === 'object' && error.error.errorType) {
+                // Let the component handle the structured error object
+                return error.error.message || 'Authentication error';
+            }
             
             // Use the exact backend error message if available
             if (error.error && typeof error.error === 'object' && error.error.message) {
-                console.log('JWT Interceptor using exact backend message:', error.error.message);
                 return error.error.message;
             }
             
             // Handle 401 status code with a consistent message
             if (error.status === 401) {
-                console.log('JWT Interceptor handling 401 status');
+                if (error.error && error.error.message) {
+                    return error.error.message;
+                }
                 return 'Authentication failed';
             }
             
             // Handle 403 status code with a consistent message
             if (error.status === 403) {
-                console.log('JWT Interceptor handling 403 status');
+                if (error.error && error.error.message) {
+                    return error.error.message;
+                }
                 return 'Your account has an issue. It may be unverified or inactive.';
             }
         }
         
         // Priority 1: Use error.error.message if available (most specific server error)
         if (error.error && error.error.message) {
-            console.log('JWT Interceptor using error.error.message:', error.error.message);
             return error.error.message;
         }
         // Priority 2: Check for nested error message
         else if (error.error && error.error.error && error.error.error.message) {
-            console.log('JWT Interceptor using error.error.error.message:', error.error.error.message);
             return error.error.error.message;
         }
         // Priority 3: If error.error is a string, use it directly
         else if (error.error && typeof error.error === 'string') {
-            console.log('JWT Interceptor using error.error as string:', error.error);
             return error.error;
         }
         // Priority 4: Use error.message if available and not generic
         else if (error.message && error.message !== 'Http failure response') {
-            console.log('JWT Interceptor using error.message:', error.message);
             return error.message;
         }
         // Priority 5: Use statusText if available
         else if (error.statusText) {
-            console.log('JWT Interceptor using statusText:', error.statusText);
             return error.statusText;
         }
         
         // Fallback
-        console.log('JWT Interceptor using fallback error message');
         return 'An error occurred during login. Please try again.';
     }
 }

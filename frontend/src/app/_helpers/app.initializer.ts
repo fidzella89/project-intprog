@@ -31,7 +31,7 @@ export function appInitializer(accountService: AccountService) {
             .subscribe({
                 next: (result) => {
                     if (result) {
-                        console.log('Token refreshed successfully during app initialization');
+                    console.log('Token refreshed successfully during app initialization');
                     } else {
                         console.log('Token refresh returned null result');
                     }

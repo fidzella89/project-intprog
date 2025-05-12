@@ -166,8 +166,8 @@ export class AddEditComponent implements OnInit {
         } else {
             // If no ID, it's a new item that can be removed directly
             this.items.removeAt(index);
-        }
-    }
+                }
+            }
 
     // Restore a previously hidden item
     restoreItem(index: number) {

@@ -181,51 +181,51 @@ async function create(params, retryCount = 0) {
             };
         }
 
-        // Generate request number
-        const requestNumber = await generateRequestNumber();
-        
-        // Check if request number already exists
-        const existingRequest = await db.Request.findOne({
-            where: { requestNumber }
-        });
-        
-        if (existingRequest) {
-            if (retryCount >= MAX_RETRIES) {
+    // Generate request number
+    const requestNumber = await generateRequestNumber();
+    
+    // Check if request number already exists
+    const existingRequest = await db.Request.findOne({
+        where: { requestNumber }
+    });
+    
+    if (existingRequest) {
+        if (retryCount >= MAX_RETRIES) {
                 throw {
                     name: 'ValidationError',
                     message: 'Failed to generate unique request number after maximum retries'
                 };
-            }
-            // If exists, try to generate a new one with incremented retry count
-            return create({ ...params, items, isAdmin }, retryCount + 1);
         }
-        
-        params.requestNumber = requestNumber;
-        params.status = isAdmin ? 'Approved' : 'Pending';
-        
-        console.log('Final request params:', params); // Debug log
-        
+        // If exists, try to generate a new one with incremented retry count
+        return create({ ...params, items, isAdmin }, retryCount + 1);
+    }
+    
+    params.requestNumber = requestNumber;
+    params.status = isAdmin ? 'Approved' : 'Pending';
+    
+    console.log('Final request params:', params); // Debug log
+    
         // Create request and items in a transaction
         const result = await db.Request.sequelize.transaction(async (t) => {
             try {
-                // Create the request
-                const request = await db.Request.create(params, { transaction: t });
-                console.log('Created request:', request.toJSON()); // Debug log
-                
-                // Create items
-                if (items.length > 0) {
-                    const requestItems = items.map(item => ({
-                        ...item,
-                        requestId: request.id
-                    }));
-                    await db.RequestItem.bulkCreate(requestItems, { 
-                        transaction: t,
-                        validate: true
-                    });
-                    console.log('Created request items:', requestItems); // Debug log
-                }
+            // Create the request
+            const request = await db.Request.create(params, { transaction: t });
+            console.log('Created request:', request.toJSON()); // Debug log
+            
+            // Create items
+            if (items.length > 0) {
+                const requestItems = items.map(item => ({
+                    ...item,
+                    requestId: request.id
+                }));
+                await db.RequestItem.bulkCreate(requestItems, { 
+                    transaction: t,
+                    validate: true
+                });
+                console.log('Created request items:', requestItems); // Debug log
+            }
 
-                return request;
+            return request;
             } catch (txError) {
                 console.error('Transaction error:', txError);
                 throw txError;

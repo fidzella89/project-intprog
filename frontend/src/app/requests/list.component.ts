@@ -96,7 +96,7 @@ export class ListComponent implements OnInit {
                             this.notFound = true;
                             this.alertService.info("No data found");
                         } else {
-                            this.alertService.error(error);
+                        this.alertService.error(error);
                         }
                         this.loading = false;
                     }
@@ -120,7 +120,7 @@ export class ListComponent implements OnInit {
                             this.notFound = true;
                             this.alertService.info("No data found");
                         } else {
-                            this.alertService.error(error);
+                        this.alertService.error(error);
                         }
                         this.loading = false;
                     }

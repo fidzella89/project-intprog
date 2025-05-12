@@ -10,7 +10,7 @@
                     <strong *ngIf="alert.type === AlertType.Success">Success:</strong>
                     <strong *ngIf="alert.type === AlertType.Warning">Warning:</strong>
                     <strong *ngIf="alert.type === AlertType.Info">Info:</strong>
-                    <span [innerHTML]="alert.message"></span>
+            <span [innerHTML]="alert.message"></span>
                 </div>
                 <button type="button" class="close ml-auto" (click)="removeAlert(alert)">
                     <span>&times;</span>
