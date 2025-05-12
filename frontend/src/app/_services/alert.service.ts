@@ -19,8 +19,22 @@ export class AlertService {
         this.alert(new Alert({ ...options, type: AlertType.Success, message }));
     }
 
-    error(message: string, options?: any) {
-        this.alert(new Alert({ ...options, type: AlertType.Error, message }));
+    error(message: any, options?: any) {
+        // Handle error objects with message property
+        let errorMessage = 'An error occurred';
+        
+        if (typeof message === 'string') {
+            errorMessage = message;
+        } else if (message && typeof message === 'object') {
+            // Check if it's an error object with a message property
+            if (message.message) {
+                errorMessage = message.message;
+            } else if (message.error && message.error.message) {
+                errorMessage = message.error.message;
+            }
+        }
+        
+        this.alert(new Alert({ ...options, type: AlertType.Error, message: errorMessage }));
     }
 
     info(message: string, options?: any) {

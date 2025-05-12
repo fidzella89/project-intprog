@@ -20,7 +20,10 @@ export class ListComponent implements OnInit {
     // Computed property to get available departments (excluding current department)
     get availableDepartments(): Department[] {
         if (!this.selectedEmployee) return this.departments;
-        return this.departments.filter(dept => dept.id.toString() !== this.selectedEmployee?.departmentId.toString());
+        return this.departments.filter(dept => {
+            if (!dept.id || !this.selectedEmployee?.departmentId) return true;
+            return dept.id.toString() !== this.selectedEmployee.departmentId.toString();
+        });
     }
 
     constructor(
@@ -37,18 +40,33 @@ export class ListComponent implements OnInit {
     }
 
     private loadEmployees() {
+        this.loading = true;
         this.employeeService.getAll()
             .pipe(first())
-            .subscribe(employees => {
-                this.employees = employees;
-                // Load department names for each employee
-                this.employees.forEach(employee => {
-                    this.departmentService.getById(employee.departmentId)
-                        .pipe(first())
-                        .subscribe(department => {
-                            employee.departmentName = department.name;
-                        });
-                });
+            .subscribe({
+                next: employees => {
+                    this.employees = employees;
+                    // Load department names for each employee
+                    this.employees.forEach(employee => {
+                        this.departmentService.getById(employee.departmentId)
+                            .pipe(first())
+                            .subscribe({
+                                next: department => {
+                                    employee.departmentName = department.name;
+                                },
+                                error: error => {
+                                    console.error('Error fetching department:', error);
+                                    employee.departmentName = 'Unknown Department';
+                                }
+                            });
+                    });
+                    this.loading = false;
+                },
+                error: error => {
+                    const errorMessage = error.message || 'Failed to load employees';
+                    this.alertService.error(errorMessage);
+                    this.loading = false;
+                }
             });
     }
 
@@ -139,12 +157,14 @@ export class ListComponent implements OnInit {
     viewRequests(employeeId: string) {
         // Get the employee object
         const employee = this.employees.find(e => e.id === employeeId);
-        if (employee) {
+        if (employee && employee.id) {
             this.router.navigate(['/requests'], { queryParams: { employeeId: employee.id } });
         }
     }
 
     viewWorkflows(employeeid: string) {
-        this.router.navigate(['/workflows'], { queryParams: { employeeid } });
+        if (employeeid) {
+            this.router.navigate(['/workflows'], { queryParams: { employeeid } });
+        }
     }
 } 
