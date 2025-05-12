@@ -179,7 +179,10 @@ export class AccountService implements IAccountService {
             sessionStorage.setItem('lastActiveUrl', currentUrl);
         }
         
-        return this.http.post<any>(`${baseUrl}/revoke-token`, {}, { withCredentials: true })
+        // Get the current token from the stored account
+        const token = this.accountValue?.jwtToken || '';
+        
+        return this.http.post<any>(`${baseUrl}/revoke-token`, { token }, { withCredentials: true })
             .pipe(
                 finalize(() => {
                     this.stopRefreshTokenTimer();
