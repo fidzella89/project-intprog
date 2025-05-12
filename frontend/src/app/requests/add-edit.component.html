@@ -38,11 +38,11 @@
             <!-- Items section only for Equipment and Resources -->
             <div *ngIf="showItemsSection" class="mb-3">
                 <h3>Items</h3>
-                <div class="alert alert-info" *ngIf="items.length === 0">
+                <div class="alert alert-info" *ngIf="itemsForm.controls.length === 0">
                     Please add at least one item for Equipment or Resources requests.
                 </div>
                 <div formArrayName="items">
-                    <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="row mb-2" [class.d-none]="isItemHidden(i)">
+                    <div *ngFor="let item of itemsForm.controls; let i=index" [formGroupName]="i" class="row mb-2" [class.d-none]="isItemHidden(i)">
                         <div class="col-5">
                             <input type="text" formControlName="name" class="form-control" placeholder="Item name"
                                 [ngClass]="{ 'is-invalid': submitted && item.get('name')?.errors }" />
@@ -73,7 +73,7 @@
                 <div class="mt-2">
                     <button type="button" (click)="addItem()" class="btn btn-secondary">Add Item</button>
                 </div>
-                <div *ngIf="submitted && form.get('type')?.value !== 'Leave' && items.length === 0" class="text-danger mt-2">
+                <div *ngIf="submitted && form.get('type')?.value !== 'Leave' && itemsForm.controls.length === 0" class="text-danger mt-2">
                     At least one item is required for Equipment and Resources requests
                 </div>
             </div>
