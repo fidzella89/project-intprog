@@ -207,8 +207,17 @@ export class AccountService implements IAccountService {
                     throw new Error('Invalid refresh token response - no JWT token');
                 }
                 
-                // Update the account subject with the new data
-                this.accountSubject.next(response);
+                // Create a complete account object by merging existing account data with new response
+                // This preserves any existing account data while updating the tokens
+                const updatedAccount = {
+                    ...this.accountValue,
+                    ...response,
+                    jwtToken: response.jwtToken,
+                    refreshToken: response.refreshToken || response.token // Handle both formats
+                };
+                
+                // Update the account subject with the complete account object
+                this.accountSubject.next(updatedAccount);
                 
                 // Update last refresh timestamp
                 this.lastTokenRefresh = Date.now();
@@ -216,7 +225,7 @@ export class AccountService implements IAccountService {
                 // Restart the refresh timer with the new token
                 this.startRefreshTokenTimer();
                 
-                return response;
+                return updatedAccount;
             }),
             catchError(error => {
                 console.error('Token refresh failed:', error);

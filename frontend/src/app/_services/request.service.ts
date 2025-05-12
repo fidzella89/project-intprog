@@ -4,55 +4,62 @@ import { Observable } from 'rxjs';
 
 import { environment } from '@environments/environment';
 import { Request } from '@app/_models';
+import { BaseService } from './base.service';
+import { AccountService } from './account.service';
 
 const baseUrl = `${environment.apiUrl}/requests`;
 
 @Injectable({ providedIn: 'root' })
-export class RequestService {
-    constructor(private http: HttpClient) { }
+export class RequestService extends BaseService {
+    constructor(
+        http: HttpClient,
+        accountService: AccountService
+    ) {
+        super(http, accountService);
+    }
 
     // Create a new request
     create(params: any) {
-        return this.http.post(baseUrl, params);
+        return this.createAuthRequest<any>('POST', 'requests', params);
     }
 
     // Get all requests (Admin only)
     getAll() {
-        return this.http.get(baseUrl);
+        return this.createAuthRequest<any>('GET', 'requests');
     }
 
     // Get request by ID
     getById(id: string): Observable<Request> {
-        return this.http.get<Request>(`${baseUrl}/${id}`);
+        return this.createAuthRequest<Request>('GET', `requests/${id}`);
     }
 
     // Get requests for an employee
     getByEmployeeId(employeeId: string) {
-        return this.http.get(`${baseUrl}/employee/${employeeId}`);
+        return this.createAuthRequest<any>('GET', `requests/employee/${employeeId}`);
     }
 
     // Get requests created by current employee
     getMyRequests() {
-        return this.http.get<Request[]>(`${baseUrl}/my-requests`);
+        return this.createAuthRequest<Request[]>('GET', 'requests/my-requests');
     }
 
     // Get assigned requests
     getAssignedRequests() {
-        return this.http.get(`${baseUrl}/assigned`);
+        return this.createAuthRequest<any>('GET', 'requests/assigned');
     }
 
     // Update request
     update(id: string, params: any) {
-        return this.http.put(`${baseUrl}/${id}`, params);
+        return this.createAuthRequest<any>('PUT', `requests/${id}`, params);
     }
 
     // Delete request (Admin only)
     delete(id: string) {
-        return this.http.delete(`${baseUrl}/${id}`);
+        return this.createAuthRequest<any>('DELETE', `requests/${id}`);
     }
 
     // Update request status
     changeStatus(id: string, status: string, notes: string = '') {
-        return this.http.put(`${baseUrl}/${id}/status`, { status, notes });
+        return this.createAuthRequest<any>('PUT', `requests/${id}/status`, { status, notes });
     }
 }

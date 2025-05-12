@@ -3,28 +3,35 @@ import { HttpClient } from '@angular/common/http';
 
 import { environment } from '@environments/environment';
 import { Department } from '@app/_models';
+import { BaseService } from './base.service';
+import { AccountService } from './account.service';
 
 @Injectable({ providedIn: 'root' })
-export class DepartmentService {
-    constructor(private http: HttpClient) { }
+export class DepartmentService extends BaseService {
+    constructor(
+        http: HttpClient,
+        accountService: AccountService
+    ) {
+        super(http, accountService);
+    }
 
     getAll() {
-        return this.http.get<Department[]>(`${environment.apiUrl}/departments`);
+        return this.createAuthRequest<Department[]>('GET', 'departments');
     }
 
     getById(id: string) {
-        return this.http.get<Department>(`${environment.apiUrl}/departments/${id}`);
+        return this.createAuthRequest<Department>('GET', `departments/${id}`);
     }
 
     create(department: Department) {
-        return this.http.post<Department>(`${environment.apiUrl}/departments`, department);
+        return this.createAuthRequest<Department>('POST', 'departments', department);
     }
 
     update(id: string, params: any) {
-        return this.http.put<Department>(`${environment.apiUrl}/departments/${id}`, params);
+        return this.createAuthRequest<Department>('PUT', `departments/${id}`, params);
     }
 
     delete(id: string) {
-        return this.http.delete(`${environment.apiUrl}/departments/${id}`);
+        return this.createAuthRequest<any>('DELETE', `departments/${id}`);
     }
 } 

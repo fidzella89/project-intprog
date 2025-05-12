@@ -131,9 +131,24 @@ export class JwtInterceptor implements HttpInterceptor {
             this.refreshTokenSubject.next(null);
 
             return this.accountService.refreshToken().pipe(
-                switchMap((account: any) => {
+                tap(account => {
+                    // Ensure the account is properly updated in the service
+                    if (account && account.jwtToken) {
+                        // The account should already be updated in the service via the accountSubject
+                        // Just make sure the token is available for other requests
+                        this.refreshTokenSubject.next(account.jwtToken);
+                    }
+                }),
+                switchMap(account => {
                     this.isRefreshing = false;
-                    this.refreshTokenSubject.next(account.jwtToken);
+                    
+                    if (!account || !account.jwtToken) {
+                        // If we don't get a valid token back, clear the account and redirect
+                        this.accountService.clearAccountData();
+                        this.router.navigate(['/account/login']);
+                        return throwError(() => 'Session expired. Please login again.');
+                    }
+                    
                     // Clone the original request with the new token
                     return next.handle(this.addTokenHeader(request, account.jwtToken));
                 }),

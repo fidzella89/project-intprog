@@ -4,44 +4,51 @@ import { Observable } from 'rxjs';
 
 import { environment } from '@environments/environment';
 import { Workflow } from '@app/_models';
+import { BaseService } from './base.service';
+import { AccountService } from './account.service';
 
 @Injectable({ providedIn: 'root' })
-export class WorkflowService {
-    constructor(private http: HttpClient) { }
+export class WorkflowService extends BaseService {
+    constructor(
+        http: HttpClient,
+        accountService: AccountService
+    ) {
+        super(http, accountService);
+    }
 
     getAll() {
-        return this.http.get<Workflow[]>(`${environment.apiUrl}/workflows`);
+        return this.createAuthRequest<Workflow[]>('GET', 'workflows');
     }
 
     getById(id: string) {
-        return this.http.get<Workflow>(`${environment.apiUrl}/workflows/${id}`);
+        return this.createAuthRequest<Workflow>('GET', `workflows/${id}`);
     }
 
     getByEmployeeId(employeeId: string) {
-        return this.http.get<Workflow[]>(`${environment.apiUrl}/workflows/employee/${employeeId}`);
+        return this.createAuthRequest<Workflow[]>('GET', `workflows/employee/${employeeId}`);
     }
 
     getByRequestId(requestId: string) {
-        return this.http.get<Workflow[]>(`${environment.apiUrl}/workflows/request/${requestId}`);
+        return this.createAuthRequest<Workflow[]>('GET', `workflows/request/${requestId}`);
     }
 
     create(workflow: any) {
-        return this.http.post<Workflow>(`${environment.apiUrl}/workflows`, workflow);
+        return this.createAuthRequest<Workflow>('POST', 'workflows', workflow);
     }
 
     update(id: string, params: any) {
-        return this.http.put<Workflow>(`${environment.apiUrl}/workflows/${id}`, params);
+        return this.createAuthRequest<Workflow>('PUT', `workflows/${id}`, params);
     }
 
     changeStatus(id: string, status: string, comments: string = '') {
-        return this.http.put<Workflow>(`${environment.apiUrl}/workflows/${id}`, { status });
+        return this.createAuthRequest<Workflow>('PUT', `workflows/${id}`, { status, comments });
     }
 
     delete(id: string) {
-        return this.http.delete(`${environment.apiUrl}/workflows/${id}`);
+        return this.createAuthRequest<any>('DELETE', `workflows/${id}`);
     }
 
     deleteItem(itemId: string) {
-        return this.http.delete(`${environment.apiUrl}/workflows/items/${itemId}`);
+        return this.createAuthRequest<any>('DELETE', `workflows/items/${itemId}`);
     }
 }

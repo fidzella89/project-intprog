@@ -7,14 +7,11 @@ export function appInitializer(accountService: AccountService) {
         // Check if we have a stored account first
         const account = accountService.accountValue;
         
-        if (!account) {
-            // No stored account, just resolve
-            console.log('No stored account found during initialization');
+        if (!account || !account.jwtToken) {
+            // No stored account or token, just resolve
             resolve();
             return;
         }
-
-        console.log('Found stored account, attempting to refresh token');
         
         // Try to refresh token on app start up with retry logic
         from(accountService.refreshToken())
@@ -22,7 +19,6 @@ export function appInitializer(accountService: AccountService) {
                 // Retry up to 2 times with a 1 second delay between attempts
                 retry({ count: 2, delay: 1000 }),
                 catchError((error) => {
-                    console.error('Token refresh failed after retries:', error);
                     // Don't clear account data here - let the user see any error messages
                     // and handle auth redirects in the interceptor
                     return of(null);
@@ -30,16 +26,11 @@ export function appInitializer(accountService: AccountService) {
             )
             .subscribe({
                 next: (result) => {
-                    if (result) {
-                    console.log('Token refreshed successfully during app initialization');
-                    } else {
-                        console.log('Token refresh returned null result');
-                    }
+                    // Token refreshed successfully or not, either way we should resolve
                     resolve();
                 },
                 error: (error) => {
                     // This should not be reached due to catchError above, but just in case
-                    console.error('Unexpected error during token refresh:', error);
                     resolve();
                 },
                 complete: () => {

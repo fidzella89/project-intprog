@@ -6,16 +6,20 @@ import { map, finalize } from 'rxjs/operators';
 
 import { environment } from '@environments/environment';
 import { Employee } from '@app/_models';
+import { BaseService } from './base.service';
+import { AccountService } from './account.service';
 
 @Injectable({ providedIn: 'root' })
-export class EmployeeService {
+export class EmployeeService extends BaseService {
     private employeeSubject: BehaviorSubject<Employee | null>;
     public employee: Observable<Employee | null>;
 
     constructor(
         private router: Router,
-        private http: HttpClient
+        http: HttpClient,
+        accountService: AccountService
     ) {
+        super(http, accountService);
         this.employeeSubject = new BehaviorSubject<Employee | null>(null);
         this.employee = this.employeeSubject.asObservable();
     }
@@ -25,29 +29,29 @@ export class EmployeeService {
     }
 
     getAll() {
-        return this.http.get<Employee[]>(`${environment.apiUrl}/employees`)
+        return this.createAuthRequest<Employee[]>('GET', 'employees')
             .pipe(map(employees => {
                 return employees.map(employee => this.mapDepartmentName(employee));
             }));
     }
 
     getById(id: string) {
-        return this.http.get<Employee>(`${environment.apiUrl}/employees/${id}`)
+        return this.createAuthRequest<Employee>('GET', `employees/${id}`)
             .pipe(map(employee => this.mapDepartmentName(employee)));
     }
 
     getByAccountId(accountId: string) {
-        return this.http.get<Employee>(`${environment.apiUrl}/employees/account/${accountId}`)
+        return this.createAuthRequest<Employee>('GET', `employees/account/${accountId}`)
             .pipe(map(employee => this.mapDepartmentName(employee)));
     }
 
     create(employee: Employee) {
-        return this.http.post<Employee>(`${environment.apiUrl}/employees`, employee)
+        return this.createAuthRequest<Employee>('POST', 'employees', employee)
             .pipe(map(employee => this.mapDepartmentName(employee)));
     }
 
     update(id: string, params: any) {
-        return this.http.put<Employee>(`${environment.apiUrl}/employees/${id}`, params)
+        return this.createAuthRequest<Employee>('PUT', `employees/${id}`, params)
             .pipe(map(employee => {
                 // Map department name
                 employee = this.mapDepartmentName(employee);
@@ -63,7 +67,7 @@ export class EmployeeService {
     }
 
     delete(id: string) {
-        return this.http.delete(`${environment.apiUrl}/employees/${id}`)
+        return this.createAuthRequest<any>('DELETE', `employees/${id}`)
             .pipe(finalize(() => {
                 // auto logout if the logged in employee was deleted
                 if (id === this.employeeValue?.id)
@@ -72,10 +76,10 @@ export class EmployeeService {
     }
 
     private mapDepartmentName(employee: Employee): Employee {
-        if (employee && employee['Department']) {
+        if (employee && employee.Department && employee.Department.name) {
             return {
                 ...employee,
-                departmentName: employee['Department'].name
+                departmentName: employee.Department.name
             };
         }
         return employee;
