@@ -118,8 +118,9 @@ export class LoginComponent implements OnInit {
                             this.showError(error, 'error');
                         }
                     } else {
-                        // If error is not a string, use a generic message
-                        this.showError('Login failed. Please try again.', 'error');
+                        // If error is not a string, assume it's a password error
+                        this.passwordError = 'Password is incorrect';
+                        this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
                     }
                     
                     this.loading = false;

@@ -89,6 +89,12 @@ export class AccountService implements IAccountService {
                     console.error('Error response body:', error.error);
                     this.clearAccountData();
                     
+                    // Handle specific authentication errors
+                    if (error.status === 401) {
+                        console.log('Authentication failed with status 401');
+                        return throwError(() => 'Password is incorrect');
+                    }
+                    
                     // Special handling for the auth endpoint error format
                     // Server returns: {"message":"Password is incorrect","errorType":"password"}
                     if (error.error && typeof error.error === 'object') {

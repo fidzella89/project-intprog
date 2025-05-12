@@ -168,6 +168,12 @@ export class JwtInterceptor implements HttpInterceptor {
     }
 
     private extractErrorMessage(error: HttpErrorResponse): string {
+        // For authentication endpoints, use a specific message for 401 errors
+        if (error.url && error.url.includes('/authenticate') && error.status === 401) {
+            console.log('JWT Interceptor using specific authentication error message');
+            return 'Password is incorrect';
+        }
+        
         // Priority 1: Use error.error.message if available (most specific server error)
         if (error.error && error.error.message) {
             console.log('JWT Interceptor using error.error.message:', error.error.message);
