@@ -127,7 +127,7 @@ export class LoginComponent implements OnInit {
                         if (errorLowerCase.includes('invalid credentials') || errorLowerCase.includes('unauthorized')) {
                             this.emailError = 'Invalid credentials';
                             this.passwordError = 'Invalid credentials';
-                            this.showError(error, 'error');
+                            this.showError('Login Failed. Please check your username or password, or you can contact the admin.', 'error');
                             this.loading = false;
                             return;
                         }
@@ -150,7 +150,7 @@ export class LoginComponent implements OnInit {
                         }
                         
                         // Default case: Use the error message directly
-                        this.showError(error, 'error');
+                        this.showError('Login Failed. Please check your username or password, or you can contact the admin.', 'error');
                         this.loading = false;
                         return;
                     } else if (error && typeof error === 'object') {
@@ -163,7 +163,7 @@ export class LoginComponent implements OnInit {
                         }
                         
                         // Default handling for object errors
-                        const errorMessage = error.message || 'Authentication failed';
+                        const errorMessage = error.message || 'Login Failed. Please check your username or password, or you can contact the admin.';
                         this.showError(errorMessage, 'error');
                         this.loading = false;
                         return;
@@ -172,7 +172,7 @@ export class LoginComponent implements OnInit {
                     // If error is not a string, use a generic message
                     console.error('Non-string error received in login component:', error);
                     this.passwordError = 'Authentication failed';
-                    this.showError('Authentication failed. Please check your credentials and try again.', 'error');
+                    this.showError('Login Failed. Please check your username or password, or you can contact the admin.', 'error');
                     this.loading = false;
                 }
             });
