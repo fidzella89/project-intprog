@@ -35,6 +35,9 @@ function authenticate(req, res, next) {
     const { email, password } = req.body;
     const ipAddress = req.ip;
     
+    // Log authentication attempt for debugging
+    console.log(`Authentication attempt for email: ${email}`);
+    
     accountService.authenticate({ email, password, ipAddress })
         .then(({ refreshToken, jwtToken, ...account }) => {
             if (!refreshToken || !jwtToken) {
@@ -60,30 +63,41 @@ function authenticate(req, res, next) {
             });
         })
         .catch(error => {
-            console.error('Authentication error:', error);
+            console.error('Authentication error details:', {
+                name: error.name,
+                message: error.message,
+                errorType: error.errorType,
+                status: error.status
+            });
             
             if (error.name === 'ValidationError') {
-                return res.status(400).json({ message: error.message });
+                return res.status(400).json({ 
+                    message: error.message,
+                    errorType: 'validation'
+                });
             }
             
             if (error.name === 'InvalidCredentialsError') {
+                // Make sure we're sending the right status code for credential errors
                 return res.status(401).json({ 
                     message: error.message,
-                    errorType: error.errorType
+                    errorType: error.errorType || 'credentials'
                 });
             }
             
             if (error.name === 'InactiveAccountError') {
                 return res.status(403).json({ 
                     message: error.message,
-                    status: error.status 
+                    status: error.status,
+                    errorType: 'inactive'
                 });
             }
             
             if (error.name === 'UnverifiedAccountError') {
                 return res.status(403).json({ 
                     message: error.message,
-                    status: error.status 
+                    status: error.status,
+                    errorType: 'unverified'
                 });
             }
             
@@ -91,7 +105,8 @@ function authenticate(req, res, next) {
             console.error('Unexpected authentication error:', error);
             return res.status(500).json({ 
                 message: 'An unexpected error occurred during authentication',
-                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+                errorType: 'server'
             });
         });
 }
@@ -111,8 +126,8 @@ function refreshToken(req, res, next) {
             });
         }
         
-        const ipAddress = req.ip;
-        
+    const ipAddress = req.ip;
+
         // Log debugging information
         console.log('Refresh Token Request:', {
             hasJwtToken: !!jwtToken,
@@ -235,25 +250,48 @@ function registerSchema(req, res, next) {
 }
 
 function register(req, res, next) {
-    accountService.register(req.body, req.get('origin'))
-        .then((result) => {
-            if (result && result.verificationToken) {
-                // Get the base URL dynamically
-                const baseUrl = req.protocol + '://' + req.get('host');
-                res.json({ 
+    // Get the origin from the request headers
+    const origin = req.get('origin');
+    
+    // Log registration attempt
+    console.log(`Registration attempt for email: ${req.body.email}`);
+    
+    accountService.register(req.body, origin)
+        .then(({ verificationToken }) => {
+            // Return different responses based on whether we're in development or production
+            if (process.env.NODE_ENV === 'development') {
+                return res.status(200).json({
                     message: 'Registration successful, please check your email for verification instructions',
-                    verificationToken: result.verificationToken,
-                    // URL for frontend
-                    verificationUrl: `${req.get('origin') || baseUrl}/account/verify-email?token=${result.verificationToken}`,
-                    // Direct API URL
-                    verificationApiUrl: `${baseUrl}/accounts/verify-email`,
-                    note: "POST to the verificationApiUrl with body: { \"token\": \"your-token\" }"
+                    verificationToken: verificationToken
                 });
             } else {
-                res.json({ message: 'Registration successful, please check your email for verification instructions' });
+                return res.status(200).json({
+                    message: 'Registration successful, please check your email for verification instructions'
+                });
             }
         })
-        .catch(next);
+        .catch(error => {
+            console.error('Registration error details:', {
+                name: error.name,
+                message: error.message,
+                errorType: error.errorType
+            });
+            
+            // Handle validation errors (including email exists)
+            if (error.name === 'ValidationError') {
+                return res.status(400).json({
+                    message: error.message,
+                    errorType: error.errorType || 'validation'
+                });
+            }
+            
+            // Handle other errors
+            console.error('Unexpected registration error:', error);
+            return res.status(500).json({
+                message: 'An unexpected error occurred during registration',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        });
 }
 
 function verifyEmailSchema(req, res, next) {

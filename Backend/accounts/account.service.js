@@ -102,7 +102,7 @@ async function refreshToken({ jwtToken, ipAddress }) {
                 message: 'JWT token is required'
             };
         }
-        
+
         // Extract account ID from JWT token
         let accountId;
         try {
@@ -114,7 +114,7 @@ async function refreshToken({ jwtToken, ipAddress }) {
                 message: 'Invalid JWT token'
             };
         }
-        
+
         // Find the account
         const account = await db.Account.findByPk(accountId);
         
@@ -124,7 +124,7 @@ async function refreshToken({ jwtToken, ipAddress }) {
                 message: 'Account not found'
             };
         }
-        
+
         // Check account status
         if (account.status === 'Inactive') {
             throw {
@@ -152,10 +152,10 @@ async function refreshToken({ jwtToken, ipAddress }) {
 
         // Return response with both tokens
         return {
-            ...basicDetails(account),
+        ...basicDetails(account),
             jwtToken: newJwtToken,
-            refreshToken: newRefreshToken.token
-        };
+        refreshToken: newRefreshToken.token
+    };
     } catch (error) {
         console.error('Refresh token error:', error);
         throw error;
@@ -174,8 +174,18 @@ async function revokeToken({ token, ipAddress }) {
 async function register(params, origin) {
     // validate
     if (await db.Account.findOne({ where: { email: params.email } })) {
-        // send already registered error in email to prevent account enumeration
-        return await sendAlreadyRegisteredEmail(params.email, origin);
+        // Return an error for the API rather than silently sending an email
+        if (origin) {
+            // For web requests, throw a proper error
+            throw {
+                name: 'ValidationError',
+                message: 'Email already exists. Please use a different email address or try to login.',
+                errorType: 'email'
+            };
+        } else {
+            // For non-web requests or migrations, just send the email
+            return await sendAlreadyRegisteredEmail(params.email, origin);
+        }
     }
 
     // create account object
