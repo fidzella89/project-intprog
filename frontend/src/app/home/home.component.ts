@@ -16,11 +16,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     ngOnInit() {
         // Subscribe to account changes
         this.accountSubscription = this.accountService.account.subscribe({
-            next: (account) => {
-                console.log('Home: Account state changed:', account);
+            next: account => {
                 this.account = account;
             },
-            error: (error) => {
+            error: error => {
                 console.error('Home: Error in account subscription:', error);
             }
         });

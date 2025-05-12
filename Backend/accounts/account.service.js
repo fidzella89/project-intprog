@@ -45,7 +45,7 @@ async function authenticate({ email, password, ipAddress }) {
     if (!account.isVerified) {
             throw { 
                 name: 'UnverifiedAccountError', 
-                message: 'Email is not verified. Please check your email for the verification link or register again to receive a new verification link.',
+                message: 'Email is not verified. Please check your email account for the verification link that was sent when you registered. The verification link is valid for 24 hours.',
                 status: 'Unverified'
             };
     }
@@ -365,7 +365,6 @@ function generateJwtToken(account) {
 
         // Create a JWT token that expires in 15 minutes
         const expiresIn = '15m';
-        console.log(`Generating JWT token for account ${account.id} with expiry ${expiresIn}`);
         
         const token = jwt.sign(
             { 
@@ -400,18 +399,12 @@ function generateRefreshToken(account, ipAddress) {
         const token = randomTokenString();
         const expires = new Date(Date.now() + 7*24*60*60*1000);
         
-        console.log(`Generating refresh token for account ${account.id}:
-            Token: ${token}
-            Expires: ${expires.toISOString()}
-            IP: ${ipAddress}`
-        );
-        
         const refreshToken = new db.RefreshToken({
-        accountId: account.id,
+            accountId: account.id,
             token: token,
             expires: expires,
-        createdByIp: ipAddress
-    });
+            createdByIp: ipAddress
+        });
 
         if (!refreshToken || !refreshToken.token) {
             throw new Error('Failed to create refresh token');
@@ -502,8 +495,6 @@ async function checkActiveTokens() {
             limit: 10
         });
         
-        console.log(`Found ${allTokens.length} active refresh tokens`);
-        
         if (allTokens.length > 0) {
             // Show details of the first few tokens
             allTokens.slice(0, 3).forEach(token => {
@@ -512,5 +503,21 @@ async function checkActiveTokens() {
         }
     } catch (error) {
         console.error('Error checking active tokens:', error);
+    }
+}
+
+async function getRefreshTokens(accountId) {
+    try {
+        // Get all refresh tokens for an account
+        const allTokens = await db.RefreshToken.findAll({
+            where: { accountId: accountId },
+            order: [['created', 'DESC']],
+            limit: 10
+        });
+        
+        return allTokens;
+    } catch (error) {
+        console.error('Error fetching refresh tokens:', error);
+        throw error;
     }
 }

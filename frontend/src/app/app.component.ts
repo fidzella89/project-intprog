@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
+import { Component, OnInit, OnDestroy, TemplateRef } from '@angular/core';
+import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { AccountService, AlertService } from './_services';
 import { Account, Role } from './_models';
 import { Subscription, filter } from 'rxjs';
+import { first } from 'rxjs/operators';
 
 @Component({
     selector: 'app-root',
@@ -15,11 +16,13 @@ export class AppComponent implements OnInit, OnDestroy {
     showLogoutModal = false;
     private accountSubscription?: Subscription;
     private routerSubscription?: Subscription;
+    private lastActiveUrl: string | null = null;
 
     constructor(
         private accountService: AccountService,
         private router: Router,
-        private alertService: AlertService
+        private alertService: AlertService,
+        private activatedRoute: ActivatedRoute
     ) {
         // Initialize account from service
         this.account = this.accountService.accountValue;
@@ -27,52 +30,39 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
-        // Subscribe to account changes
-        this.accountSubscription = this.accountService.account.subscribe({
-            next: (account) => {
-                console.log('App: Account state changed:', account);
-                this.account = account;
-                
-                // If account exists and we're on the login page, redirect to home
-                if (account && this.router.url.includes('/account/login')) {
-                    console.log('App: Redirecting to home page from login');
-                    this.router.navigate(['/']);
-                }
-            },
-            error: (error) => {
-                console.error('App: Error in account subscription:', error);
-            }
+        // Subscribe to account state changes
+        this.accountService.account.subscribe(account => {
+            this.account = account;
         });
 
-        // Subscribe to router events to handle navigation
-        this.routerSubscription = this.router.events
+        // On initial load, redirect to home page if already logged in
+        if (this.accountService.accountValue) {
+            // Redirect to home or previous page
+            const returnUrl = this.activatedRoute.snapshot.queryParams['returnUrl'] || this.lastActiveUrl || '/';
+        }
+
+        // Subscribe to navigation events to track the last active page
+        this.router.events
             .pipe(filter(event => event instanceof NavigationEnd))
             .subscribe((event: NavigationEnd) => {
-                console.log('App: Navigation event to', event.url);
-                
-                // Store the current URL for authenticated users on main pages (not login or account pages)
-                if (this.account && 
-                    !event.url.includes('/account/') && 
-                    event.url !== '/' && 
-                    !event.url.includes('login')) {
+                // Only store non-login pages
+                if (!event.url.includes('/account/login')) {
+                    // Store the last active URL in sessionStorage for persistence
                     sessionStorage.setItem('lastActiveUrl', event.url);
-                    console.log('App: Stored last active URL:', event.url);
+                    this.lastActiveUrl = event.url;
                 }
-                
-                // Check if we should redirect to home when logged in
-                if (this.account && event.url.includes('/account/login')) {
-                    console.log('App: Navigation - Redirecting logged in user from login page');
-                    this.router.navigate(['/']);
+
+                // Redirect to home/dashboard if trying to access login page while logged in
+                if (event.url.includes('/account/login') && this.accountService.accountValue) {
+                    const returnUrl = this.activatedRoute.snapshot.queryParams['returnUrl'] || this.lastActiveUrl || '/';
+                    this.router.navigate([returnUrl]);
+                    return;
                 }
-                
-                // We only want to check for auth redirect on main pages, not account pages
-                if (!event.url.includes('/account/')) {
-                    if (!this.account) {
-                        console.log('App: Navigation - Not logged in, redirecting to login');
-                        this.router.navigate(['/account/login']);
-                    } else {
-                        console.log('App: Navigation - Logged in, allowing access to', event.url);
-                    }
+
+                // Redirect to login if trying to access protected pages while logged out
+                if (!event.url.includes('/account/login') && !this.accountService.accountValue) {
+                    this.router.navigate(['/account/login'], { queryParams: { returnUrl: event.url }});
+                    return;
                 }
             });
     }
@@ -96,22 +86,22 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     logout() {
-        console.log('App: Logging out user');
-        this.closeLogoutModal(); // Close modal immediately after user confirms
-        
-        // The current URL is already stored in the accountService.logout() method
-        this.accountService.logout().subscribe({
-            next: () => {
-                console.log('App: Logout successful');
-                this.alertService.success('Logged out successfully');
-                // No need to navigate here as the accountService.logout() does this
-            },
-            error: (error) => {
-                console.error('App: Logout error:', error);
-                // Even if there's an error, still clear local data and redirect
-                this.accountService.clearAccountData();
-                this.router.navigate(['/account/login']);
-            }
-        });
+        this.accountService.logout()
+            .pipe(first())
+            .subscribe({
+                next: () => {
+                    // Store the current URL before logout to remember where to return
+                    const lastUrl = this.lastActiveUrl || '/';
+                    sessionStorage.setItem('lastActiveUrl', lastUrl);
+                    
+                    // Navigate to login with the return URL
+                    this.router.navigate(['/account/login'], { queryParams: { returnUrl: lastUrl } });
+                },
+                error: error => {
+                    // Keep console.error
+                    console.error('Logout error:', error);
+                    this.alertService.error('Logout failed', { autoClose: true, keepAfterRouteChange: true });
+                }
+            });
     }
 }

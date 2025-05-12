@@ -437,36 +437,41 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                     return unauthorized();
                 }
 
-            const account = accounts.find(x => x.refreshTokens?.includes(refreshToken));
-                if (!account) {
-                    console.log('No account found for refresh token');
-                    return unauthorized();
+                const tokenExpired = isTokenExpired(refreshToken);
+
+                if (tokenExpired) {
+                    // Token expired, handle refresh token
+                    const refreshTokenObj = accounts.find(x => x.refreshTokens?.includes(refreshToken));
+                    const account = accounts.find(x => x.id === refreshTokenObj.id);
+                    
+                    if (!account) {
+                        return error('No account found for refresh token');
+                    }
+                    
+                    if (new Date() > new Date(refreshTokenObj.refreshTokens.find(x => x === refreshToken).exp)) {
+                        return error('Refresh token has expired');
+                    }
+                    
+                    // Create new token and refresh token
+                    const newToken = generateJwtToken(account);
+                    const newRefreshToken = generateRefreshToken();
+                    
+                    // Update or add the account's refresh token
+                    const refreshTokenIndex = account.refreshTokens.findIndex(x => x === refreshToken);
+                    if (refreshTokenIndex !== -1) {
+                        account.refreshTokens[refreshTokenIndex] = newRefreshToken;
+                    } else {
+                        account.refreshTokens.push(newRefreshToken);
+                    }
+                    localStorage.setItem(accountsKey, JSON.stringify(accounts));
+                    
+                    // Return basic details and tokens
+                    return ok({
+                        ...basicDetails(account),
+                            jwtToken: newToken,
+                            refreshToken: newRefreshToken
+                    });
                 }
-
-                // Verify refresh token hasn't expired
-                if (isTokenExpired(refreshToken)) {
-                    console.log('Refresh token has expired');
-                    // Remove expired refresh token
-            account.refreshTokens = account.refreshTokens.filter(x => x !== refreshToken);
-            localStorage.setItem(accountsKey, JSON.stringify(accounts));
-                    return unauthorized();
-                }
-
-                // Generate new tokens
-                const newRefreshToken = generateRefreshToken();
-                const jwtToken = generateJwtToken(account);
-
-                // Update refresh tokens
-                account.refreshTokens = account.refreshTokens.filter(x => x !== refreshToken && !isTokenExpired(x));
-                account.refreshTokens.push(newRefreshToken);
-                localStorage.setItem(accountsKey, JSON.stringify(accounts));
-
-                console.log('Token refresh successful');
-            return ok({
-                ...basicDetails(account),
-                    jwtToken,
-                    refreshToken: newRefreshToken
-            });
             } catch (error) {
                 console.error('Refresh token error:', error);
                 return unauthorized();

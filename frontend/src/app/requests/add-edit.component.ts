@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
@@ -7,14 +7,16 @@ import { RequestService, AlertService, AccountService, EmployeeService } from '@
 import { Role, RequestType, RequestStatus } from '@app/_models';
 
 @Component({ templateUrl: 'add-edit.component.html' })
-export class AddEditComponent implements OnInit {
+export class AddEditComponent implements OnInit, OnDestroy {
     form!: FormGroup;
-    id!: string;
+    id?: string;
     isAddMode!: boolean;
     loading = false;
     submitted = false;
-    employeeId: string | null = null;
-    employeeFullName: string | null = null;
+    items: any[] = [];
+    employeeId?: string;
+    employeeFullName?: string;
+    targetEmployee?: any;
     isAdmin = false;
     deletedItems: any[] = []; // Track items marked for deletion
     originalItems: any[] = []; // Store original items for comparison
@@ -42,7 +44,7 @@ export class AddEditComponent implements OnInit {
     }
 
     // getter for items FormArray
-    get items() { return this.f.items as FormArray; }
+    get itemsForm() { return this.f.items as FormArray; }
 
     // convenience getter for easy access to form fields
     get f() { return this.form.controls; }
@@ -50,34 +52,34 @@ export class AddEditComponent implements OnInit {
     ngOnInit() {
         this.id = this.route.snapshot.params['id'];
         this.isAddMode = !this.id;
-
-        // Get employeeId from query params
-        const params = this.route.snapshot.queryParams;
-        this.employeeId = params['employeeId'];
-        console.log('Query params:', params); // Debug log
-        console.log('EmployeeId from query params:', this.employeeId); // Debug log
-
-        // If we have an employeeId, load employee details
-        if (this.employeeId) {
-            this.employeeService.getById(this.employeeId)
-                .pipe(first())
-                .subscribe({
-                    next: (employee) => {
-                        console.log('Employee details loaded:', employee); // Debug log
-                        if (employee && employee.account) {
-                            const firstName = employee.account.firstName?.charAt(0).toUpperCase() + 
-                                             (employee.account.firstName?.slice(1)?.toLowerCase() || '');
-                            const lastName = employee.account.lastName?.charAt(0).toUpperCase() + 
-                                           (employee.account.lastName?.slice(1)?.toLowerCase() || '');
-                            this.employeeFullName = `${firstName} ${lastName}`;
+        
+        // Check if there's a specific employeeId in the URL query params
+        this.route.queryParams.subscribe(params => {
+            this.employeeId = params['employeeId'];
+            
+            // If employee ID is provided, load their details
+            if (this.employeeId) {
+                this.employeeService.getById(this.employeeId)
+                    .pipe(first())
+                    .subscribe({
+                        next: (employee) => {
+                            this.targetEmployee = employee;
+                            // Access name properties correctly based on the Employee type
+                            if (employee && employee.account) {
+                                this.employeeFullName = `${employee.account.firstName} ${employee.account.lastName}`;
+                            }
+                            this.form.patchValue({
+                                employeeId: employee.id
+                            });
+                        },
+                        error: (error) => {
+                            console.error('Error loading employee details:', error);
+                            this.alertService.error('Failed to load employee details');
                         }
-                    },
-                    error: error => {
-                        this.alertService.error(error);
-                    }
-                });
-        }
-
+                    });
+            }
+        });
+        
         this.form = this.formBuilder.group({
             type: ['', Validators.required],
             items: this.formBuilder.array([])
@@ -122,14 +124,14 @@ export class AddEditComponent implements OnInit {
                         this.form.patchValue({ type: request.type });
                         
                         // Clear existing items
-                        while (this.items.length) {
-                            this.items.removeAt(0);
+                        while (this.itemsForm.length) {
+                            this.itemsForm.removeAt(0);
                         }
                         
                         // Load items if any and if not a Leave request
                         if (request.type !== 'Leave' && request.items && request.items.length > 0) {
                             request.items.forEach(item => {
-                                this.items.push(this.formBuilder.group({
+                                this.itemsForm.push(this.formBuilder.group({
                                     id: [item.id],
                                     name: [item.name, [Validators.required, Validators.maxLength(100)]],
                                     quantity: [item.quantity, [Validators.required, Validators.min(1), Validators.max(9999)]]
@@ -153,28 +155,28 @@ export class AddEditComponent implements OnInit {
             quantity: [item ? item.quantity : '', [Validators.required, Validators.min(1), Validators.max(9999)]]
         });
 
-        this.items.push(itemForm);
+        this.itemsForm.push(itemForm);
     }
 
     // Remove item
     removeItem(index: number) {
-        const item = this.items.at(index).value;
+        const item = this.itemsForm.at(index).value;
         if (item.id) {
             // If item has an ID, it exists in the database
             this.deletedItems.push(item.id);
             this.hiddenItems[index] = true;
         } else {
             // If no ID, it's a new item that can be removed directly
-            this.items.removeAt(index);
-                }
-            }
+            this.itemsForm.removeAt(index);
+        }
+    }
 
     // Restore a previously hidden item
     restoreItem(index: number) {
         this.hiddenItems[index] = false;
         
         // If the item ID was in deletedItems, remove it
-        const item = this.items.at(index).value;
+        const item = this.itemsForm.at(index).value;
         if (item.id) {
             const idIndex = this.deletedItems.indexOf(item.id);
             if (idIndex !== -1) {
@@ -197,35 +199,10 @@ export class AddEditComponent implements OnInit {
             return;
         }
 
-        // Get employeeId from query params
-        if (!this.employeeId) {
-            const params = this.route.snapshot.queryParams;
-            this.employeeId = params['employeeId'];
-            console.log('EmployeeId from query params:', this.employeeId); // Debug log
-        }
-
-        if (!this.employeeId) {
-            this.alertService.error('Employee ID is required');
-            return;
-        }
-
-        // Validate that employeeId is a valid number
-        const employeeIdNum = Number(this.employeeId);
-        if (isNaN(employeeIdNum) || employeeIdNum <= 0) {
-            this.alertService.error('Invalid Employee ID');
-            return;
-        }
-
-        // Validate items if type is not Leave
-        if (this.form.value.type !== 'Leave' && this.items.length === 0) {
-            this.alertService.error('At least one item is required for Equipment and Resources requests');
-            return;
-        }
-
         this.loading = true;
 
         // Get visible items only
-        const visibleItems = this.items.controls
+        const visibleItems = this.itemsForm.controls
             .filter((_, index) => !this.isItemHidden(index))
             .map(control => {
                 const value = control.value;
@@ -240,11 +217,10 @@ export class AddEditComponent implements OnInit {
         // Prepare request data - use the employeeId directly from query params
         const requestData = {
             type: this.form.value.type,
-            employeeId: employeeIdNum, // Ensure it's a number
+            employeeId: this.employeeId || this.form.value.employeeId,
             items: visibleItems,
             isAdmin: this.accountService.accountValue?.role === Role.Admin
         };
-        console.log('Request data being sent:', requestData); // Debug log
 
         if (this.isAddMode) {
             this.createRequest(requestData);
@@ -366,5 +342,9 @@ export class AddEditComponent implements OnInit {
     // Method to clear error messages
     clearError() {
         this.errorMessage = null;
+    }
+
+    ngOnDestroy() {
+        // Cleanup code if needed
     }
 } 
