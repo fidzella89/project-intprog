@@ -54,7 +54,7 @@ export class AccountService implements IAccountService {
         // If we have a stored account with a JWT token, start the refresh timer
         if (storedAccount?.jwtToken) {
             this.startRefreshTokenTimer();
-        }
+    }
     }
     
     // Helper method to get stored account data
