@@ -20,5 +20,5 @@ services:
 
 databases:
   - name: final-intprog-project-montemar-db
-    databaseName: project_intprog_final
+    databaseName: management_19lc
     ipAllowList: [] 
