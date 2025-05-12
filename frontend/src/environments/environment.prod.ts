@@ -1,6 +1,6 @@
 export const environment = {
     production: true,
-    apiUrl: 'https://final-intprog-proj.onrender.com',
-    allowedDomains: ['final-intprog-proj.onrender.com'],
+    apiUrl: 'https://final-intprog-project-1.com',
+    allowedDomains: ['final-intprog-project-1.com'],
     disallowedRoutes: []
 }
