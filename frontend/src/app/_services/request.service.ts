@@ -18,7 +18,7 @@ export class RequestService extends BaseService {
         super(http, accountService);
     }
 
-    // Create a new request
+    // Create a new requests
     create(params: any) {
         return this.createAuthRequest<any>('POST', 'requests', params);
     }
