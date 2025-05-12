@@ -90,17 +90,27 @@ export class AppComponent implements OnInit, OnDestroy {
             .pipe(first())
             .subscribe({
                 next: () => {
+                    // Close the modal
+                    this.closeLogoutModal();
+                    
                     // Store the current URL before logout to remember where to return
                     const lastUrl = this.lastActiveUrl || '/';
                     sessionStorage.setItem('lastActiveUrl', lastUrl);
                     
-                    // Navigate to login with the return URL
-                    this.router.navigate(['/account/login'], { queryParams: { returnUrl: lastUrl } });
+                    // The navigation is handled in the account service
                 },
                 error: error => {
-                    // Keep console.error
+                    // Close the modal even on error
+                    this.closeLogoutModal();
+                    
+                    // Log the error but don't show it to the user
                     console.error('Logout error:', error);
-                    this.alertService.error('Logout failed', { autoClose: true, keepAfterRouteChange: true });
+                    
+                    // Don't display any error messages as we've already logged out on the client side
+                },
+                complete: () => {
+                    // Make sure modal is closed
+                    this.closeLogoutModal();
                 }
             });
     }
