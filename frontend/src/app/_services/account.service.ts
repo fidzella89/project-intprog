@@ -27,6 +27,7 @@ export interface IAccountService {
     create(params: any): Observable<any>;
     update(id: string, params: any): Observable<any>;
     delete(id: string): Observable<any>;
+    updateStoredAccount(account: Account): void;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -453,6 +454,22 @@ export class AccountService implements IAccountService {
         if (this.refreshTokenTimeout) {
             clearTimeout(this.refreshTokenTimeout);
             this.refreshTokenTimeout = null;
+        }
+    }
+
+    /**
+     * Updates the accountSubject with a stored account from sessionStorage
+     * (Used by the BaseService when it finds a valid token in sessionStorage)
+     */
+    public updateStoredAccount(account: Account): void {
+        if (account && account.jwtToken) {
+            // Update the account subject
+            this.accountSubject.next(account);
+            
+            // Restart the refresh timer with the token
+            this.startRefreshTokenTimer();
+            
+            // No need to re-save to sessionStorage as it's already there
         }
     }
 }

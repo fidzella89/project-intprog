@@ -37,43 +37,60 @@ export class BaseService {
     }
   ): Observable<T> {
     // Get the current account to check for authentication
-    const account = this.accountService.accountValue;
+    let account = this.accountService.accountValue;
     
-    // If not authenticated or token seems invalid, try to refresh token first
+    // If no account in memory, check sessionStorage
     if (!account?.jwtToken) {
-      // Prevent multiple simultaneous refresh attempts
-      const now = Date.now();
-      if (BaseService.isRefreshing || (now - BaseService.lastRefreshAttempt < 2000)) {
-        // Return an observable that retries after a delay to wait for the refresh to complete
-        return of(null).pipe(
-          delay(1000),
-          switchMap(() => this.createAuthRequest<T>(method, endpoint, body, options)),
-          retry(3),
-          catchError(error => {
-            console.error('Still not authenticated after waiting for token refresh:', error);
-            return throwError(() => ({ message: 'Please log in to access this resource' }));
-          })
-        );
+      try {
+        const storedAccount = sessionStorage.getItem('account');
+        if (storedAccount) {
+          account = JSON.parse(storedAccount);
+          
+          // If we found a valid token in sessionStorage, update the accountSubject
+          if (account?.jwtToken) {
+            this.accountService.updateStoredAccount(account);
+          }
+        }
+      } catch (error) {
+        console.error('Error reading stored account:', error);
       }
-      
-      BaseService.isRefreshing = true;
-      BaseService.lastRefreshAttempt = now;
-      
-      return this.accountService.refreshToken().pipe(
-        switchMap(() => {
-          BaseService.isRefreshing = false;
-          return this.executeRequest<T>(method, endpoint, body, options);
-        }),
+    }
+    
+    // If we now have a valid token (either from memory or sessionStorage), use it
+    if (account?.jwtToken) {
+      return this.executeRequest<T>(method, endpoint, body, options);
+    }
+    
+    // If still not authenticated, try to refresh token
+    // Prevent multiple simultaneous refresh attempts
+    const now = Date.now();
+    if (BaseService.isRefreshing || (now - BaseService.lastRefreshAttempt < 2000)) {
+      // Return an observable that retries after a delay to wait for the refresh to complete
+      return of(null).pipe(
+        delay(1000),
+        switchMap(() => this.createAuthRequest<T>(method, endpoint, body, options)),
+        retry(3),
         catchError(error => {
-          BaseService.isRefreshing = false;
-          console.error('Authentication error in base service:', error);
-          return throwError(() => ({ message: 'Authentication required. Please log in.' }));
+          console.error('Still not authenticated after waiting for token refresh:', error);
+          return throwError(() => ({ message: 'Please log in to access this resource' }));
         })
       );
     }
     
-    // Otherwise execute the request directly
-    return this.executeRequest<T>(method, endpoint, body, options);
+    BaseService.isRefreshing = true;
+    BaseService.lastRefreshAttempt = now;
+    
+    return this.accountService.refreshToken().pipe(
+      switchMap(() => {
+        BaseService.isRefreshing = false;
+        return this.executeRequest<T>(method, endpoint, body, options);
+      }),
+      catchError(error => {
+        BaseService.isRefreshing = false;
+        console.error('Authentication error in base service:', error);
+        return throwError(() => ({ message: 'Authentication required. Please log in.' }));
+      })
+    );
   }
   
   /**
