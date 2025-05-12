@@ -20,13 +20,13 @@
     }
   },
   "secret": "E9g$2kL8#pXq5!RnW7vY4*zZb6@dF1jH3mPcQs",
-  "emailFrom": "antonina.durgan@ethereal.email",
+  "emailFrom": "zackery.kassulke55@ethereal.email",
   "smtpOptions": {
     "host": "smtp.ethereal.email",
     "port": 587,
     "auth": {
-      "user": "antonina.durgan@ethereal.email",
-      "pass": "dprRBjW6ZUkUGEBemj"
+      "user": "zackery.kassulke55@ethereal.email",
+      "pass": "wXvxQWGvDAnUE3f65F"
     }
   }
 }
