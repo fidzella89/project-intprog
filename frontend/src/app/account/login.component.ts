@@ -37,8 +37,9 @@ export class LoginComponent implements OnInit {
             password: ['', Validators.required]
         });
 
-        // get return url from route parameters or default to '/'
-        this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+        // get return url from route parameters, or last active URL, or default to '/'
+        const lastActiveUrl = sessionStorage.getItem('lastActiveUrl');
+        this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || lastActiveUrl || '/';
     }
 
     // convenience getter for easy access to form fields
@@ -62,8 +63,14 @@ export class LoginComponent implements OnInit {
             .pipe(first())
             .subscribe({
                 next: (account) => {
-                    // Get the return url from query parameters or default to '/'
-                    const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+                    // Get the return url from query parameters, or from session storage, or default to '/'
+                    const lastActiveUrl = sessionStorage.getItem('lastActiveUrl');
+                    const returnUrl = this.route.snapshot.queryParams['returnUrl'] || lastActiveUrl || '/';
+                    
+                    // Clear the last active URL after using it
+                    if (lastActiveUrl) {
+                        sessionStorage.removeItem('lastActiveUrl');
+                    }
                     
                     // Force a delay to ensure the token is properly processed
                     setTimeout(() => {

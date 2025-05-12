@@ -173,6 +173,12 @@ export class AccountService implements IAccountService {
     }
 
     logout() {
+        // Save the current URL before logging out
+        const currentUrl = this.router.url;
+        if (currentUrl && currentUrl !== '/account/login') {
+            sessionStorage.setItem('lastActiveUrl', currentUrl);
+        }
+        
         return this.http.post<any>(`${baseUrl}/revoke-token`, {}, { withCredentials: true })
             .pipe(
                 finalize(() => {

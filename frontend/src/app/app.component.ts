@@ -50,6 +50,15 @@ export class AppComponent implements OnInit, OnDestroy {
             .subscribe((event: NavigationEnd) => {
                 console.log('App: Navigation event to', event.url);
                 
+                // Store the current URL for authenticated users on main pages (not login or account pages)
+                if (this.account && 
+                    !event.url.includes('/account/') && 
+                    event.url !== '/' && 
+                    !event.url.includes('login')) {
+                    sessionStorage.setItem('lastActiveUrl', event.url);
+                    console.log('App: Stored last active URL:', event.url);
+                }
+                
                 // Check if we should redirect to home when logged in
                 if (this.account && event.url.includes('/account/login')) {
                     console.log('App: Navigation - Redirecting logged in user from login page');
@@ -90,11 +99,12 @@ export class AppComponent implements OnInit, OnDestroy {
         console.log('App: Logging out user');
         this.closeLogoutModal(); // Close modal immediately after user confirms
         
+        // The current URL is already stored in the accountService.logout() method
         this.accountService.logout().subscribe({
             next: () => {
                 console.log('App: Logout successful');
                 this.alertService.success('Logged out successfully');
-                this.router.navigate(['/account/login']);
+                // No need to navigate here as the accountService.logout() does this
             },
             error: (error) => {
                 console.error('App: Logout error:', error);
