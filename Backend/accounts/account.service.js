@@ -163,12 +163,47 @@ async function refreshToken({ jwtToken, ipAddress }) {
 }
 
 async function revokeToken({ token, ipAddress }) {
-    const refreshToken = await getRefreshToken(token);
+    try {
+        // Check if the token is provided
+        if (!token) {
+            throw {
+                name: 'ValidationError',
+                message: 'Token is required'
+            };
+        }
 
-    // revoke token and save
-    refreshToken.revoked = Date.now();
-    refreshToken.revokedByIp = ipAddress;
-    await refreshToken.save();
+        // Try to decode the JWT token
+        let accountId;
+        try {
+            const decoded = jwt.verify(token, config.secret);
+            accountId = decoded.id;
+        } catch (err) {
+            // If JWT verification fails, try to find token as a refresh token
+            const refreshToken = await db.RefreshToken.findOne({ where: { token } });
+            
+            if (!refreshToken) {
+                throw {
+                    name: 'InvalidTokenError',
+                    message: 'Invalid Token'
+                };
+            }
+            
+            // If it's a refresh token, revoke just that one
+            refreshToken.revoked = Date.now();
+            refreshToken.revokedByIp = ipAddress;
+            await refreshToken.save();
+            return;
+        }
+
+        // If JWT verification succeeds, revoke all refresh tokens for the account
+        await db.RefreshToken.update(
+            { revoked: Date.now(), revokedByIp: ipAddress },
+            { where: { accountId: accountId, revoked: null } }
+        );
+    } catch (error) {
+        console.error('Error revoking token:', error);
+        throw error;
+    }
 }
 
 async function register(params, origin) {
