@@ -45,8 +45,28 @@ export class AccountService implements IAccountService {
         private router: Router,
         private http: HttpClient
     ) {
-        this.accountSubject = new BehaviorSubject<Account | null>(null);
+        // Initialize account from localStorage on page refresh/load
+        const storedAccount = this.getStoredAccount();
+        this.accountSubject = new BehaviorSubject<Account | null>(storedAccount);
         this.account = this.accountSubject.asObservable();
+        
+        // If we have a stored account with a JWT token, start the refresh timer
+        if (storedAccount?.jwtToken) {
+            this.startRefreshTokenTimer();
+        }
+    }
+    
+    // Helper method to get stored account data
+    private getStoredAccount(): Account | null {
+        try {
+            const storedAccount = sessionStorage.getItem('account');
+            if (storedAccount) {
+                return JSON.parse(storedAccount);
+            }
+        } catch (error) {
+            console.error('Error reading stored account:', error);
+        }
+        return null;
     }
 
     public get accountValue() {
@@ -72,6 +92,9 @@ export class AccountService implements IAccountService {
                     if (!account.jwtToken) {
                         throw new Error('No JWT token in response');
                     }
+
+                    // Store account data in sessionStorage
+                    sessionStorage.setItem('account', JSON.stringify(account));
 
                     // Update the account subject
                     this.accountSubject.next(account);
@@ -153,6 +176,7 @@ export class AccountService implements IAccountService {
             .pipe(
                 finalize(() => {
                     this.stopRefreshTokenTimer();
+                    sessionStorage.removeItem('account');
                     this.accountSubject.next(null);
                     this.router.navigate(['/account/login']);
                 })
@@ -178,7 +202,7 @@ export class AccountService implements IAccountService {
         }
 
         this.refreshingToken = true;
-        
+
         // The backend expects: token = JWT token
         const jwtToken = this.accountValue.jwtToken;
         
@@ -188,7 +212,7 @@ export class AccountService implements IAccountService {
             return throwError(() => new Error('No JWT token available'));
         }
         
-        return this.http.post<any>(`${baseUrl}/refresh-token`, { 
+        return this.http.post<any>(`${baseUrl}/refresh-token`, {
             token: jwtToken  // Pass JWT token as token parameter
         }, { 
             withCredentials: true,
@@ -215,6 +239,9 @@ export class AccountService implements IAccountService {
                     jwtToken: response.jwtToken,
                     refreshToken: response.refreshToken || response.token // Handle both formats
                 };
+                
+                // Store updated account in sessionStorage
+                sessionStorage.setItem('account', JSON.stringify(updatedAccount));
                 
                 // Update the account subject with the complete account object
                 this.accountSubject.next(updatedAccount);
@@ -311,6 +338,7 @@ export class AccountService implements IAccountService {
 
     public clearAccountData(): void {
         this.stopRefreshTokenTimer();
+        sessionStorage.removeItem('account');
         this.accountSubject.next(null);
         this.refreshingToken = false;
     }
@@ -400,7 +428,7 @@ export class AccountService implements IAccountService {
             }
             
             // Clear any existing timer
-            this.stopRefreshTokenTimer();
+                this.stopRefreshTokenTimer();
 
             // Set new timer
             this.refreshTokenTimeout = setTimeout(() => {
