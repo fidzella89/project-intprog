@@ -7,7 +7,7 @@ const app = express();
 
 // CORS configuration
 const allowedOrigins = [
-    'https://final-intprog-project-eqiv.onrender.com',
+    'https://final-intprog-project-montemar.onrender.com',
     'http://localhost:4200',
     'http://localhost:4000',
     'http://localhost:3000'
@@ -144,5 +144,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    // Server startup logs removed
+    console.log(`Server is running on port ${PORT}`);
+    console.log('Environment:', process.env.NODE_ENV || 'development');
+    console.log('CORS enabled for:', corsOptions.origin);
 }); 

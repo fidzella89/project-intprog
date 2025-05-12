@@ -15,7 +15,7 @@ app.use(cookieParser(process.env.COOKIE_SECRET || 'your-secret-key'));
 
 // CORS configuration
 const allowedOrigins = [
-    'https://final-intprog-project-eqiv.onrender.com',
+    'https://final-intprog-project-montemar.onrender.com',
     'http://localhost:4200',
     'http://localhost:4000'
 ];
@@ -101,7 +101,9 @@ const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 
 
 // Add error handling for the server
 const server = app.listen(port, '0.0.0.0', () => {
-    // Server startup logs removed
+    console.log('Server listening on port ' + port);
+    console.log('Environment:', process.env.NODE_ENV || 'development');
+    console.log('CORS enabled for:', allowedOrigins);
 }).on('error', (err) => {
     console.error('Server failed to start:', err);
     process.exit(1);
