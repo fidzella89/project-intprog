@@ -7,7 +7,7 @@ const app = express();
 
 // CORS configuration
 const allowedOrigins = [
-    'https://final-intprog-project.onrender.com',
+    'https://final-intprog-proj.onrender.com',
     'http://localhost:4200',
     'http://localhost:4000',
     'http://localhost:3000'

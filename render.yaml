@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: final-intprog-project-montemar
+    name: final-intprog-proj
     env: node
     buildCommand: npm install && npm run render-build
     startCommand: node server.js
@@ -9,7 +9,7 @@ services:
         value: production
       - key: DATABASE_URL
         fromDatabase:
-          name: final-intprog-project-montemar-db
+          name: final-intprog-proj-db
           property: connectionString
     healthCheckPath: /health
     autoDeploy: true 
@@ -19,6 +19,6 @@ services:
       sizeGB: 1
 
 databases:
-  - name: final-intprog-project-montemar-db
+  - name: final-intprog-proj-db
     databaseName: management_19lc
     ipAllowList: [] 
