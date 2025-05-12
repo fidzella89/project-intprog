@@ -113,7 +113,7 @@ export class LoginComponent implements OnInit {
                         }
                         
                         // Case 3: Password is incorrect
-                        if (errorLowerCase.includes('password is incorrect') || error === 'Login failed') {
+                        if (errorLowerCase.includes('password is incorrect')) {
                             this.passwordError = 'Password is incorrect';
                             this.showError('The password you entered is incorrect. Please try again or use "Forgot Password".', 'error');
                             this.loading = false;
@@ -140,6 +140,23 @@ export class LoginComponent implements OnInit {
                         // Case 6: Account inactive
                         if (errorLowerCase.includes('inactive')) {
                             this.showError('Your account is inactive. Please contact the administrator for assistance.', 'warning');
+                            this.loading = false;
+                            return;
+                        }
+                        
+                        // Case 7: Account issue (generic)
+                        if (errorLowerCase.includes('account') && (
+                            errorLowerCase.includes('issue') || 
+                            errorLowerCase.includes('problem')
+                        )) {
+                            this.showError('There is an issue with your account. Please contact support for assistance.', 'warning');
+                            this.loading = false;
+                            return;
+                        }
+                        
+                        // Case 8: Generic login failed (only if it's explicitly "Login failed")
+                        if (error === 'Login failed') {
+                            this.showError('Login failed. Please check your credentials and try again.', 'error');
                             this.loading = false;
                             return;
                         }

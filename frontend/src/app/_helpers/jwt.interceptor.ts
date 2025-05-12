@@ -237,13 +237,21 @@ export class JwtInterceptor implements HttpInterceptor {
                 
                 // Return the actual error message if available
                 if (error.error.message) {
+                    console.log('Using server provided message:', error.error.message);
                     return error.error.message;
                 }
             }
             
             // Handle 401 Unauthorized as password incorrect if no specific message found
             if (error.status === 401) {
+                console.log('JWT Interceptor handling 401 status as password incorrect');
                 return 'Password is incorrect';
+            }
+            
+            // Handle 403 Forbidden as account issue
+            if (error.status === 403) {
+                console.log('JWT Interceptor handling 403 status as account issue');
+                return 'Your account has an issue. It may be unverified or inactive.';
             }
         }
         
@@ -275,6 +283,6 @@ export class JwtInterceptor implements HttpInterceptor {
         
         // Fallback
         console.log('JWT Interceptor using fallback error message');
-        return 'An error occurred';
+        return 'An error occurred during login. Please try again.';
     }
 }

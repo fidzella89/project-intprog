@@ -91,75 +91,66 @@ export class AccountService implements IAccountService {
                     console.error('Error URL:', error.url);
                     this.clearAccountData();
                     
-                    // Handle specific authentication errors
-                    if (error.status === 401) {
-                        console.log('Authentication failed with status 401 - returning "Password is incorrect"');
+                    // For authentication endpoint errors, extract specific error information
+                    if (error.url && error.url.includes('/authenticate')) {
+                        console.log('Processing authentication endpoint error');
                         
-                        // Check for detailed error information
-                        if (error.error && error.error.error) {
-                            console.log('Detailed error information:', error.error.error);
-                            
-                            if (error.error.errorType === 'email') {
-                                return throwError(() => 'Email does not exist');
+                        // Check for detailed error information in the error object
+                        if (error.error) {
+                            // Handle object error responses
+                            if (typeof error.error === 'object') {
+                                // Check for errorType to determine specific error
+                                if (error.error.errorType) {
+                                    console.log('Error type detected:', error.error.errorType);
+                                    
+                                    if (error.error.errorType === 'email') {
+                                        return throwError(() => 'Email does not exist');
+                                    }
+                                    
+                                    if (error.error.errorType === 'password') {
+                                        return throwError(() => 'Password is incorrect');
+                                    }
+                                    
+                                    if (error.error.errorType === 'unverified') {
+                                        return throwError(() => error.error.message || 'Email is not verified');
+                                    }
+                                    
+                                    if (error.error.errorType === 'inactive') {
+                                        return throwError(() => error.error.message || 'Account is inactive');
+                                    }
+                                }
+                                
+                                // If we have an error message, use it
+                                if (error.error.message) {
+                                    console.log('Using error.error.message:', error.error.message);
+                                    return throwError(() => error.error.message);
+                                }
                             }
                             
-                            if (error.error.errorType === 'password') {
-                                return throwError(() => 'Password is incorrect');
+                            // If error.error is a string, use it directly
+                            if (typeof error.error === 'string') {
+                                console.log('Using error.error as string:', error.error);
+                                return throwError(() => error.error);
                             }
                         }
                         
-                        return throwError(() => 'Password is incorrect');
-                    }
-                    
-                    // Special handling for the auth endpoint error format
-                    // Server returns: {"message":"Password is incorrect","errorType":"password"}
-                    if (error.error && typeof error.error === 'object') {
-                        console.log('Server returned an error object:', error.error);
-                        
-                        // Check for errorType to determine specific error
-                        if (error.error.errorType) {
-                            console.log('Error type:', error.error.errorType);
-                            
-                            if (error.error.errorType === 'email') {
-                                return throwError(() => 'Email does not exist');
-                            }
-                            
-                            if (error.error.errorType === 'password') {
-                                return throwError(() => 'Password is incorrect');
-                            }
-                            
-                            if (error.error.errorType === 'unverified') {
-                                return throwError(() => error.error.message || 'Email is not verified');
-                            }
-                            
-                            if (error.error.errorType === 'inactive') {
-                                return throwError(() => error.error.message || 'Account is inactive');
-                            }
+                        // For 401 status (unauthorized), assume password is incorrect
+                        if (error.status === 401) {
+                            console.log('401 status detected, returning "Password is incorrect"');
+                            return throwError(() => 'Password is incorrect');
                         }
                         
-                        // Direct access to the message property
-                        if (error.error.message) {
-                            console.log('Using error.error.message:', error.error.message);
-                            return throwError(() => error.error.message);
+                        // For 403 status (forbidden), could be unverified or inactive account
+                        if (error.status === 403) {
+                            console.log('403 status detected, returning "Account issue"');
+                            return throwError(() => 'Your account has an issue. It may be unverified or inactive.');
                         }
-                    }
-                    
-                    // If error.error is a string, use it directly
-                    if (error.error && typeof error.error === 'string') {
-                        console.log('Using error.error as string:', error.error);
-                        return throwError(() => error.error);
                     }
                     
                     // If there is an error message on the error object, use it
                     if (error.message && error.message !== 'Http failure response') {
                         console.log('Using error.message:', error.message);
                         return throwError(() => error.message);
-                    }
-                    
-                    // For authentication endpoints, always return a specific message
-                    if (error.url && error.url.includes('/authenticate')) {
-                        console.log('Authentication endpoint error - returning specific message');
-                        return throwError(() => 'Password is incorrect');
                     }
                     
                     // Fallback generic message only if absolutely nothing else
