@@ -112,6 +112,7 @@ function authenticate(req, res, next) {
                     message: error.message,
                     status: error.status,
                     errorType: 'unverified',
+                    canResendVerification: true,
                     error: {
                         name: error.name,
                         status: error.status,
@@ -123,7 +124,7 @@ function authenticate(req, res, next) {
             // Log unexpected errors
             console.error('Unexpected authentication error:', error);
             return res.status(500).json({ 
-                message: 'An unexpected error occurred during authentication',
+                message: error.message || 'An unexpected error occurred during authentication',
                 error: process.env.NODE_ENV === 'development' ? error : undefined,
                 errorType: 'server'
             });
@@ -277,17 +278,11 @@ function register(req, res, next) {
     
     accountService.register(req.body, origin)
         .then(({ verificationToken }) => {
-            // Return different responses based on whether we're in development or production
-            if (process.env.NODE_ENV === 'development') {
-                return res.status(200).json({
-                    message: 'Registration successful, please check your email for verification instructions',
-                    verificationToken: verificationToken
-                });
-            } else {
-                return res.status(200).json({
-                    message: 'Registration successful, please check your email for verification instructions'
-                });
-            }
+            // Always include verificationToken in response for the "Verify Now" button to work
+            return res.status(200).json({
+                message: 'Registration successful, please check your email for verification instructions',
+                verificationToken: verificationToken
+            });
         })
         .catch(error => {
             console.error('Registration error details:', {
