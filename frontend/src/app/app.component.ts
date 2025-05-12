@@ -26,7 +26,6 @@ export class AppComponent implements OnInit, OnDestroy {
     ) {
         // Initialize account from service
         this.account = this.accountService.accountValue;
-        console.log('App: Initial account state:', this.account);
     }
 
     ngOnInit() {
@@ -59,8 +58,19 @@ export class AppComponent implements OnInit, OnDestroy {
                     return;
                 }
 
+                // Allow access to register, forgot-password, and reset-password pages even when not logged in
+                const allowedPublicPages = [
+                    '/account/login', 
+                    '/account/register',
+                    '/account/forgot-password',
+                    '/account/reset-password',
+                    '/account/verify-email'
+                ];
+                
+                const isPublicPage = allowedPublicPages.some(page => event.url.includes(page));
+
                 // Redirect to login if trying to access protected pages while logged out
-                if (!event.url.includes('/account/login') && !this.accountService.accountValue) {
+                if (!isPublicPage && !this.accountService.accountValue) {
                     this.router.navigate(['/account/login'], { queryParams: { returnUrl: event.url }});
                     return;
                 }
